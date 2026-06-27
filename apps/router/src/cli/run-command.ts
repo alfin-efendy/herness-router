@@ -40,11 +40,11 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
   const workdir = resolve(expandHome(dir));
   const db = openDb(deps.dbPath);
   const projects = new ProjectsStore(db);
+  const settings = new SettingsStore(db);
   const cp = new ControlPlane({
-    projects, sessions: new SessionsStore(db), settings: new SettingsStore(db),
+    projects, sessions: new SessionsStore(db), settings,
     workdirRoot: dirname(workdir),
   });
-  const settings = new SettingsStore(db);
   const defaultRuntime = settings.get("default_runtime") || "claude-code";
   if (deps.harnessFactory) {
     cp.harnesses.register(defaultRuntime, deps.harnessFactory);

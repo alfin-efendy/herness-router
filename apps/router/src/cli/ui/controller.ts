@@ -107,7 +107,7 @@ export class AppController extends EventEmitter {
   }
 
   async startDaemon(): Promise<void> {
-    if (this.daemonState.running) return;
+    if (this.daemonState.running || this.daemonState.starting) return;
     const missing = this.missingRequired();
     if (missing.length || this.enabledGateways().length === 0) {
       const why = missing.length ? `missing settings: ${missing.join(", ")}` : "no gateways enabled";

@@ -26,3 +26,13 @@ test("settingKeys + isSecret reflect composed schema", () => {
   expect(c.isSecret("discord.token")).toBe(true);
   expect(c.isSecret("workdir_root")).toBe(false);
 });
+
+test("checkEnv reports tool detection via injected detectors", async () => {
+  const c = new AppController({
+    dbPath: ":memory:",
+    detect: { claude: async () => ({ found: true, version: "2.1.0" }), git: async () => ({ found: true, version: "2.45.0" }) },
+  });
+  const env = await c.checkEnv();
+  expect(env.git.found).toBe(true);
+  expect(env.claude.found).toBe(true);
+});
