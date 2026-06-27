@@ -81,11 +81,12 @@ Driving sessions from Discord needs a bot you create in the Discord Developer Po
 
 1. **Create an application.** Open the [Discord Developer Portal](https://discord.com/developers/applications) → **New Application**, name it, and create.
 2. **Add a bot token.** Open **Bot** in the sidebar → **Reset Token** → copy it. This is your **`discord.token`** — keep it secret, treat it like a password.
-3. **Copy the Application ID.** Open **General Information** → copy **Application ID**. This is your **`discord.app_id`**.
-4. **Copy your Server ID.** In Discord, enable **Settings → Advanced → Developer Mode**, then right-click your server icon → **Copy Server ID**. This is your **`discord.guild_id`**.
-5. **Invite the bot to your server.** Open **OAuth2 → URL Generator**, select the scopes **`bot`** and **`applications.commands`**, choose the permissions the bot needs, then open the generated URL and add the bot to your server.
-6. **Enter the values.** Run `hr`; the setup wizard prompts for `discord.token`, `discord.app_id`, and `discord.guild_id`. For headless automation you can use `hr config set discord.token <value>` instead.
-7. **(Optional) Restrict access.** Set `admin_role_ids` and/or `approver_role_ids` to comma-separated Discord role IDs to control who may administer the bot and who may approve tool use.
+3. **Enable the Message Content intent.** Still on the **Bot** page, scroll to **Privileged Gateway Intents** and turn on **Message Content Intent**. The bot reads message text to respond — it connects but won't see your messages without this.
+4. **Copy the Application ID.** Open **General Information** → copy **Application ID**. This is your **`discord.app_id`**.
+5. **Copy your Server ID.** In Discord, enable **Settings → Advanced → Developer Mode**, then right-click your server icon → **Copy Server ID**. This is your **`discord.guild_id`**.
+6. **Invite the bot to your server.** Open **OAuth2 → URL Generator**, select the scopes **`bot`** and **`applications.commands`**, then under **Bot Permissions** check **View Channels**, **Send Messages**, **Send Messages in Threads**, **Create Public Threads**, **Manage Channels** (it creates a channel per project and a thread per session), and **Read Message History**. Open the generated URL and add the bot to your server.
+7. **Enter the values.** Run `hr`; the setup wizard prompts for `discord.token`, `discord.app_id`, and `discord.guild_id`. For headless automation you can use `hr config set discord.token <value>` instead.
+8. **(Optional) Restrict access.** Set `admin_role_ids` and/or `approver_role_ids` to comma-separated Discord role IDs to control who may administer the bot and who may approve tool use.
 
 Run `hr` again — the Discord gateway connects and you can drive sessions from your server.
 
