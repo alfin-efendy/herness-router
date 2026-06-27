@@ -47,6 +47,34 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
+homebrew_casks:
+  - name: harness-router
+    ids: [default]
+    binaries: [hr]
+    repository:
+      owner: alfin-efendy
+      name: homebrew-harness
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/alfin-efendy/herness-router"
+    description: "Gateway-agnostic control plane for agent harnesses (hr CLI)"
+    commit_author:
+      name: goreleaserbot
+      email: bot@harness-router.dev
+
+scoops:
+  - name: harness-router
+    repository:
+      owner: alfin-efendy
+      name: scoop-harness
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/alfin-efendy/herness-router"
+    description: "Gateway-agnostic control plane for agent harnesses (hr CLI)"
+    license: MIT
+    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+
 release:
   github:
     owner: alfin-efendy
