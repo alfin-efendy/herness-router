@@ -25,6 +25,8 @@ test("startDaemon spawns the detached __daemon process when configured", async (
   const { c, spawns } = configured();
   await c.startDaemon();
   expect(spawns).toHaveLength(1);
+  expect(spawns[0]![0]).toBe(process.execPath);
+  expect(spawns[0]![1]).toBe(process.argv[1]);
   expect(spawns[0]!.at(-1)).toBe("__daemon");
 });
 

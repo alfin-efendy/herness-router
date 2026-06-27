@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { existsSync, readFileSync, openSync } from "node:fs";
+import { existsSync, readFileSync, openSync, closeSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Database } from "bun:sqlite";
 import { openDb } from "../../store/db";
@@ -20,6 +20,7 @@ export type SpawnDaemon = (cmd: string[], opts: { logPath: string }) => { pid: n
 const defaultSpawnDaemon: SpawnDaemon = (cmd, { logPath }) => {
   const fd = openSync(logPath, "a");
   const proc = Bun.spawn({ cmd, detached: true, stdio: ["ignore", fd, fd] });
+  closeSync(fd);
   proc.unref();
   return { pid: proc.pid };
 };
