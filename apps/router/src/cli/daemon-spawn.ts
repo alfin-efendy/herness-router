@@ -9,7 +9,5 @@ export function isCompiledExecutable(main: string = Bun.main): boolean {
  * Dev (`bun <script>`): pass the script path so Bun knows what to execute.
  */
 export function daemonRelaunchCmd(opts: { execPath: string; main: string; compiled: boolean }): string[] {
-  return opts.compiled
-    ? [opts.execPath, "__daemon"]
-    : [opts.execPath, opts.main, "__daemon"];
+  return opts.compiled ? [opts.execPath, "__daemon"] : [opts.execPath, opts.main, "__daemon"];
 }

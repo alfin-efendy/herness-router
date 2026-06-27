@@ -8,11 +8,16 @@ test("isCompiledExecutable detects the Bun standalone virtual paths", () => {
 });
 
 test("daemonRelaunchCmd drops the script path when compiled", () => {
-  expect(daemonRelaunchCmd({ execPath: "/usr/local/bin/hr", main: "/$bunfs/root/hr", compiled: true }))
-    .toEqual(["/usr/local/bin/hr", "__daemon"]);
+  expect(daemonRelaunchCmd({ execPath: "/usr/local/bin/hr", main: "/$bunfs/root/hr", compiled: true })).toEqual([
+    "/usr/local/bin/hr",
+    "__daemon",
+  ]);
 });
 
 test("daemonRelaunchCmd keeps the script path in dev mode", () => {
-  expect(daemonRelaunchCmd({ execPath: "/home/me/.bun/bin/bun", main: "/home/me/app/index.ts", compiled: false }))
-    .toEqual(["/home/me/.bun/bin/bun", "/home/me/app/index.ts", "__daemon"]);
+  expect(daemonRelaunchCmd({ execPath: "/home/me/.bun/bin/bun", main: "/home/me/app/index.ts", compiled: false })).toEqual([
+    "/home/me/.bun/bin/bun",
+    "/home/me/app/index.ts",
+    "__daemon",
+  ]);
 });
