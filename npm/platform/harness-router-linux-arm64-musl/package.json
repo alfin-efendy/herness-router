@@ -1,0 +1,26 @@
+{
+  "name": "harness-router-linux-arm64-musl",
+  "version": "0.0.0",
+  "description": "linux-arm64 (musl) binary for harness-router.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alfin-efendy/herness-router.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "libc": [
+    "musl"
+  ],
+  "preferUnplugged": true,
+  "files": [
+    "hr"
+  ]
+}

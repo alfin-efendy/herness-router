@@ -1,70 +1,116 @@
-// apps/router/test/start-command.test.ts
 import { test, expect } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildDaemon } from "../src/cli/start-command";
-import type { DiscordPort, InboundMessage, InboundInteraction } from "../src/gateways/discord/index";
 import { openDb } from "../src/store/db";
 import { SettingsStore } from "../src/config/store";
-import { runCli, type CliDeps, type IO } from "../src/cli/run";
-import { detectClaude, detectGit } from "../src/harness/detect";
+import { makeCatalog } from "../src/providers/catalog";
+import type { GatewayDescriptor } from "../src/providers/types";
+import type { Gateway } from "../src/gateways/types";
 
-class FakePort implements DiscordPort {
-  connected = false;
-  botUserId() { return "bot"; }
-  async connect(_h: { onMessage: (e: InboundMessage) => Promise<void>; onInteraction: (e: InboundInteraction, reply: (t: string) => Promise<void>) => Promise<void> }) { this.connected = true; }
-  async createTextChannel() { return "c"; }
-  async createThread() { return "t"; }
-  async sendMessage() { return "m"; }
-  async editMessage() {}
-  async requestApproval(_conversationId: string, _req: unknown) { return { decision: "deny" as const, actor: "timeout" }; }
+class FakeGateway implements Gateway {
+  readonly id = "fake";
+  started = false;
+  stopped = false;
+  async start() {
+    this.started = true;
+  }
+  async stop() {
+    this.stopped = true;
+  }
+  async createWorkspace() {
+    return "w";
+  }
+  async createConversation() {
+    return "c";
+  }
+  async postStatus() {
+    return { surface: { gateway: "fake", conversationId: "c" }, messageId: "m" };
+  }
+  async editStatus() {}
+  async postResult() {}
+  async postError() {}
+  async requestApproval() {
+    return { decision: "deny" as const, actor: "x" };
+  }
 }
 
-test("buildDaemon wires the graph, registers the gateway, and starts the approval IPC", async () => {
-  const root = mkdtempSync(join(tmpdir(), "harness-daemon-"));
+test("buildDaemon builds + starts only enabled gateways and exposes cp", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hr-daemon-"));
   const dbPath = join(root, "db.sqlite");
-  new SettingsStore(openDb(dbPath)).set("workdir_root", root);
-
-  const port = new FakePort();
-  const daemon = buildDaemon({ dbPath, port });
+  const s = new SettingsStore(openDb(dbPath));
+  s.set("workdir_root", root);
+  s.set("enabled_gateways", "fake");
+  s.set("enabled_runtimes", "");
+  const built: FakeGateway[] = [];
+  const gw: GatewayDescriptor = {
+    id: "fake",
+    label: "Fake",
+    description: "",
+    kind: "gateway",
+    fields: [],
+    build: () => {
+      const g = new FakeGateway();
+      built.push(g);
+      return g;
+    },
+  };
+  const daemon = buildDaemon({ dbPath, catalog: makeCatalog([gw], []) });
   try {
     await daemon.start();
-    expect(port.connected).toBe(true);
-    expect(daemon.gateway.id).toBe("discord");
-    expect(typeof daemon.stop).toBe("function");
+    expect(built[0]!.started).toBe(true);
+    expect(daemon.gateways.map((g) => g.id)).toEqual(["fake"]);
+    expect(typeof daemon.cp.subscribe).toBe("function");
   } finally {
-    daemon.stop?.();
+    daemon.stop();
   }
 });
 
-test("buildDaemon passes telemetry through to the ControlPlane", async () => {
-  // a session run through the daemon's cp should emit a session.run count on the injected telemetry
-  // (kept light: assert buildDaemon accepts a telemetry option and the daemon still starts)
-  const root = mkdtempSync(join(tmpdir(), "harness-tel-"));
+test("buildDaemon stop() tears down gateways", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hr-daemon-stop-"));
   const dbPath = join(root, "db.sqlite");
-  new SettingsStore(openDb(dbPath)).set("workdir_root", root);
-  const counts: string[] = [];
-  const tel = {
+  const s = new SettingsStore(openDb(dbPath));
+  s.set("workdir_root", root);
+  s.set("enabled_gateways", "fake");
+  s.set("enabled_runtimes", "");
+  const built: FakeGateway[] = [];
+  const gw: GatewayDescriptor = {
+    id: "fake",
+    label: "Fake",
+    description: "",
+    kind: "gateway",
+    fields: [],
+    build: () => {
+      const g = new FakeGateway();
+      built.push(g);
+      return g;
+    },
+  };
+  const daemon = buildDaemon({ dbPath, catalog: makeCatalog([gw], []) });
+  await daemon.start();
+  await daemon.stop();
+  expect(built[0]!.stopped).toBe(true);
+});
+
+test("buildDaemon accepts injected telemetry and builds/starts", async () => {
+  const root = mkdtempSync(join(tmpdir(), "hr-daemon-tel-"));
+  const dbPath = join(root, "db.sqlite");
+  const s = new SettingsStore(openDb(dbPath));
+  s.set("workdir_root", root);
+  s.set("enabled_gateways", "fake");
+  s.set("enabled_runtimes", "");
+  const gw: GatewayDescriptor = { id: "fake", label: "Fake", description: "", kind: "gateway", fields: [], build: () => new FakeGateway() };
+  const telemetry = {
     startSpan: () => ({ setAttribute() {}, setError() {}, end() {} }),
-    count: (n: string) => { counts.push(n); },
+    count: () => {},
     record: () => {},
   };
-  const port = new FakePort();
-  const daemon = buildDaemon({ dbPath, port, telemetry: tel });
+  const daemon = buildDaemon({ dbPath, catalog: makeCatalog([gw], []), telemetry });
   try {
     await daemon.start();
     expect(typeof daemon.stop).toBe("function");
   } finally {
-    daemon.stop?.();
+    daemon.stop();
   }
-});
-
-test("harness start fails with missing settings", async () => {
-  const lines: string[] = [];
-  const io: IO = { out: (s) => lines.push(s), err: (s) => lines.push("ERR " + s), prompt: async () => "" };
-  const deps: CliDeps = { io, dbPath: ":memory:", detect: { claude: detectClaude, git: detectGit } };
-  const code = await runCli(["start"], deps);
-  expect(code).toBe(1);
-  expect(lines.join("\n")).toMatch(/missing settings/i);
 });

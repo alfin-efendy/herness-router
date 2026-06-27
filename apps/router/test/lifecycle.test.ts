@@ -14,11 +14,16 @@ function base(worktree?: any) {
   projects.insert({ projectId: "p1", name: "foo", workdir: "/repo/foo", harness: "claude-code", permMode: "default" });
   const removed: string[] = [];
   const cp = new ControlPlane({
-    projects, sessions: new SessionsStore(db), settings: new SettingsStore(db), workdirRoot: "/root",
+    projects,
+    sessions: new SessionsStore(db),
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
     worktree: worktree ?? {
       pathFor: (r: string, p: string, s: string) => `${r}/${p}/${s}`,
       create: async () => {},
-      remove: async (_repo: string, path: string) => { removed.push(path); },
+      remove: async (_repo: string, path: string) => {
+        removed.push(path);
+      },
     },
   });
   return { cp, removed, db };
@@ -28,13 +33,19 @@ test("startSession rolls back the worktree if session insert fails", async () =>
   let created = "";
   const { cp, removed } = base({
     pathFor: (r: string, p: string, s: string) => `${r}/${p}/${s}`,
-    create: async (_repo: string, path: string) => { created = path; },
-    remove: async (_repo: string, path: string) => { removed.push(path); },
+    create: async (_repo: string, path: string) => {
+      created = path;
+    },
+    remove: async (_repo: string, path: string) => {
+      removed.push(path);
+    },
   });
   // force the insert to throw by inserting a duplicate sessionPk is hard; instead stub sessions.insert
-  (cp as any).deps.sessions.insert = () => { throw new Error("insert boom"); };
+  (cp as any).deps.sessions.insert = () => {
+    throw new Error("insert boom");
+  };
   await expect(cp.startSession({ projectId: "p1", prompt: "x" })).rejects.toThrow("insert boom");
-  expect(removed).toEqual([created]);  // worktree cleaned up
+  expect(removed).toEqual([created]); // worktree cleaned up
 });
 
 test("endSession aborts, removes worktree, marks ended, emits", async () => {

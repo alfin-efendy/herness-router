@@ -2,24 +2,44 @@ import type { Database } from "bun:sqlite";
 import type { Session, SessionStatus, Surface } from "@harness/protocol";
 
 interface Row {
-  session_pk: string; project_id: string; agent_session_id: string | null;
-  worktree_path: string | null; branch: string | null; title: string | null;
-  status: string; started_by: string | null; created_at: number | null; last_active: number | null;
+  session_pk: string;
+  project_id: string;
+  agent_session_id: string | null;
+  worktree_path: string | null;
+  branch: string | null;
+  title: string | null;
+  status: string;
+  started_by: string | null;
+  created_at: number | null;
+  last_active: number | null;
 }
 
 function toSession(r: Row): Session {
   return {
-    sessionPk: r.session_pk, projectId: r.project_id,
-    agentSessionId: r.agent_session_id ?? undefined, worktreePath: r.worktree_path ?? undefined,
-    branch: r.branch ?? undefined, title: r.title ?? undefined, status: r.status as SessionStatus,
-    startedBy: r.started_by ?? undefined, createdAt: r.created_at ?? undefined, lastActive: r.last_active ?? undefined,
+    sessionPk: r.session_pk,
+    projectId: r.project_id,
+    agentSessionId: r.agent_session_id ?? undefined,
+    worktreePath: r.worktree_path ?? undefined,
+    branch: r.branch ?? undefined,
+    title: r.title ?? undefined,
+    status: r.status as SessionStatus,
+    startedBy: r.started_by ?? undefined,
+    createdAt: r.created_at ?? undefined,
+    lastActive: r.last_active ?? undefined,
   };
 }
 
 const COLUMN: Record<keyof Session, string> = {
-  sessionPk: "session_pk", projectId: "project_id", agentSessionId: "agent_session_id",
-  worktreePath: "worktree_path", branch: "branch", title: "title", status: "status",
-  startedBy: "started_by", createdAt: "created_at", lastActive: "last_active",
+  sessionPk: "session_pk",
+  projectId: "project_id",
+  agentSessionId: "agent_session_id",
+  worktreePath: "worktree_path",
+  branch: "branch",
+  title: "title",
+  status: "status",
+  startedBy: "started_by",
+  createdAt: "created_at",
+  lastActive: "last_active",
 };
 
 export class SessionsStore {
@@ -29,8 +49,18 @@ export class SessionsStore {
     this.db.run(
       `INSERT INTO sessions(session_pk, project_id, agent_session_id, worktree_path, branch, title, status, started_by, created_at, last_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [s.sessionPk, s.projectId, s.agentSessionId ?? null, s.worktreePath ?? null, s.branch ?? null,
-       s.title ?? null, s.status, s.startedBy ?? null, s.createdAt ?? null, s.lastActive ?? null],
+      [
+        s.sessionPk,
+        s.projectId,
+        s.agentSessionId ?? null,
+        s.worktreePath ?? null,
+        s.branch ?? null,
+        s.title ?? null,
+        s.status,
+        s.startedBy ?? null,
+        s.createdAt ?? null,
+        s.lastActive ?? null,
+      ],
     );
   }
 

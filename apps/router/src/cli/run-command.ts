@@ -9,17 +9,22 @@ import { ProjectsStore } from "../store/projects";
 import { SessionsStore } from "../store/sessions";
 import { SettingsStore } from "../config/store";
 import { ControlPlane } from "../core/control-plane";
-import { ClaudeCodeHarness } from "../harness/claude-code/index";
 import { expandHome } from "../config/paths";
+import { catalog } from "../providers/catalog";
+import { csv } from "../config/required";
 
 export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
   let dir: string | undefined, prompt: string | undefined, model: string | undefined, effort: string | undefined, mode: string | undefined;
   try {
     const parsed = parseArgs({
-      args, allowPositionals: false,
+      args,
+      allowPositionals: false,
       options: {
-        dir: { type: "string" }, prompt: { type: "string" },
-        model: { type: "string" }, effort: { type: "string" }, mode: { type: "string" },
+        dir: { type: "string" },
+        prompt: { type: "string" },
+        model: { type: "string" },
+        effort: { type: "string" },
+        mode: { type: "string" },
       },
     });
     ({ dir, prompt, model, effort, mode } = parsed.values);
@@ -28,7 +33,7 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
     return 1;
   }
   if (!dir || !prompt) {
-    deps.io.err("usage: harness run --dir <git-repo> --prompt <text> [--model x] [--effort y] [--mode m]");
+    deps.io.err("usage: hr run --dir <git-repo> --prompt <text> [--model x] [--effort y] [--mode m]");
     return 1;
   }
   if (mode && !(PERM_MODES as readonly string[]).includes(mode)) {
@@ -39,16 +44,31 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
   const workdir = resolve(expandHome(dir));
   const db = openDb(deps.dbPath);
   const projects = new ProjectsStore(db);
+  const settings = new SettingsStore(db);
   const cp = new ControlPlane({
-    projects, sessions: new SessionsStore(db), settings: new SettingsStore(db),
+    projects,
+    sessions: new SessionsStore(db),
+    settings,
     workdirRoot: dirname(workdir),
   });
-  cp.harnesses.register("claude-code", deps.harnessFactory ?? (() => new ClaudeCodeHarness()));
+  const defaultRuntime = settings.get("default_runtime") || "claude-code";
+  if (deps.harnessFactory) {
+    cp.harnesses.register(defaultRuntime, deps.harnessFactory);
+  } else {
+    for (const id of csv(settings.get("enabled_runtimes"))) {
+      const d = catalog.runtime(id);
+      if (d) cp.harnesses.register(id, () => d.build());
+    }
+  }
 
   if (!projects.get(workdir)) {
     projects.insert({
-      projectId: workdir, name: workdir.split("/").pop() ?? workdir, workdir,
-      harness: "claude-code", model, effort,
+      projectId: workdir,
+      name: workdir.split("/").pop() ?? workdir,
+      workdir,
+      harness: defaultRuntime,
+      model,
+      effort,
       permMode: (mode as PermMode | undefined) ?? "default",
     });
   }
@@ -58,7 +78,10 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
     if (e.kind === "status") deps.io.out(`· ${e.text}`);
     else if (e.kind === "text") deps.io.out(e.text);
     else if (e.kind === "result") deps.io.out(`✓ done`);
-    else if (e.kind === "error") { failed = true; deps.io.err(`✗ ${e.message}`); }
+    else if (e.kind === "error") {
+      failed = true;
+      deps.io.err(`✗ ${e.message}`);
+    }
   });
 
   await cp.startSession({ projectId: workdir, prompt, actor: "cli" });

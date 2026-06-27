@@ -1,0 +1,124 @@
+version: 2
+project_name: harness-router
+
+builds:
+  - id: harness-router-gnu-other
+    builder: bun
+    binary: hr
+    main: apps/router/src/cli/index.ts
+    targets:
+      - linux-x64
+      - linux-arm64
+      - darwin-x64
+      - darwin-arm64
+      - windows-x64
+    flags:
+      - --compile
+      - --minify
+
+  - id: harness-router-musl
+    builder: bun
+    binary: hr
+    main: apps/router/src/cli/index.ts
+    targets:
+      - linux-x64-musl
+      - linux-arm64-musl
+    flags:
+      - --compile
+      - --minify
+
+archives:
+  - id: default
+    ids: [harness-router-gnu-other]
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [README*]
+
+  - id: musl
+    ids: [harness-router-musl]
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}_musl"
+    files: [README*]
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+homebrew_casks:
+  - name: harness-router
+    ids: [default]
+    binaries: [hr]
+    repository:
+      owner: alfin-efendy
+      name: homebrew-harness
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/alfin-efendy/herness-router"
+    description: "Gateway-agnostic control plane for agent harnesses (hr CLI)"
+    commit_author:
+      name: goreleaserbot
+      email: bot@harness-router.dev
+
+scoops:
+  - name: harness-router
+    repository:
+      owner: alfin-efendy
+      name: scoop-harness
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: "https://github.com/alfin-efendy/herness-router"
+    description: "Gateway-agnostic control plane for agent harnesses (hr CLI)"
+    license: MIT
+    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+
+dockers:
+  - id: amd64
+    ids: [harness-router-musl]
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    use: buildx
+    image_templates:
+      - "ghcr.io/alfin-efendy/herness-router:{{ .Version }}-amd64"
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.source=https://github.com/alfin-efendy/herness-router"
+
+  - id: arm64
+    ids: [harness-router-musl]
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    use: buildx
+    image_templates:
+      - "ghcr.io/alfin-efendy/herness-router:{{ .Version }}-arm64"
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.source=https://github.com/alfin-efendy/herness-router"
+
+docker_manifests:
+  - name_template: "ghcr.io/alfin-efendy/herness-router:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/alfin-efendy/herness-router:{{ .Version }}-amd64"
+      - "ghcr.io/alfin-efendy/herness-router:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/alfin-efendy/herness-router:latest"
+    image_templates:
+      - "ghcr.io/alfin-efendy/herness-router:{{ .Version }}-amd64"
+      - "ghcr.io/alfin-efendy/herness-router:{{ .Version }}-arm64"
+
+release:
+  github:
+    owner: alfin-efendy
+    name: herness-router
+  mode: append
+  replace_existing_artifacts: true

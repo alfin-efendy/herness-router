@@ -9,10 +9,14 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "harness": "bun run apps/router/src/cli/index.ts"
+    "hr": "bun run apps/router/src/cli/index.ts",
+    "lint": "biome ci .",
+    "format": "biome check --write ."
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.1",
     "@types/bun": "latest",
+    "react-devtools-core": "^7.0.1",
     "typescript": "^5"
   }
 }

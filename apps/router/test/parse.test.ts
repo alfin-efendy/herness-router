@@ -12,12 +12,16 @@ test("other system subtypes are ignored", () => {
 
 test("assistant text + tool_use blocks map to text + status", () => {
   const line = JSON.stringify({
-    type: "assistant", session_id: "abc",
-    message: { role: "assistant", content: [
-      { type: "text", text: "hi" },
-      { type: "tool_use", name: "Bash", input: { command: "echo hi" } },
-      { type: "tool_use", name: "Edit", input: { file_path: "src/foo.ts" } },
-    ] },
+    type: "assistant",
+    session_id: "abc",
+    message: {
+      role: "assistant",
+      content: [
+        { type: "text", text: "hi" },
+        { type: "tool_use", name: "Bash", input: { command: "echo hi" } },
+        { type: "tool_use", name: "Edit", input: { file_path: "src/foo.ts" } },
+      ],
+    },
   });
   expect(parseLine(line)).toEqual([
     { type: "text", text: "hi" },
@@ -27,7 +31,14 @@ test("assistant text + tool_use blocks map to text + status", () => {
 });
 
 test("result success yields result with usage + session id", () => {
-  const line = JSON.stringify({ type: "result", subtype: "success", is_error: false, result: "ready", session_id: "abc", usage: { output_tokens: 3 } });
+  const line = JSON.stringify({
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    result: "ready",
+    session_id: "abc",
+    usage: { output_tokens: 3 },
+  });
   expect(parseLine(line)).toEqual([{ type: "result", usage: { output_tokens: 3 }, sessionId: "abc" }]);
 });
 

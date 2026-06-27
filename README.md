@@ -1,3 +1,9 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/wordmark-light.svg">
+  <img src="assets/brand/wordmark-light.svg" alt="Harness Router" width="560">
+</picture>
+
 # harness-router (monorepo)
 
 Gateway-agnostic **control plane** for running agent harnesses (starting with Claude Code) and driving them from many clients (starting with Discord).

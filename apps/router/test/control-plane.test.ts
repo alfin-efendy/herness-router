@@ -26,7 +26,9 @@ test("exposes registries + read methods", () => {
 test("emit reaches subscribers", () => {
   const cp = makeCp();
   const seen: string[] = [];
-  cp.subscribe((e) => { if (e.kind === "error") seen.push(e.message); });
+  cp.subscribe((e) => {
+    if (e.kind === "error") seen.push(e.message);
+  });
   cp.emit({ kind: "error", sessionPk: "s1", message: "boom" });
   expect(seen).toEqual(["boom"]);
 });

@@ -68,7 +68,10 @@ test("requestApproval passes gating fields to the gateway", async () => {
   // session s1 was inserted by wire(); give it a starter
   (cp as unknown as { deps: { sessions: { update(pk: string, p: object): void } } }).deps.sessions.update("s1", { startedBy: "u-starter" });
   let seen: { approverRoleIds?: string[]; startedBy?: string; timeoutMs?: number } | undefined;
-  gw.approvalHandler = async (req) => { seen = req; return { decision: "allow", actor: "u1" }; };
+  gw.approvalHandler = async (req) => {
+    seen = req;
+    return { decision: "allow", actor: "u1" };
+  };
   await cp.requestApproval({ sessionPk: "s1", tool: "Bash", input: {} });
   expect(seen?.approverRoleIds).toEqual(["r1", "r2"]);
   expect(seen?.startedBy).toBe("u-starter");

@@ -21,7 +21,9 @@ class NoopSpan implements Span {
 }
 
 export class NoopTelemetry implements Telemetry {
-  startSpan(_name: string, _attrs?: Attrs): Span { return new NoopSpan(); }
+  startSpan(_name: string, _attrs?: Attrs): Span {
+    return new NoopSpan();
+  }
   count(_name: string, _attrs?: Attrs): void {}
   record(_name: string, _value: number, _attrs?: Attrs): void {}
 }

@@ -12,7 +12,10 @@ export function buildCommands(): Array<{ name: string; description: string; opti
         { name: "model", description: "Model override", type: STRING, required: false },
         { name: "effort", description: "Reasoning effort", type: STRING, required: false },
         {
-          name: "mode", description: "Permission mode", type: STRING, required: false,
+          name: "mode",
+          description: "Permission mode",
+          type: STRING,
+          required: false,
           choices: [
             { name: "default", value: "default" },
             { name: "acceptEdits", value: "acceptEdits" },

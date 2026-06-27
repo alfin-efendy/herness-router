@@ -11,7 +11,10 @@ test("renders status (post then edit), buffers text, posts result to all surface
   const db = openDb(":memory:");
   const sessions = new SessionsStore(db);
   const cp = new ControlPlane({
-    projects: new ProjectsStore(db), sessions, settings: new SettingsStore(db), workdirRoot: "/root",
+    projects: new ProjectsStore(db),
+    sessions,
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
   });
   const gw = new FakeGateway();
   cp.gateways.register(gw);

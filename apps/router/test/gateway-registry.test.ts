@@ -22,7 +22,7 @@ test("register/get/has/ids on instances", () => {
   const gw = fakeGw("discord");
   r.register(gw);
   expect(r.has("discord")).toBe(true);
-  expect(r.get("discord")).toBe(gw);          // same instance back
+  expect(r.get("discord")).toBe(gw); // same instance back
   expect(r.ids()).toEqual(["discord"]);
   expect(r.get("nope")).toBeUndefined();
 });

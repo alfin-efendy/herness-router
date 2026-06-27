@@ -29,11 +29,11 @@ test("config set invalid value returns non-zero", async () => {
 test("config list redacts secrets", async () => {
   const dbPath = tmpDb();
   const { lines, deps } = depsFor(dbPath);
-  await runCli(["config", "set", "discord_token", "supersecret"], deps);
+  await runCli(["config", "set", "discord.token", "supersecret"], deps);
   lines.length = 0;
   await runCli(["config", "list"], deps);
   const text = lines.join("\n");
-  expect(text).toContain("discord_token");
+  expect(text).toContain("discord.token");
   expect(text).not.toContain("supersecret");
 });
 

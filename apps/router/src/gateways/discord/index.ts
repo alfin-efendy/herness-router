@@ -3,13 +3,22 @@ import type { Gateway, MessageRef } from "../types";
 import type { Surface, ApprovalRequest, ApprovalDecision, PermMode, ProjectSettings } from "@harness/protocol";
 
 export interface InboundMessage {
-  channelId: string; isThread: boolean; authorBot: boolean; authorId: string; mentionsBot: boolean; content: string;
+  channelId: string;
+  isThread: boolean;
+  authorBot: boolean;
+  authorId: string;
+  mentionsBot: boolean;
+  content: string;
 }
 export interface InboundInteraction {
-  name: string; userId: string; channelId: string; options: Record<string, string | undefined>;
+  name: string;
+  userId: string;
+  channelId: string;
+  options: Record<string, string | undefined>;
 }
 export interface DiscordPort {
   botUserId(): string | undefined;
+  disconnect?(): Promise<void>;
   connect(handlers: {
     onMessage: (e: InboundMessage) => Promise<void>;
     onInteraction: (e: InboundInteraction, reply: (text: string) => Promise<void>) => Promise<void>;
@@ -18,12 +27,24 @@ export interface DiscordPort {
   createThread(channelId: string, name: string): Promise<string>;
   sendMessage(channelId: string, text: string): Promise<string>;
   editMessage(channelId: string, messageId: string, text: string): Promise<void>;
-  requestApproval(conversationId: string, req: {
-    requestId: string; tool: string; summary: string; approverRoleIds: string[]; startedBy?: string; timeoutMs: number;
-  }): Promise<{ decision: "allow" | "deny"; actor: string }>;
+  requestApproval(
+    conversationId: string,
+    req: {
+      requestId: string;
+      tool: string;
+      summary: string;
+      approverRoleIds: string[];
+      startedBy?: string;
+      timeoutMs: number;
+    },
+  ): Promise<{ decision: "allow" | "deny"; actor: string }>;
 }
 export interface InboundRouter {
-  onConnect(gatewayId: string, actor: string, opts: { name?: string; gitUrl?: string; settings?: ProjectSettings }): Promise<{ workspaceId: string; project: { name: string } }>;
+  onConnect(
+    gatewayId: string,
+    actor: string,
+    opts: { name?: string; gitUrl?: string; settings?: ProjectSettings },
+  ): Promise<{ workspaceId: string; project: { name: string } }>;
   onStart(gatewayId: string, workspaceId: string, actor: string, prompt: string): Promise<void>;
   onReply(gatewayId: string, conversationId: string, actor: string, prompt: string): Promise<void>;
   onEnd(gatewayId: string, conversationId: string): Promise<void>;
@@ -36,13 +57,20 @@ function stripMentions(content: string): string {
 
 export class DiscordGateway implements Gateway {
   readonly id = "discord";
-  constructor(private port: DiscordPort, private router: InboundRouter) {}
+  constructor(
+    private port: DiscordPort,
+    private router: InboundRouter,
+  ) {}
 
   async start(): Promise<void> {
     await this.port.connect({
       onMessage: (e) => this.handleMessage(e),
       onInteraction: (e, reply) => this.handleInteraction(e, reply),
     });
+  }
+
+  async stop(): Promise<void> {
+    await this.port.disconnect?.();
   }
 
   async createWorkspace(name: string): Promise<string> {
@@ -66,14 +94,21 @@ export class DiscordGateway implements Gateway {
   }
   async requestApproval(target: Surface, req: ApprovalRequest): Promise<ApprovalDecision> {
     return this.port.requestApproval(target.conversationId, {
-      requestId: req.requestId, tool: req.tool, summary: req.summary,
-      approverRoleIds: req.approverRoleIds ?? [], startedBy: req.startedBy, timeoutMs: req.timeoutMs ?? 300000,
+      requestId: req.requestId,
+      tool: req.tool,
+      summary: req.summary,
+      approverRoleIds: req.approverRoleIds ?? [],
+      startedBy: req.startedBy,
+      timeoutMs: req.timeoutMs ?? 300000,
     });
   }
 
   async handleMessage(e: InboundMessage): Promise<void> {
     if (e.authorBot) return;
-    if (e.isThread) { await this.router.onReply(this.id, e.channelId, e.authorId, e.content); return; }
+    if (e.isThread) {
+      await this.router.onReply(this.id, e.channelId, e.authorId, e.content);
+      return;
+    }
     if (e.mentionsBot) {
       const prompt = stripMentions(e.content);
       if (prompt) await this.router.onStart(this.id, e.channelId, e.authorId, prompt);
@@ -84,11 +119,14 @@ export class DiscordGateway implements Gateway {
     try {
       if (e.name === "connect") {
         const settings: ProjectSettings = {
-          model: e.options.model, effort: e.options.effort,
+          model: e.options.model,
+          effort: e.options.effort,
           permMode: e.options.mode as PermMode | undefined,
         };
         const { workspaceId } = await this.router.onConnect(this.id, e.userId, {
-          name: e.options.name, gitUrl: e.options.git, settings,
+          name: e.options.name,
+          gitUrl: e.options.git,
+          settings,
         });
         await reply(`✅ connected → <#${workspaceId}>`);
       } else if (e.name === "end") {

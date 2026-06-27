@@ -21,7 +21,13 @@ export function resolveClaudeBinary(): string {
 }
 
 export const defaultClaudeRunner: ClaudeRunner = async function* (args, { cwd, signal, env }) {
-  const proc = Bun.spawn([resolveClaudeBinary(), ...args], { cwd, stdout: "pipe", stderr: "pipe", signal, env: { ...process.env, ...(env ?? {}) } });
+  const proc = Bun.spawn([resolveClaudeBinary(), ...args], {
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+    signal,
+    env: { ...process.env, ...(env ?? {}) },
+  });
   const stderrPromise = new Response(proc.stderr).text();
   const decoder = new TextDecoder();
   let buf = "";

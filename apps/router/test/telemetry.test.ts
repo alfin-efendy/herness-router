@@ -5,15 +5,21 @@ import { ConsoleTelemetry } from "../src/observability/console";
 test("NoopTelemetry does nothing and never throws", () => {
   const t = new NoopTelemetry();
   const s = t.startSpan("x", { a: 1 });
-  s.setAttribute("b", "y"); s.setError("nope"); s.end();
-  t.count("c"); t.record("h", 5);
+  s.setAttribute("b", "y");
+  s.setError("nope");
+  s.end();
+  t.count("c");
+  t.record("h", 5);
   expect(true).toBe(true);
 });
 
 test("ConsoleTelemetry emits structured lines", () => {
   const lines: string[] = [];
   let clock = 100;
-  const t = new ConsoleTelemetry((l) => lines.push(l), () => clock);
+  const t = new ConsoleTelemetry(
+    (l) => lines.push(l),
+    () => clock,
+  );
   t.count("session.run", { gateway: "discord" });
   t.record("dur", 42);
   const s = t.startSpan("harness.run", { session_pk: "s1" });
@@ -31,8 +37,12 @@ test("ConsoleTelemetry emits structured lines", () => {
 
 test("ConsoleTelemetry span records error", () => {
   const lines: string[] = [];
-  const t = new ConsoleTelemetry((l) => lines.push(l), () => 0);
+  const t = new ConsoleTelemetry(
+    (l) => lines.push(l),
+    () => 0,
+  );
   const s = t.startSpan("run");
-  s.setError("boom"); s.end();
+  s.setError("boom");
+  s.end();
   expect(JSON.parse(lines[0]!).error).toBe("boom");
 });

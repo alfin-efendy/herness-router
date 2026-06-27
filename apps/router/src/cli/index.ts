@@ -2,7 +2,9 @@
 import { runCli, type IO } from "./run";
 import { detectClaude, detectGit } from "../harness/detect";
 
-process.on("unhandledRejection", (reason) => { console.error("unhandledRejection:", reason); });
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection:", reason);
+});
 
 function defaultDbPath(): string {
   const dir = `${process.env.HOME ?? "."}/.local/share/harness-router`;

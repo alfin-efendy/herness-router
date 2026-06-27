@@ -4,14 +4,21 @@ import type { HarnessEvent, HarnessRunInput } from "../src/harness/types";
 
 function runInput(over: Partial<HarnessRunInput> = {}): HarnessRunInput {
   return {
-    workdir: "/wt", prompt: "go", permissionMode: "default",
-    signal: new AbortController().signal, approve: async () => ({ behavior: "allow" }),
+    workdir: "/wt",
+    prompt: "go",
+    permissionMode: "default",
+    signal: new AbortController().signal,
+    approve: async () => ({ behavior: "allow" }),
     ...over,
   };
 }
 
-const scripted = (lines: string[]): ClaudeRunner =>
-  () => (async function* () { for (const l of lines) yield l; })();
+const scripted =
+  (lines: string[]): ClaudeRunner =>
+  () =>
+    (async function* () {
+      for (const l of lines) yield l;
+    })();
 
 async function collect(it: AsyncIterable<HarnessEvent>): Promise<HarnessEvent[]> {
   const out: HarnessEvent[] = [];
@@ -26,7 +33,7 @@ test("new session emits init first, then parsed events", async () => {
   ];
   const h = new ClaudeCodeHarness(scripted(lines));
   const events = await collect(h.run(runInput()));
-  expect(events[0]?.type).toBe("init");                       // our generated uuid
+  expect(events[0]?.type).toBe("init"); // our generated uuid
   expect(events.some((e) => e.type === "text" && e.text === "hello")).toBe(true);
   expect(events.at(-1)).toEqual({ type: "result", usage: { output_tokens: 1 }, sessionId: "sx" });
 });
@@ -38,7 +45,10 @@ test("resume does NOT emit a leading init from us", async () => {
 });
 
 test("runner error becomes an error event", async () => {
-  const boom: ClaudeRunner = () => (async function* () { throw new Error("spawn failed"); })();
+  const boom: ClaudeRunner = () =>
+    (async function* () {
+      throw new Error("spawn failed");
+    })();
   const h = new ClaudeCodeHarness(boom);
   const events = await collect(h.run(runInput({ resume: "p" })));
   expect(events).toEqual([{ type: "error", message: "spawn failed" }]);
