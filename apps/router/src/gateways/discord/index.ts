@@ -10,6 +10,7 @@ export interface InboundInteraction {
 }
 export interface DiscordPort {
   botUserId(): string | undefined;
+  disconnect?(): Promise<void>;
   connect(handlers: {
     onMessage: (e: InboundMessage) => Promise<void>;
     onInteraction: (e: InboundInteraction, reply: (text: string) => Promise<void>) => Promise<void>;
@@ -43,6 +44,10 @@ export class DiscordGateway implements Gateway {
       onMessage: (e) => this.handleMessage(e),
       onInteraction: (e, reply) => this.handleInteraction(e, reply),
     });
+  }
+
+  async stop(): Promise<void> {
+    await this.port.disconnect?.();
   }
 
   async createWorkspace(name: string): Promise<string> {

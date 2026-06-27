@@ -17,7 +17,7 @@ import type { ProviderCatalog } from "../providers/types";
 import { csv } from "../config/required";
 
 export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: Telemetry; catalog?: ProviderCatalog }): {
-  gateways: Gateway[]; cp: ControlPlane; start(): Promise<void>; stop(): void;
+  gateways: Gateway[]; cp: ControlPlane; start(): Promise<void>; stop(): Promise<void>;
 } {
   const cat = deps.catalog ?? defaultCatalog;
   const db = deps.db ?? openDb(deps.dbPath);
@@ -55,6 +55,10 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
   return {
     gateways, cp,
     start: () => Promise.all(gateways.map((g) => g.start())).then(() => {}),
-    stop: () => { void telemetry.shutdown?.(); ipc.stop(); },
+    stop: async () => {
+      await Promise.all(gateways.map((g) => g.stop?.()));
+      void telemetry.shutdown?.();
+      ipc.stop();
+    },
   };
 }

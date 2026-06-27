@@ -8,6 +8,7 @@ export interface MessageRef {
 export interface Gateway {
   readonly id: string;
   start(): Promise<void>;
+  stop?(): Promise<void> | void;
   createWorkspace(name: string): Promise<string>;
   createConversation(workspaceId: string, title: string): Promise<string>;
   postStatus(target: Surface, text: string): Promise<MessageRef>;

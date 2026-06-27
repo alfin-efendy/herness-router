@@ -68,6 +68,10 @@ export class DiscordClientPort implements DiscordPort {
     });
   }
 
+  async disconnect(): Promise<void> {
+    await this.client.destroy();
+  }
+
   async createTextChannel(name: string): Promise<string> {
     const guild = await this.client.guilds.fetch(this.opts.guildId);
     const channel = await guild.channels.create({ name, type: ChannelType.GuildText });
