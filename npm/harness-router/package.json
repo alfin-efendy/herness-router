@@ -1,0 +1,28 @@
+{
+  "name": "harness-router",
+  "version": "0.0.0",
+  "description": "harness-router CLI (hr) — gateway-agnostic control plane for agent harnesses.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alfin-efendy/herness-router.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "hr": "bin/hr.js"
+  },
+  "files": [
+    "bin/hr.js"
+  ],
+  "optionalDependencies": {
+    "harness-router-linux-x64": "0.0.0",
+    "harness-router-linux-arm64": "0.0.0",
+    "harness-router-linux-x64-musl": "0.0.0",
+    "harness-router-linux-arm64-musl": "0.0.0",
+    "harness-router-darwin-x64": "0.0.0",
+    "harness-router-darwin-arm64": "0.0.0",
+    "harness-router-win32-x64": "0.0.0"
+  }
+}

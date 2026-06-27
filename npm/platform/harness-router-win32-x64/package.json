@@ -1,0 +1,23 @@
+{
+  "name": "harness-router-win32-x64",
+  "version": "0.0.0",
+  "description": "win32-x64 binary for harness-router.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alfin-efendy/herness-router.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "preferUnplugged": true,
+  "files": [
+    "hr.exe"
+  ]
+}
