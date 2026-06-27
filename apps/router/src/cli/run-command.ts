@@ -9,8 +9,9 @@ import { ProjectsStore } from "../store/projects";
 import { SessionsStore } from "../store/sessions";
 import { SettingsStore } from "../config/store";
 import { ControlPlane } from "../core/control-plane";
-import { ClaudeCodeHarness } from "../harness/claude-code/index";
 import { expandHome } from "../config/paths";
+import { catalog } from "../providers/catalog";
+import { csv } from "../config/required";
 
 export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
   let dir: string | undefined, prompt: string | undefined, model: string | undefined, effort: string | undefined, mode: string | undefined;
@@ -43,12 +44,21 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
     projects, sessions: new SessionsStore(db), settings: new SettingsStore(db),
     workdirRoot: dirname(workdir),
   });
-  cp.harnesses.register("claude-code", deps.harnessFactory ?? (() => new ClaudeCodeHarness()));
+  const settings = new SettingsStore(db);
+  const defaultRuntime = settings.get("default_runtime") || "claude-code";
+  if (deps.harnessFactory) {
+    cp.harnesses.register(defaultRuntime, deps.harnessFactory);
+  } else {
+    for (const id of csv(settings.get("enabled_runtimes"))) {
+      const d = catalog.runtime(id);
+      if (d) cp.harnesses.register(id, () => d.build());
+    }
+  }
 
   if (!projects.get(workdir)) {
     projects.insert({
       projectId: workdir, name: workdir.split("/").pop() ?? workdir, workdir,
-      harness: "claude-code", model, effort,
+      harness: defaultRuntime, model, effort,
       permMode: (mode as PermMode | undefined) ?? "default",
     });
   }

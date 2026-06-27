@@ -16,12 +16,12 @@ test("validateSetting enforces oneOf and int", () => {
 
 test("SettingsStore set/get/list and missingRequired", () => {
   const store = new SettingsStore(openDb(":memory:"));
-  expect(store.get("discord_token")).toBeUndefined();
-  store.set("discord_token", "abc");
-  expect(store.get("discord_token")).toBe("abc");
-  expect(store.list().discord_token).toBe("abc");
+  expect(store.get("discord.token")).toBeUndefined();
+  store.set("discord.token", "abc");
+  expect(store.get("discord.token")).toBe("abc");
+  expect(store.list()["discord.token"]).toBe("abc");
   expect(store.missingRequired()).toContain("workdir_root");
-  expect(store.missingRequired()).not.toContain("discord_token");
+  expect(store.missingRequired()).not.toContain("discord.token");
 });
 
 test("SettingsStore set rejects invalid value", () => {

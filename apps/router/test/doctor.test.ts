@@ -36,7 +36,7 @@ test("doctor passes when tools present and required settings set", async () => {
   const dbPath = `/tmp/harness-doctor-${Bun.hash(Math.random().toString())}.sqlite`;
   const seed = depsWith(okRun, dbPath);
   for (const [k, v] of [
-    ["discord_token", "t"], ["discord_app_id", "a"], ["discord_guild_id", "g"], ["workdir_root", "/repos"],
+    ["discord.token", "t"], ["discord.app_id", "a"], ["discord.guild_id", "g"], ["workdir_root", "/repos"],
   ] as const) {
     await runCli(["config", "set", k, v], seed.deps);
   }

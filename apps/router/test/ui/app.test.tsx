@@ -13,7 +13,7 @@ function ctl() {
 }
 function configured() {
   const c = ctl();
-  for (const [k, v] of [["discord_token","t"],["discord_app_id","a"],["discord_guild_id","g"],["workdir_root","/r"]] as const) c.set(k, v);
+  for (const [k, v] of [["discord.token","t"],["discord.app_id","a"],["discord.guild_id","g"],["workdir_root","/r"]] as const) c.set(k, v);
   return c;
 }
 

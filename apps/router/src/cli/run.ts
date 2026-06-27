@@ -1,6 +1,8 @@
 import { openDb } from "../store/db";
 import { SettingsStore } from "../config/store";
 import { SETTING_DEFS } from "../config/schema";
+import { missingRequiredSettings } from "../config/required";
+import { catalog } from "../providers/catalog";
 import type { detectClaude, detectGit } from "../harness/detect";
 import type { Harness } from "../harness/types";
 import { cmdRun } from "./run-command";
@@ -70,7 +72,7 @@ async function cmdDoctor(deps: CliDeps): Promise<number> {
   const settings = new SettingsStore(openDb(deps.dbPath));
   const git = await deps.detect.git();
   const claude = await deps.detect.claude();
-  const missing = settings.missingRequired();
+  const missing = missingRequiredSettings(settings, catalog);
 
   deps.io.out(`git:    ${git.found ? "OK " + (git.version ?? "") : "NOT FOUND"}`);
   deps.io.out(`claude: ${claude.found ? "OK " + (claude.version ?? "") : "NOT FOUND"}`);

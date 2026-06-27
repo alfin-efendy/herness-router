@@ -14,8 +14,8 @@ test("wizard collects required settings step by step then calls onDone", async (
   await flush();
   expect(lastFrame()).toContain("hr setup");
   // 4 required keys: type a value + Enter for each
-  for (const v of ["tok", "app", "guild", "/repos"]) { stdin.write(v); await flush(); stdin.write("\r"); await flush(); }
+  for (const v of ["/repos", "tok", "app", "guild"]) { stdin.write(v); await flush(); stdin.write("\r"); await flush(); }
   expect(done).toBe(true);
-  expect(c.get("discord_token")).toBe("tok");
+  expect(c.get("discord.token")).toBe("tok");
   expect(c.get("workdir_root")).toBe("/repos");
 });

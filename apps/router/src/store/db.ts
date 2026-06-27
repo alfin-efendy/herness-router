@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { chmodSync } from "node:fs";
+import { migrateSettings } from "../config/migrate-settings";
 
 export function migrate(db: Database): void {
   db.run(`CREATE TABLE IF NOT EXISTS settings (
@@ -62,5 +63,6 @@ export function openDb(path: string): Database {
   db.run("PRAGMA journal_mode = WAL");
   db.run("PRAGMA foreign_keys = ON");
   migrate(db);
+  migrateSettings(db);
   return db;
 }

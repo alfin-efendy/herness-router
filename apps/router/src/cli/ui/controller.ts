@@ -2,26 +2,26 @@ import { EventEmitter } from "node:events";
 import type { Database } from "bun:sqlite";
 import { openDb } from "../../store/db";
 import { SettingsStore } from "../../config/store";
-import { SETTING_DEFS } from "../../config/schema";
+import { SETTING_DEFS, GLOBAL_FIELDS, allFields } from "../../config/schema";
 import type { detectClaude, detectGit } from "../../harness/detect";
 import type { ToolInfo } from "../../harness/detect";
-import type { DiscordPort } from "../../gateways/discord/index";
-import type { Harness } from "../../harness/types";
 import { buildDaemon } from "../start-command";
 import { reduceSessions, type LiveSession } from "./sessions-reducer";
 import { SessionsStore } from "../../store/sessions";
-import { DiscordClientPort } from "../../gateways/discord/client-port";
-import { ClaudeCodeHarness } from "../../harness/claude-code/index";
 import type { ControlPlane } from "../../core/control-plane";
 import type { CoreEvent, Unsubscribe } from "@harness/protocol";
 import type { Telemetry, Span, Attrs } from "../../observability/types";
+import { catalog as defaultCatalog } from "../../providers/catalog";
+import type { ProviderCatalog, GatewayDescriptor, RuntimeDescriptor, ConfigField } from "../../providers/types";
+import { missingRequiredSettings, isConfigured as isConfiguredFn, requiredMissingFields, csv } from "../../config/required";
+
+const GLOBAL_KEYS = new Set(GLOBAL_FIELDS.map((f) => f.key));
 
 export interface ControllerDeps {
   dbPath: string;
   detect: { claude: typeof detectClaude; git: typeof detectGit };
   db?: Database;
-  portFactory?: (cfg: { token: string; appId: string; guildId: string }) => DiscordPort;
-  harnessFactory?: () => Harness;
+  catalog?: ProviderCatalog;
 }
 
 export interface DaemonState { running: boolean; startedAt?: number; lastError?: string; starting?: boolean }
@@ -37,6 +37,8 @@ class SinkTelemetry implements Telemetry {
 export class AppController extends EventEmitter {
   readonly db: Database;
   readonly settings: SettingsStore;
+  protected catalog: ProviderCatalog;
+  private fieldIndex: Map<string, ConfigField>;
   private daemonHandle?: { stop(): void };
   private daemonCp?: ControlPlane;
   private daemonState: DaemonState = { running: false };
@@ -48,6 +50,8 @@ export class AppController extends EventEmitter {
     super();
     this.db = deps.db ?? openDb(deps.dbPath);
     this.settings = new SettingsStore(this.db);
+    this.catalog = deps.catalog ?? defaultCatalog;
+    this.fieldIndex = new Map(allFields(this.catalog).map((f) => [f.key, f]));
   }
 
   protected emitChange(): void { this.emit("change"); }
@@ -56,9 +60,25 @@ export class AppController extends EventEmitter {
   set(key: string, value: string): void { this.settings.set(key, value); this.emitChange(); }
   settingKeys(): string[] { return Object.keys(SETTING_DEFS); }
   isSecret(key: string): boolean { return Boolean(SETTING_DEFS[key]?.secret); }
-  requiredKeys(): string[] { return Object.entries(SETTING_DEFS).filter(([, d]) => d.required).map(([k]) => k); }
-  missingRequired(): string[] { return this.settings.missingRequired(); }
-  isConfigured(): boolean { return this.missingRequired().length === 0; }
+  missingRequired(): string[] { return missingRequiredSettings(this.settings, this.catalog); }
+  isConfigured(): boolean { return isConfiguredFn(this.settings, this.catalog); }
+
+  field(key: string): ConfigField | undefined { return this.fieldIndex.get(key); }
+  generalFields(): ConfigField[] { return allFields(this.catalog).filter((f) => GLOBAL_KEYS.has(f.key) && !f.control); }
+  gatewayDescriptors(): GatewayDescriptor[] { return this.catalog.gateways; }
+  runtimeDescriptors(): RuntimeDescriptor[] { return this.catalog.runtimes; }
+  gatewayFields(id: string): ConfigField[] { return this.catalog.gateway(id)?.fields ?? []; }
+  runtimeFields(id: string): ConfigField[] { return this.catalog.runtime(id)?.fields ?? []; }
+  enabledGateways(): string[] { return csv(this.get("enabled_gateways")); }
+  enabledRuntimes(): string[] { return csv(this.get("enabled_runtimes")); }
+  defaultRuntime(): string { return this.get("default_runtime") ?? ""; }
+  setEnabledGateways(ids: string[]): void { this.set("enabled_gateways", ids.join(",")); }
+  setEnabledRuntimes(ids: string[]): void { this.set("enabled_runtimes", ids.join(",")); }
+  setDefaultRuntime(id: string): void { this.set("default_runtime", id); }
+  requiredMissingFields(): ConfigField[] { return requiredMissingFields(this.settings, this.catalog); }
+  detectRuntime(id: string): Promise<ToolInfo & { authenticated?: boolean }> {
+    return this.catalog.runtime(id)?.detect() ?? Promise.resolve({ found: false });
+  }
 
   async checkEnv(): Promise<{ git: ToolInfo; claude: ToolInfo & { authenticated?: boolean } }> {
     const [git, claude] = await Promise.all([this.deps.detect.git(), this.deps.detect.claude()]);
@@ -89,19 +109,14 @@ export class AppController extends EventEmitter {
   async startDaemon(): Promise<void> {
     if (this.daemonState.running) return;
     const missing = this.missingRequired();
-    if (missing.length) {
-      this.daemonState = { running: false, lastError: `missing settings: ${missing.join(", ")}` };
+    if (missing.length || this.enabledGateways().length === 0) {
+      const why = missing.length ? `missing settings: ${missing.join(", ")}` : "no gateways enabled";
+      this.daemonState = { running: false, lastError: why };
       this.emitChange();
       return;
     }
-    const cfg = { token: this.get("discord_token")!, appId: this.get("discord_app_id")!, guildId: this.get("discord_guild_id")! };
-    const port = this.deps.portFactory ? this.deps.portFactory(cfg) : new DiscordClientPort(cfg);
     const telemetry = new SinkTelemetry((line) => this.pushLog(line));
-    const daemon = buildDaemon({
-      dbPath: this.deps.dbPath, db: this.db, port,
-      harnessFactory: this.deps.harnessFactory ?? (() => new ClaudeCodeHarness()),
-      telemetry,
-    });
+    const daemon = buildDaemon({ dbPath: this.deps.dbPath, db: this.db, telemetry, catalog: this.catalog });
     this.daemonCp = daemon.cp;
     this.cpUnsub = daemon.cp.subscribe((e: CoreEvent) => { reduceSessions(this.live, e); this.emitChange(); });
     this.daemonState = { ...this.daemonState, starting: true, lastError: undefined };

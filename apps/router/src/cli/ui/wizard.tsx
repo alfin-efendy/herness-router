@@ -5,7 +5,7 @@ import type { AppController } from "./controller";
 import { theme } from "./theme";
 
 export function Wizard({ controller, onDone }: { controller: AppController; onDone: () => void }) {
-  const required = controller.requiredKeys();
+  const [required] = useState(() => controller.requiredMissingFields().map((f) => f.key));
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);

@@ -33,11 +33,10 @@ test("ConfigTab edits a setting via Enter + typing + Enter", async () => {
   const c = ctl();
   const { stdin, lastFrame } = render(<ConfigTab controller={c} setEditing={() => {}} />);
   await flush();
-  expect(lastFrame()).toContain("discord_token");
-  // move to default_effort, edit it
-  // first key is the first row (discord_token); press Enter to edit it, type, submit
+  expect(lastFrame()).toContain("discord.token");
+  // first key is the first row (workdir_root); press Enter to edit it, type, submit
   stdin.write("\r"); await flush();         // enter edit on row 0
-  stdin.write("zzz"); await flush();
+  stdin.write("/repos"); await flush();
   stdin.write("\r"); await flush();          // submit
-  expect(c.get("discord_token")).toBe("zzz");
+  expect(c.get("workdir_root")).toBe("/repos");
 });
