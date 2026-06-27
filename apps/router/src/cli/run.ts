@@ -8,6 +8,7 @@ import type { Harness } from "../harness/types";
 import { cmdRun } from "./run-command";
 import { launchUi } from "./ui/launch";
 import { helpText, version } from "./meta";
+import { runDaemon } from "./daemon-process";
 
 export interface IO {
   out(s: string): void;
@@ -101,6 +102,9 @@ export async function runCli(args: string[], deps: CliDeps): Promise<number> {
     case "--help":
     case "help":
       deps.io.out(helpText());
+      return 0;
+    case "__daemon":
+      await runDaemon({ dbPath: deps.dbPath });
       return 0;
     case undefined:
       return launchUi(deps);
