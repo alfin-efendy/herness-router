@@ -112,8 +112,8 @@ export class AppController extends EventEmitter {
     } catch (e) {
       this.cpUnsub?.(); this.cpUnsub = undefined; this.daemonCp = undefined;
       this.daemonState = { running: false, lastError: (e as Error).message };
+      this.emitChange();
     }
-    this.emitChange();
   }
 
   stopDaemon(): void {
@@ -121,7 +121,6 @@ export class AppController extends EventEmitter {
     this.cpUnsub?.(); this.cpUnsub = undefined; this.daemonCp = undefined; this.daemonHandle = undefined;
     this.daemonState = { ...this.daemonState, running: false, startedAt: undefined };
     this.pushLog("daemon stopped");
-    this.emitChange();
   }
 
   async toggleDaemon(): Promise<void> {
