@@ -26,6 +26,9 @@ export function clearStatus(dir: string): void {
   try { rmSync(statusPath(dir)); } catch { /* already gone */ }
 }
 
+// NOTE: bare liveness check via signal 0 — cannot distinguish our daemon from an
+// unrelated process that reused the pid after a hard-kill (SIGKILL/OOM). Acceptable
+// for now; a future hardening could re-stamp daemon.json as a heartbeat or verify identity.
 export function isAlive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch { return false; }
 }

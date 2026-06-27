@@ -2,6 +2,18 @@ import { dirname } from "node:path";
 import { buildDaemon } from "./start-command";
 import { writeStatus, clearStatus } from "./daemon-status";
 
+const CONNECT_TIMEOUT_MS = 30000;
+
+export function startWithTimeout(daemon: { start(): Promise<void> }, ms: number): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`timed out connecting after ${ms}ms`)), ms);
+    daemon.start().then(
+      () => { clearTimeout(t); resolve(); },
+      (e) => { clearTimeout(t); reject(e as Error); },
+    );
+  });
+}
+
 export function makeShutdown(
   dir: string,
   daemon: { stop(): Promise<void> | void },
@@ -26,7 +38,7 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
   process.on("SIGTERM", () => void shutdown());
   process.on("SIGINT", () => void shutdown());
   try {
-    await daemon.start();
+    await startWithTimeout(daemon, CONNECT_TIMEOUT_MS);
     writeStatus(dir, { pid: process.pid, state: "running", startedAt });
     console.log("daemon: running");
   } catch (e) {
