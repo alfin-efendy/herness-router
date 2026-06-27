@@ -3,7 +3,10 @@ import type { ConfigField, ProviderCatalog } from "../providers/types";
 import { GLOBAL_FIELDS } from "./schema";
 
 export function csv(s: string | undefined): string[] {
-  return (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  return (s ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
 export function requiredMissingFields(settings: SettingsStore, cat: ProviderCatalog): ConfigField[] {
@@ -21,7 +24,9 @@ export function missingRequiredSettings(settings: SettingsStore, cat: ProviderCa
 }
 
 export function isConfigured(settings: SettingsStore, cat: ProviderCatalog): boolean {
-  return csv(settings.get("enabled_gateways")).length > 0
-    && csv(settings.get("enabled_runtimes")).length > 0
-    && missingRequiredSettings(settings, cat).length === 0;
+  return (
+    csv(settings.get("enabled_gateways")).length > 0 &&
+    csv(settings.get("enabled_runtimes")).length > 0 &&
+    missingRequiredSettings(settings, cat).length === 0
+  );
 }

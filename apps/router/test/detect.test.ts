@@ -1,8 +1,10 @@
 import { test, expect } from "bun:test";
 import { detectClaude, detectGit, type Runner } from "../src/harness/detect";
 
-const fakeRun = (map: Record<string, { exitCode: number; stdout: string }>): Runner =>
-  async (cmd) => map[cmd.join(" ")] ?? { exitCode: 127, stdout: "" };
+const fakeRun =
+  (map: Record<string, { exitCode: number; stdout: string }>): Runner =>
+  async (cmd) =>
+    map[cmd.join(" ")] ?? { exitCode: 127, stdout: "" };
 
 test("detectGit found", async () => {
   const run = fakeRun({ "git --version": { exitCode: 0, stdout: "git version 2.45.0" } });

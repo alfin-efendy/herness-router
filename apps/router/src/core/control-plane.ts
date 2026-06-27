@@ -1,7 +1,13 @@
 // apps/router/src/core/control-plane.ts
 import type {
-  ControlPlaneApi, Project, Session, CoreEvent, Unsubscribe,
-  StartSessionRequest, ContinueSessionRequest, ConnectProjectRequest,
+  ControlPlaneApi,
+  Project,
+  Session,
+  CoreEvent,
+  Unsubscribe,
+  StartSessionRequest,
+  ContinueSessionRequest,
+  ConnectProjectRequest,
 } from "@harness/protocol";
 import type { ProjectsStore } from "../store/projects";
 import type { SessionsStore } from "../store/sessions";
@@ -52,18 +58,30 @@ export class ControlPlane implements ControlPlaneApi {
     this.telemetry = deps.telemetry ?? new NoopTelemetry();
   }
 
-  listProjects(): Project[] { return this.deps.projects.list(); }
-  getProject(id: string): Project | undefined { return this.deps.projects.get(id); }
-  listSessions(projectId?: string): Session[] { return this.deps.sessions.list(projectId); }
-  subscribe(handler: (e: CoreEvent) => void): Unsubscribe { return this.events.subscribe(handler); }
-  emit(e: CoreEvent): void { this.events.emit(e); }
+  listProjects(): Project[] {
+    return this.deps.projects.list();
+  }
+  getProject(id: string): Project | undefined {
+    return this.deps.projects.get(id);
+  }
+  listSessions(projectId?: string): Session[] {
+    return this.deps.sessions.list(projectId);
+  }
+  subscribe(handler: (e: CoreEvent) => void): Unsubscribe {
+    return this.events.subscribe(handler);
+  }
+  emit(e: CoreEvent): void {
+    this.events.emit(e);
+  }
 
   private serial<T>(key: string, fn: () => Promise<T>): Promise<T> {
     const prev = this.chains.get(key) ?? Promise.resolve();
     const next = prev.catch(() => {}).then(fn);
     const stored = next.catch(() => {});
     this.chains.set(key, stored);
-    stored.then(() => { if (this.chains.get(key) === stored) this.chains.delete(key); });
+    stored.then(() => {
+      if (this.chains.get(key) === stored) this.chains.delete(key);
+    });
     return next;
   }
 
@@ -77,8 +95,15 @@ export class ControlPlane implements ControlPlaneApi {
     try {
       const now = Date.now();
       this.deps.sessions.insert({
-        sessionPk, projectId: project.projectId, worktreePath, branch,
-        title: req.prompt.slice(0, 80), status: "running", startedBy: req.actor, createdAt: now, lastActive: now,
+        sessionPk,
+        projectId: project.projectId,
+        worktreePath,
+        branch,
+        title: req.prompt.slice(0, 80),
+        status: "running",
+        startedBy: req.actor,
+        createdAt: now,
+        lastActive: now,
       });
       if (req.surface) this.deps.sessions.addSurface(req.surface.gateway, req.surface.conversationId, sessionPk);
       this.events.emit({ kind: "session.created", sessionPk, projectId: project.projectId });
@@ -158,7 +183,7 @@ export class ControlPlane implements ControlPlaneApi {
       harness: s.harness ?? (this.deps.settings.get("default_runtime") || "claude-code"),
       model: s.model ?? (this.deps.settings.get("default_model") || undefined),
       effort: s.effort ?? (this.deps.settings.get("default_effort") || undefined),
-      permMode: s.permMode ?? ((this.deps.settings.get("default_perm_mode") as Project["permMode"]) ?? "default"),
+      permMode: s.permMode ?? (this.deps.settings.get("default_perm_mode") as Project["permMode"]) ?? "default",
       createdBy: req.actor,
       createdAt: Date.now(),
     };
@@ -205,16 +230,22 @@ export class ControlPlane implements ControlPlaneApi {
       const timeoutMs = Number.isFinite(rawTimeout) ? rawTimeout : 300000;
 
       const approverRoleIds = (this.deps.settings.get("approver_role_ids") ?? "")
-        .split(",").map((s) => s.trim()).filter(Boolean);
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const startedBy = session.startedBy;
 
       this.events.emit({ kind: "approval.requested", sessionPk: req.sessionPk, requestId, tool: req.tool, summary });
 
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const timeoutP = new Promise<"timeout">((res) => { timer = setTimeout(() => res("timeout"), timeoutMs); });
+      const timeoutP = new Promise<"timeout">((res) => {
+        timer = setTimeout(() => res("timeout"), timeoutMs);
+      });
       const decisionP = Promise.race(
         targets.map((t) =>
-          t.gw.requestApproval(t.s, { requestId, tool: req.tool, summary, approverRoleIds, startedBy, timeoutMs }).catch(() => ({ decision: "deny" as const, actor: "error" })),
+          t.gw
+            .requestApproval(t.s, { requestId, tool: req.tool, summary, approverRoleIds, startedBy, timeoutMs })
+            .catch(() => ({ decision: "deny" as const, actor: "error" })),
         ),
       );
       try {
@@ -241,12 +272,20 @@ export class ControlPlane implements ControlPlaneApi {
         : undefined;
     const input: HarnessRunInput = {
       workdir: this.deps.sessions.get(sessionPk)?.worktreePath ?? project.workdir,
-      resume, prompt, model: project.model, effort: project.effort,
-      permissionMode: project.permMode, signal: controller.signal, approve: allowAll, approval,
+      resume,
+      prompt,
+      model: project.model,
+      effort: project.effort,
+      permissionMode: project.permMode,
+      signal: controller.signal,
+      approve: allowAll,
+      approval,
     };
     this.telemetry.count("session.run");
     const span = this.telemetry.startSpan("harness.run", {
-      project_id: project.projectId, session_pk: sessionPk, resume: Boolean(resume),
+      project_id: project.projectId,
+      session_pk: sessionPk,
+      resume: Boolean(resume),
     });
     try {
       for await (const ev of harness.run(input)) {

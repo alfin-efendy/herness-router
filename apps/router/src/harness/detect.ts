@@ -19,9 +19,7 @@ export async function detectGit(run: Runner = defaultRunner): Promise<ToolInfo> 
   return { found: true, version: res.stdout.replace(/^git version\s*/i, "").trim() };
 }
 
-export async function detectClaude(
-  run: Runner = defaultRunner,
-): Promise<ToolInfo & { authenticated?: boolean }> {
+export async function detectClaude(run: Runner = defaultRunner): Promise<ToolInfo & { authenticated?: boolean }> {
   const res = await run(["claude", "--version"]);
   if (res.exitCode !== 0) return { found: false };
   const version = (res.stdout.match(/\d+\.\d+\.\d+/)?.[0] ?? res.stdout).trim();

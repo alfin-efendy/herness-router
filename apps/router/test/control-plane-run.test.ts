@@ -22,11 +22,15 @@ function setup(events: HarnessEvent[]) {
   projects.insert({ projectId: "p1", name: "foo", workdir: "/repo/foo", harness: "claude-code", permMode: "default" });
   const wt: string[] = [];
   const cp = new ControlPlane({
-    projects, sessions: new SessionsStore(db), settings: new SettingsStore(db),
+    projects,
+    sessions: new SessionsStore(db),
+    settings: new SettingsStore(db),
     workdirRoot: "/root",
     worktree: {
       pathFor: (root, pid, spk) => `${root}/.harness-worktrees/${pid}/${spk}`,
-      create: async (_repo, path) => { wt.push("create:" + path); },
+      create: async (_repo, path) => {
+        wt.push("create:" + path);
+      },
       remove: async () => {},
     },
   });
@@ -62,10 +66,16 @@ test("continueSession resumes the stored agent session id", async () => {
   const sessions = new SessionsStore(db);
   class CapHarness implements Harness {
     readonly id = "claude-code";
-    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> { captured.push(i.resume); yield { type: "result", usage: {} }; }
+    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+      captured.push(i.resume);
+      yield { type: "result", usage: {} };
+    }
   }
   const cp = new ControlPlane({
-    projects, sessions, settings: new SettingsStore(db), workdirRoot: "/root",
+    projects,
+    sessions,
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
     worktree: { pathFor: (r, p, s) => `${r}/${p}/${s}`, create: async () => {}, remove: async () => {} },
   });
   cp.harnesses.register("claude-code", () => new CapHarness());
@@ -86,7 +96,10 @@ test("continueSession re-persists agentSessionId when result carries a rotated s
     }
   }
   const cp = new ControlPlane({
-    projects, sessions, settings: new SettingsStore(db), workdirRoot: "/root",
+    projects,
+    sessions,
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
     worktree: { pathFor: (r, p, s) => `${r}/${p}/${s}`, create: async () => {}, remove: async () => {} },
   });
   cp.harnesses.register("claude-code", () => new CapHarness());

@@ -8,8 +8,14 @@ export function startWithTimeout(daemon: { start(): Promise<void> }, ms: number)
   return new Promise<void>((resolve, reject) => {
     const t = setTimeout(() => reject(new Error(`timed out connecting after ${ms}ms`)), ms);
     daemon.start().then(
-      () => { clearTimeout(t); resolve(); },
-      (e) => { clearTimeout(t); reject(e as Error); },
+      () => {
+        clearTimeout(t);
+        resolve();
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e as Error);
+      },
     );
   });
 }
@@ -23,7 +29,11 @@ export function makeShutdown(
   return async () => {
     if (stopping) return;
     stopping = true;
-    try { await daemon.stop(); } catch { /* best effort */ }
+    try {
+      await daemon.stop();
+    } catch {
+      /* best effort */
+    }
     clearStatus(dir);
     exit(0);
   };

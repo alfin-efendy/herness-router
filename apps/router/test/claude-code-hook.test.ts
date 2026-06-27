@@ -6,8 +6,11 @@ import type { HarnessRunInput } from "../src/harness/types";
 
 function input(over: Partial<HarnessRunInput> = {}): HarnessRunInput {
   return {
-    workdir: "/wt", prompt: "go", permissionMode: "default",
-    signal: new AbortController().signal, approve: async () => ({ behavior: "allow" }),
+    workdir: "/wt",
+    prompt: "go",
+    permissionMode: "default",
+    signal: new AbortController().signal,
+    approve: async () => ({ behavior: "allow" }),
     ...over,
   };
 }
@@ -21,12 +24,18 @@ test("default mode + approval adds --settings with the hook", () => {
 });
 
 test("bypass mode does not add --settings", () => {
-  const a = buildClaudeArgs(input({ permissionMode: "bypassPermissions", approval: { url: "http://x", sessionPk: "s1", hookBinPath: "/h.ts" } }), "u");
+  const a = buildClaudeArgs(
+    input({ permissionMode: "bypassPermissions", approval: { url: "http://x", sessionPk: "s1", hookBinPath: "/h.ts" } }),
+    "u",
+  );
   expect(a).not.toContain("--settings");
 });
 
 test("acceptEdits mode does not add --settings", () => {
-  const a = buildClaudeArgs(input({ permissionMode: "acceptEdits", approval: { url: "http://x", sessionPk: "s1", hookBinPath: "/h.ts" } }), "u");
+  const a = buildClaudeArgs(
+    input({ permissionMode: "acceptEdits", approval: { url: "http://x", sessionPk: "s1", hookBinPath: "/h.ts" } }),
+    "u",
+  );
   expect(a).not.toContain("--settings");
 });
 
@@ -34,11 +43,15 @@ test("runner receives HARNESS_* env when approval is set", async () => {
   let capturedEnv: Record<string, string> | undefined;
   const runner: ClaudeRunner = (_args, opts) => {
     capturedEnv = (opts as { env?: Record<string, string> }).env;
-    return (async function* () { yield JSON.stringify({ type: "result", is_error: false, result: "ok", session_id: "x", usage: {} }); })();
+    return (async function* () {
+      yield JSON.stringify({ type: "result", is_error: false, result: "ok", session_id: "x", usage: {} });
+    })();
   };
   const h = new ClaudeCodeHarness(runner);
   const it = h.run(input({ approval: { url: "http://ipc", sessionPk: "s9", hookBinPath: "/h.ts" } }));
-  for await (const _e of it) { /* drain */ }
+  for await (const _e of it) {
+    /* drain */
+  }
   expect(capturedEnv?.HARNESS_APPROVAL_URL).toBe("http://ipc");
   expect(capturedEnv?.HARNESS_SESSION_PK).toBe("s9");
 });

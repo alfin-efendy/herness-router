@@ -8,14 +8,25 @@ export interface DaemonStatusFile {
   lastError?: string;
 }
 
-export interface DaemonState { running: boolean; startedAt?: number; lastError?: string; starting?: boolean }
+export interface DaemonState {
+  running: boolean;
+  startedAt?: number;
+  lastError?: string;
+  starting?: boolean;
+}
 
-function statusPath(dir: string): string { return join(dir, "daemon.json"); }
+function statusPath(dir: string): string {
+  return join(dir, "daemon.json");
+}
 
 export function readStatus(dir: string): DaemonStatusFile | null {
   const p = statusPath(dir);
   if (!existsSync(p)) return null;
-  try { return JSON.parse(readFileSync(p, "utf8")) as DaemonStatusFile; } catch { return null; }
+  try {
+    return JSON.parse(readFileSync(p, "utf8")) as DaemonStatusFile;
+  } catch {
+    return null;
+  }
 }
 
 export function writeStatus(dir: string, s: DaemonStatusFile): void {
@@ -23,14 +34,23 @@ export function writeStatus(dir: string, s: DaemonStatusFile): void {
 }
 
 export function clearStatus(dir: string): void {
-  try { rmSync(statusPath(dir)); } catch { /* already gone */ }
+  try {
+    rmSync(statusPath(dir));
+  } catch {
+    /* already gone */
+  }
 }
 
 // NOTE: bare liveness check via signal 0 — cannot distinguish our daemon from an
 // unrelated process that reused the pid after a hard-kill (SIGKILL/OOM). Acceptable
 // for now; a future hardening could re-stamp daemon.json as a heartbeat or verify identity.
 export function isAlive(pid: number): boolean {
-  try { process.kill(pid, 0); return true; } catch { return false; }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function deriveState(s: DaemonStatusFile | null, alive: (pid: number) => boolean): DaemonState {

@@ -10,7 +10,7 @@ export interface ConfigField {
   example?: string;
   secret?: boolean;
   required?: boolean;
-  control?: boolean;            // set by pickers (enabled_*/default_runtime), not a free-text field
+  control?: boolean; // set by pickers (enabled_*/default_runtime), not a free-text field
   type?: "string" | "int" | "enum";
   oneOf?: string[];
   default?: string;

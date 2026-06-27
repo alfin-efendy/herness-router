@@ -23,14 +23,14 @@ test("queued continueSession resumes with the first run's agent session id", asy
   const sessions = new SessionsStore(db);
   sessions.insert({ sessionPk: "s1", projectId: "p1", worktreePath: "/wt", status: "idle" });
   const cp = new ControlPlane({
-    projects, sessions, settings: new SettingsStore(db), workdirRoot: "/root",
+    projects,
+    sessions,
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
     worktree: { pathFor: (r, p, s) => `${r}/${p}/${s}`, create: async () => {}, remove: async () => {} },
   });
   cp.harnesses.register("claude-code", () => new H());
-  await Promise.all([
-    cp.continueSession({ sessionPk: "s1", prompt: "a" }),
-    cp.continueSession({ sessionPk: "s1", prompt: "b" }),
-  ]);
+  await Promise.all([cp.continueSession({ sessionPk: "s1", prompt: "a" }), cp.continueSession({ sessionPk: "s1", prompt: "b" })]);
   expect(resumes[0]).toBeUndefined();
   expect(resumes[1]).toBe("agent-A");
 });
@@ -41,9 +41,11 @@ test("two continueSession calls on the same session run serially", async () => {
   class SlowHarness implements Harness {
     readonly id = "claude-code";
     async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
-      active++; order.push(`start(active=${active})`);
+      active++;
+      order.push(`start(active=${active})`);
       await new Promise((r) => setTimeout(r, 20));
-      active--; order.push("end");
+      active--;
+      order.push("end");
       yield { type: "result", usage: {} };
     }
   }
@@ -53,15 +55,15 @@ test("two continueSession calls on the same session run serially", async () => {
   const sessions = new SessionsStore(db);
   sessions.insert({ sessionPk: "s1", projectId: "p1", worktreePath: "/wt", status: "idle" });
   const cp = new ControlPlane({
-    projects, sessions, settings: new SettingsStore(db), workdirRoot: "/root",
+    projects,
+    sessions,
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
     worktree: { pathFor: (r, p, s) => `${r}/${p}/${s}`, create: async () => {}, remove: async () => {} },
   });
   cp.harnesses.register("claude-code", () => new SlowHarness());
 
-  await Promise.all([
-    cp.continueSession({ sessionPk: "s1", prompt: "a" }),
-    cp.continueSession({ sessionPk: "s1", prompt: "b" }),
-  ]);
+  await Promise.all([cp.continueSession({ sessionPk: "s1", prompt: "a" }), cp.continueSession({ sessionPk: "s1", prompt: "b" })]);
   // never two active at once → no "start(active=2)"
   expect(order).toEqual(["start(active=1)", "end", "start(active=1)", "end"]);
 });

@@ -2,17 +2,30 @@ import type { Database } from "bun:sqlite";
 import type { Project, PermMode } from "@harness/protocol";
 
 interface Row {
-  project_id: string; name: string; workdir: string; source: string | null;
-  harness: string; model: string | null; effort: string | null; perm_mode: string;
-  created_by: string | null; created_at: number | null;
+  project_id: string;
+  name: string;
+  workdir: string;
+  source: string | null;
+  harness: string;
+  model: string | null;
+  effort: string | null;
+  perm_mode: string;
+  created_by: string | null;
+  created_at: number | null;
 }
 
 function toProject(r: Row): Project {
   return {
-    projectId: r.project_id, name: r.name, workdir: r.workdir,
-    source: r.source ?? undefined, harness: r.harness, model: r.model ?? undefined,
-    effort: r.effort ?? undefined, permMode: r.perm_mode as PermMode,
-    createdBy: r.created_by ?? undefined, createdAt: r.created_at ?? undefined,
+    projectId: r.project_id,
+    name: r.name,
+    workdir: r.workdir,
+    source: r.source ?? undefined,
+    harness: r.harness,
+    model: r.model ?? undefined,
+    effort: r.effort ?? undefined,
+    permMode: r.perm_mode as PermMode,
+    createdBy: r.created_by ?? undefined,
+    createdAt: r.created_at ?? undefined,
   };
 }
 
@@ -23,8 +36,18 @@ export class ProjectsStore {
     this.db.run(
       `INSERT INTO projects(project_id, name, workdir, source, harness, model, effort, perm_mode, created_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.projectId, p.name, p.workdir, p.source ?? null, p.harness, p.model ?? null,
-       p.effort ?? null, p.permMode, p.createdBy ?? null, p.createdAt ?? null],
+      [
+        p.projectId,
+        p.name,
+        p.workdir,
+        p.source ?? null,
+        p.harness,
+        p.model ?? null,
+        p.effort ?? null,
+        p.permMode,
+        p.createdBy ?? null,
+        p.createdAt ?? null,
+      ],
     );
   }
 

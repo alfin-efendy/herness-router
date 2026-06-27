@@ -31,16 +31,20 @@ test("SessionsTab shows empty state", () => {
 
 test("ConfigTab shows grouped labels/help and edits a field", async () => {
   const c = ctl();
-  c.setEnabledGateways(["discord"]); c.setEnabledRuntimes(["claude-code"]);
+  c.setEnabledGateways(["discord"]);
+  c.setEnabledRuntimes(["claude-code"]);
   const { stdin, lastFrame } = render(<ConfigTab controller={c} setEditing={() => {}} />);
   await flush();
   const f = lastFrame()!;
   expect(f).toContain("General");
-  expect(f).toContain("Discord");        // gateway group header (label)
-  expect(f).toContain("Workdir root");   // a field label, not the raw key
+  expect(f).toContain("Discord"); // gateway group header (label)
+  expect(f).toContain("Workdir root"); // a field label, not the raw key
   // first selectable row is the first general field (workdir_root); edit it
-  stdin.write("\r"); await flush();      // enter edit
-  stdin.write("/tmp/x"); await flush();
-  stdin.write("\r"); await flush();      // submit
+  stdin.write("\r");
+  await flush(); // enter edit
+  stdin.write("/tmp/x");
+  await flush();
+  stdin.write("\r");
+  await flush(); // submit
   expect(c.get("workdir_root")).toBe("/tmp/x");
 });

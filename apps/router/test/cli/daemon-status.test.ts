@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readStatus, writeStatus, clearStatus, isAlive, deriveState } from "../../src/cli/daemon-status";
 
-function dir() { return mkdtempSync(join(tmpdir(), "hr-status-")); }
+function dir() {
+  return mkdtempSync(join(tmpdir(), "hr-status-"));
+}
 
 test("write/read/clear round-trip", () => {
   const d = dir();

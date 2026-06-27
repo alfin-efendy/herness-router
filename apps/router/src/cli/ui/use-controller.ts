@@ -6,6 +6,8 @@ export function useController(controller: AppController): void {
   useEffect(() => {
     const cb = () => force();
     controller.on("change", cb);
-    return () => { controller.off("change", cb); };
+    return () => {
+      controller.off("change", cb);
+    };
   }, [controller]);
 }

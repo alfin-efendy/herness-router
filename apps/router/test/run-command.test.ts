@@ -30,7 +30,9 @@ test("harness run drives a session and prints streamed events", async () => {
   const lines: string[] = [];
   const io: IO = { out: (s) => lines.push(s), err: (s) => lines.push("ERR " + s), prompt: async () => "" };
   const deps: CliDeps = {
-    io, dbPath: ":memory:", detect: { claude: detectClaude, git: detectGit },
+    io,
+    dbPath: ":memory:",
+    detect: { claude: detectClaude, git: detectGit },
     harnessFactory: () => new FakeHarness(),
   };
   const code = await runCli(["run", "--dir", repo, "--prompt", "do it"], deps);

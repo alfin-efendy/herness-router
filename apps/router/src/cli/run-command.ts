@@ -17,10 +17,14 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
   let dir: string | undefined, prompt: string | undefined, model: string | undefined, effort: string | undefined, mode: string | undefined;
   try {
     const parsed = parseArgs({
-      args, allowPositionals: false,
+      args,
+      allowPositionals: false,
       options: {
-        dir: { type: "string" }, prompt: { type: "string" },
-        model: { type: "string" }, effort: { type: "string" }, mode: { type: "string" },
+        dir: { type: "string" },
+        prompt: { type: "string" },
+        model: { type: "string" },
+        effort: { type: "string" },
+        mode: { type: "string" },
       },
     });
     ({ dir, prompt, model, effort, mode } = parsed.values);
@@ -42,7 +46,9 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
   const projects = new ProjectsStore(db);
   const settings = new SettingsStore(db);
   const cp = new ControlPlane({
-    projects, sessions: new SessionsStore(db), settings,
+    projects,
+    sessions: new SessionsStore(db),
+    settings,
     workdirRoot: dirname(workdir),
   });
   const defaultRuntime = settings.get("default_runtime") || "claude-code";
@@ -57,8 +63,12 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
 
   if (!projects.get(workdir)) {
     projects.insert({
-      projectId: workdir, name: workdir.split("/").pop() ?? workdir, workdir,
-      harness: defaultRuntime, model, effort,
+      projectId: workdir,
+      name: workdir.split("/").pop() ?? workdir,
+      workdir,
+      harness: defaultRuntime,
+      model,
+      effort,
       permMode: (mode as PermMode | undefined) ?? "default",
     });
   }
@@ -68,7 +78,10 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
     if (e.kind === "status") deps.io.out(`· ${e.text}`);
     else if (e.kind === "text") deps.io.out(e.text);
     else if (e.kind === "result") deps.io.out(`✓ done`);
-    else if (e.kind === "error") { failed = true; deps.io.err(`✗ ${e.message}`); }
+    else if (e.kind === "error") {
+      failed = true;
+      deps.io.err(`✗ ${e.message}`);
+    }
   });
 
   await cp.startSession({ projectId: workdir, prompt, actor: "cli" });

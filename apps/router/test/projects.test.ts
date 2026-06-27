@@ -5,8 +5,13 @@ import { ProjectsStore } from "../src/store/projects";
 
 function sample(): Project {
   return {
-    projectId: "p1", name: "foo", workdir: "/repos/foo", harness: "claude-code",
-    permMode: "default", createdBy: "u1", createdAt: 1,
+    projectId: "p1",
+    name: "foo",
+    workdir: "/repos/foo",
+    harness: "claude-code",
+    permMode: "default",
+    createdBy: "u1",
+    createdAt: 1,
   };
 }
 

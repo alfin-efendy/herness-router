@@ -15,21 +15,44 @@ class Recording implements Telemetry {
   startSpan(name: string, attrs: Attrs = {}): Span {
     const rec = { name, attrs: { ...attrs }, ended: false } as { name: string; attrs: Attrs; error?: string; ended: boolean };
     this.spans.push(rec);
-    return { setAttribute: (k, v) => { rec.attrs[k] = v; }, setError: (m) => { rec.error = m; }, end: () => { rec.ended = true; } };
+    return {
+      setAttribute: (k, v) => {
+        rec.attrs[k] = v;
+      },
+      setError: (m) => {
+        rec.error = m;
+      },
+      end: () => {
+        rec.ended = true;
+      },
+    };
   }
-  count(name: string, attrs: Attrs = {}): void { this.counts.push({ name, attrs }); }
-  record(name: string, value: number): void { this.records.push({ name, value }); }
+  count(name: string, attrs: Attrs = {}): void {
+    this.counts.push({ name, attrs });
+  }
+  record(name: string, value: number): void {
+    this.records.push({ name, value });
+  }
 }
 
 function wire(events: HarnessEvent[], permMode: "default" | "bypassPermissions" = "bypassPermissions") {
-  class H implements Harness { readonly id = "claude-code"; async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> { for (const e of events) yield e; } }
+  class H implements Harness {
+    readonly id = "claude-code";
+    async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+      for (const e of events) yield e;
+    }
+  }
   const db = openDb(":memory:");
   const projects = new ProjectsStore(db);
   projects.insert({ projectId: "p1", name: "f", workdir: "/repo", harness: "claude-code", permMode });
   const sessions = new SessionsStore(db);
   const tel = new Recording();
   const cp = new ControlPlane({
-    projects, sessions, settings: new SettingsStore(db), workdirRoot: "/root", telemetry: tel,
+    projects,
+    sessions,
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
+    telemetry: tel,
     worktree: { pathFor: (r, p, s) => `${r}/${p}/${s}`, create: async () => {}, remove: async () => {} },
   });
   cp.harnesses.register("claude-code", () => new H());

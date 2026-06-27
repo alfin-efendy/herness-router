@@ -14,9 +14,13 @@ const BINDINGS: Array<[string, string]> = [
 export function OptionsOverlay() {
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={theme.accent} paddingX={1}>
-      <Text bold color={theme.accent}>Options</Text>
+      <Text bold color={theme.accent}>
+        Options
+      </Text>
       {BINDINGS.map(([k, d]) => (
-        <Text key={k}><Text color={theme.warn}>{k.padEnd(20)}</Text> {d}</Text>
+        <Text key={k}>
+          <Text color={theme.warn}>{k.padEnd(20)}</Text> {d}
+        </Text>
       ))}
     </Box>
   );

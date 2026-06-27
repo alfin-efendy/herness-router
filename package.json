@@ -9,9 +9,12 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "hr": "bun run apps/router/src/cli/index.ts"
+    "hr": "bun run apps/router/src/cli/index.ts",
+    "lint": "biome ci .",
+    "format": "biome check --write ."
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.1",
     "@types/bun": "latest",
     "typescript": "^5"
   }

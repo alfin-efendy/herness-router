@@ -15,16 +15,24 @@ function buildRows(c: AppController): Row[] {
   for (const f of c.generalFields()) rows.push({ kind: "field", field: f });
   for (const id of c.enabledGateways()) {
     const d = c.gatewayDescriptors().find((g) => g.id === id);
-    if (d?.fields.length) { rows.push({ kind: "header", label: d.label }); for (const f of d.fields) rows.push({ kind: "field", field: f }); }
+    if (d?.fields.length) {
+      rows.push({ kind: "header", label: d.label });
+      for (const f of d.fields) rows.push({ kind: "field", field: f });
+    }
   }
   for (const id of c.enabledRuntimes()) {
     const d = c.runtimeDescriptors().find((r) => r.id === id);
-    if (d?.fields.length) { rows.push({ kind: "header", label: d.label }); for (const f of d.fields) rows.push({ kind: "field", field: f }); }
+    if (d?.fields.length) {
+      rows.push({ kind: "header", label: d.label });
+      for (const f of d.fields) rows.push({ kind: "field", field: f });
+    }
   }
   rows.push({ kind: "header", label: "Providers" });
   const en = new Set([...c.enabledGateways(), ...c.enabledRuntimes()]);
-  for (const g of c.gatewayDescriptors()) rows.push({ kind: "toggle", id: g.id, label: `${g.label} (gateway)`, group: "gateway", on: en.has(g.id) });
-  for (const r of c.runtimeDescriptors()) rows.push({ kind: "toggle", id: r.id, label: `${r.label} (runtime)`, group: "runtime", on: en.has(r.id) });
+  for (const g of c.gatewayDescriptors())
+    rows.push({ kind: "toggle", id: g.id, label: `${g.label} (gateway)`, group: "gateway", on: en.has(g.id) });
+  for (const r of c.runtimeDescriptors())
+    rows.push({ kind: "toggle", id: r.id, label: `${r.label} (runtime)`, group: "runtime", on: en.has(r.id) });
   return rows;
 }
 
@@ -38,31 +46,70 @@ export function ConfigTab({ controller, setEditing }: { controller: AppControlle
   const curRowIdx = selectable[Math.min(pos, selectable.length - 1)] ?? -1;
   const cur = rows[curRowIdx];
 
-  useInput((_in, key) => {
-    if (key.upArrow) setPos((p) => (p > 0 ? p - 1 : selectable.length - 1));
-    else if (key.downArrow) setPos((p) => (p < selectable.length - 1 ? p + 1 : 0));
-    else if (key.return && cur?.kind === "field") { setDraft(controller.get(cur.field.key) ?? ""); setError(null); setEd(true); setEditing(true); }
-    else if (_in === " " && cur?.kind === "toggle") toggleProvider(controller, cur);
-  }, { isActive: !editing });
+  useInput(
+    (_in, key) => {
+      if (key.upArrow) setPos((p) => (p > 0 ? p - 1 : selectable.length - 1));
+      else if (key.downArrow) setPos((p) => (p < selectable.length - 1 ? p + 1 : 0));
+      else if (key.return && cur?.kind === "field") {
+        setDraft(controller.get(cur.field.key) ?? "");
+        setError(null);
+        setEd(true);
+        setEditing(true);
+      } else if (_in === " " && cur?.kind === "toggle") toggleProvider(controller, cur);
+    },
+    { isActive: !editing },
+  );
 
-  useInput((_in, key) => { if (key.escape) { setEd(false); setEditing(false); setError(null); } }, { isActive: editing });
+  useInput(
+    (_in, key) => {
+      if (key.escape) {
+        setEd(false);
+        setEditing(false);
+        setError(null);
+      }
+    },
+    { isActive: editing },
+  );
 
   return (
     <Box flexDirection="column">
       {rows.map((r, i) => {
-        if (r.kind === "header") return <Text key={`h${i}`} bold color={theme.accent}>{r.label}</Text>;
+        if (r.kind === "header")
+          return (
+            <Text key={`h${i}`} bold color={theme.accent}>
+              {r.label}
+            </Text>
+          );
         const sel = i === curRowIdx;
         if (r.kind === "toggle") {
-          return <Text key={`t${i}`} color={sel ? theme.accent : theme.dim}>{(sel ? "› " : "  ")}[{r.on ? "x" : " "}] {r.label}</Text>;
+          return (
+            <Text key={`t${i}`} color={sel ? theme.accent : theme.dim}>
+              {sel ? "› " : "  "}[{r.on ? "x" : " "}] {r.label}
+            </Text>
+          );
         }
-        const f = r.field; const v = controller.get(f.key) ?? "";
+        const f = r.field;
+        const v = controller.get(f.key) ?? "";
         const shown = f.secret && v ? "••••••••" : v || "(unset)";
         if (sel && editing) {
           return (
             <Box key={`f${i}`}>
               <Text color={theme.accent}>{"› " + f.label.padEnd(22)}</Text>
-              <TextInput value={draft} onChange={setDraft} mask={f.secret ? "•" : undefined}
-                onSubmit={() => { try { controller.set(f.key, draft); setEd(false); setEditing(false); setError(null); } catch (e) { setError((e as Error).message); } }} />
+              <TextInput
+                value={draft}
+                onChange={setDraft}
+                mask={f.secret ? "•" : undefined}
+                onSubmit={() => {
+                  try {
+                    controller.set(f.key, draft);
+                    setEd(false);
+                    setEditing(false);
+                    setError(null);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              />
             </Box>
           );
         }
@@ -72,7 +119,13 @@ export function ConfigTab({ controller, setEditing }: { controller: AppControlle
               <Text color={sel ? theme.accent : theme.dim}>{(sel ? "› " : "  ") + f.label.padEnd(22)}</Text>
               <Text>{shown}</Text>
             </Box>
-            {sel && <Text color={theme.dim}>  {f.help}{f.example ? `  (e.g. ${f.example})` : ""}</Text>}
+            {sel && (
+              <Text color={theme.dim}>
+                {" "}
+                {f.help}
+                {f.example ? `  (e.g. ${f.example})` : ""}
+              </Text>
+            )}
           </Box>
         );
       })}

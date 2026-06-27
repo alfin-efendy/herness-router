@@ -7,12 +7,27 @@ class FakePort implements DiscordPort {
   connected = false;
   private n = 0;
   lastApproval?: unknown;
-  botUserId() { return "bot"; }
-  async connect(_h?: unknown) { this.connected = true; }
-  async createTextChannel(name: string) { this.calls.push(`createTextChannel:${name}`); return `chan-${++this.n}`; }
-  async createThread(channelId: string, name: string) { this.calls.push(`createThread:${channelId}:${name}`); return `thread-${++this.n}`; }
-  async sendMessage(channelId: string, text: string) { this.calls.push(`send:${channelId}:${text}`); return `msg-${++this.n}`; }
-  async editMessage(channelId: string, messageId: string, text: string) { this.calls.push(`edit:${channelId}:${messageId}:${text}`); }
+  botUserId() {
+    return "bot";
+  }
+  async connect(_h?: unknown) {
+    this.connected = true;
+  }
+  async createTextChannel(name: string) {
+    this.calls.push(`createTextChannel:${name}`);
+    return `chan-${++this.n}`;
+  }
+  async createThread(channelId: string, name: string) {
+    this.calls.push(`createThread:${channelId}:${name}`);
+    return `thread-${++this.n}`;
+  }
+  async sendMessage(channelId: string, text: string) {
+    this.calls.push(`send:${channelId}:${text}`);
+    return `msg-${++this.n}`;
+  }
+  async editMessage(channelId: string, messageId: string, text: string) {
+    this.calls.push(`edit:${channelId}:${messageId}:${text}`);
+  }
   async requestApproval(conversationId: string, req: unknown) {
     this.calls.push(`requestApproval:${conversationId}`);
     this.lastApproval = req;
@@ -23,17 +38,34 @@ class FakePort implements DiscordPort {
 function fakeRouter() {
   const calls: string[] = [];
   const router: InboundRouter = {
-    onConnect: async (_g, _a, o) => { calls.push(`onConnect:${o.name ?? o.gitUrl}`); return { workspaceId: "ws-1", project: { name: o.name ?? "p" } }; },
-    onStart: async (_g, w, _a, p) => { calls.push(`onStart:${w}:${p}`); },
-    onReply: async (_g, c, _a, p) => { calls.push(`onReply:${c}:${p}`); },
-    onEnd: async (_g, c) => { calls.push(`onEnd:${c}`); },
-    onStop: async (_g, c) => { calls.push(`onStop:${c}`); },
+    onConnect: async (_g, _a, o) => {
+      calls.push(`onConnect:${o.name ?? o.gitUrl}`);
+      return { workspaceId: "ws-1", project: { name: o.name ?? "p" } };
+    },
+    onStart: async (_g, w, _a, p) => {
+      calls.push(`onStart:${w}:${p}`);
+    },
+    onReply: async (_g, c, _a, p) => {
+      calls.push(`onReply:${c}:${p}`);
+    },
+    onEnd: async (_g, c) => {
+      calls.push(`onEnd:${c}`);
+    },
+    onStop: async (_g, c) => {
+      calls.push(`onStop:${c}`);
+    },
   };
   return { router, calls };
 }
 
 const msg = (over: Partial<InboundMessage>): InboundMessage => ({
-  channelId: "c", isThread: false, authorBot: false, authorId: "u", mentionsBot: false, content: "", ...over,
+  channelId: "c",
+  isThread: false,
+  authorBot: false,
+  authorId: "u",
+  mentionsBot: false,
+  content: "",
+  ...over,
 });
 
 test("output methods delegate to the port", async () => {
@@ -59,10 +91,10 @@ test("ignores bot messages; thread→reply; mention→start; else ignore", async
   const port = new FakePort();
   const { router, calls } = fakeRouter();
   const gw = new DiscordGateway(port, router);
-  await gw.handleMessage(msg({ authorBot: true, isThread: true, content: "x" }));        // ignored
-  await gw.handleMessage(msg({ isThread: true, channelId: "t1", content: "more" }));      // reply
+  await gw.handleMessage(msg({ authorBot: true, isThread: true, content: "x" })); // ignored
+  await gw.handleMessage(msg({ isThread: true, channelId: "t1", content: "more" })); // reply
   await gw.handleMessage(msg({ mentionsBot: true, channelId: "ch1", content: "<@12345> do it" })); // start (mention stripped)
-  await gw.handleMessage(msg({ content: "just chatting" }));                              // ignored
+  await gw.handleMessage(msg({ content: "just chatting" })); // ignored
   expect(calls).toEqual(["onReply:t1:more", "onStart:ch1:do it"]);
 });
 
@@ -71,10 +103,9 @@ test("interaction connect routes to onConnect and replies with the channel", asy
   const { router, calls } = fakeRouter();
   const gw = new DiscordGateway(port, router);
   const replies: string[] = [];
-  await gw.handleInteraction(
-    { name: "connect", userId: "u", channelId: "c", options: { name: "foo" } },
-    async (t) => { replies.push(t); },
-  );
+  await gw.handleInteraction({ name: "connect", userId: "u", channelId: "c", options: { name: "foo" } }, async (t) => {
+    replies.push(t);
+  });
   expect(calls).toEqual(["onConnect:foo"]);
   expect(replies[0]).toContain("ws-1");
 });

@@ -17,12 +17,14 @@ export function DaemonTab({ controller }: { controller: AppController }) {
   return (
     <Box flexDirection="column">
       <Box>
-        {d.starting
-          ? <Text color={theme.warn}>● connecting…</Text>
-          : <StatusDot on={d.running} label={d.running ? "running" : "stopped"} />}
+        {d.starting ? (
+          <Text color={theme.warn}>● connecting…</Text>
+        ) : (
+          <StatusDot on={d.running} label={d.running ? "running" : "stopped"} />
+        )}
       </Box>
-      <Text>uptime  {uptime(d.startedAt)}</Text>
-      {d.lastError && <Text color={theme.bad}>error   {d.lastError}</Text>}
+      <Text>uptime {uptime(d.startedAt)}</Text>
+      {d.lastError && <Text color={theme.bad}>error {d.lastError}</Text>}
       <Text color={theme.dim}>{d.starting ? "connecting to Discord…" : `press s to ${d.running ? "stop" : "start"}`}</Text>
       <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor={theme.dim} paddingX={1}>
         <Text color={theme.dim}>logs</Text>

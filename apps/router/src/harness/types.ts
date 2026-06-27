@@ -1,8 +1,6 @@
 import type { PermMode } from "@harness/protocol";
 
-export type ToolPermissionResult =
-  | { behavior: "allow"; updatedInput?: unknown }
-  | { behavior: "deny"; message: string };
+export type ToolPermissionResult = { behavior: "allow"; updatedInput?: unknown } | { behavior: "deny"; message: string };
 
 export type ApproveFn = (req: { tool: string; input: unknown }) => Promise<ToolPermissionResult>;
 

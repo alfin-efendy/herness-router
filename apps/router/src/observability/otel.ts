@@ -19,11 +19,7 @@ export function createOtelTelemetry(opts: { endpoint: string; serviceName?: stri
 
   const tracerProvider = new BasicTracerProvider({
     resource,
-    spanProcessors: [
-      new BatchSpanProcessor(
-        new OTLPTraceExporter({ url: `${opts.endpoint}/v1/traces` }),
-      ),
-    ],
+    spanProcessors: [new BatchSpanProcessor(new OTLPTraceExporter({ url: `${opts.endpoint}/v1/traces` }))],
   });
 
   const meterProvider = new MeterProvider({
@@ -48,16 +44,26 @@ export function createOtelTelemetry(opts: { endpoint: string; serviceName?: stri
         const span = tracer.startSpan(name, { attributes: attrs });
         return {
           setAttribute(k: string, v: string | number | boolean): void {
-            try { span.setAttribute(k, v); } catch { /* swallow */ }
+            try {
+              span.setAttribute(k, v);
+            } catch {
+              /* swallow */
+            }
           },
           setError(m: string): void {
             try {
               span.recordException(m);
               span.setStatus({ code: SpanStatusCode.ERROR, message: m });
-            } catch { /* swallow */ }
+            } catch {
+              /* swallow */
+            }
           },
           end(): void {
-            try { span.end(); } catch { /* swallow */ }
+            try {
+              span.end();
+            } catch {
+              /* swallow */
+            }
           },
         };
       } catch {
@@ -73,7 +79,9 @@ export function createOtelTelemetry(opts: { endpoint: string; serviceName?: stri
           counters.set(name, c);
         }
         c.add(1, attrs);
-      } catch { /* swallow */ }
+      } catch {
+        /* swallow */
+      }
     },
 
     record(name: string, value: number, attrs: Attrs = {}): void {
@@ -84,12 +92,18 @@ export function createOtelTelemetry(opts: { endpoint: string; serviceName?: stri
           histos.set(name, h);
         }
         h.record(value, attrs);
-      } catch { /* swallow */ }
+      } catch {
+        /* swallow */
+      }
     },
 
     async shutdown() {
-      try { await tracerProvider.shutdown(); } catch {}
-      try { await meterProvider.shutdown(); } catch {}
+      try {
+        await tracerProvider.shutdown();
+      } catch {}
+      try {
+        await meterProvider.shutdown();
+      } catch {}
     },
   };
 }

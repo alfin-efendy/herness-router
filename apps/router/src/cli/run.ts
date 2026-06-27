@@ -32,13 +32,19 @@ async function cmdConfig(args: string[], deps: CliDeps): Promise<number> {
   const sub = args[0];
   if (sub === "get") {
     const key = args[1];
-    if (!key) { deps.io.err("usage: hr config get <key>"); return 1; }
+    if (!key) {
+      deps.io.err("usage: hr config get <key>");
+      return 1;
+    }
     deps.io.out(settings.get(key) ?? "");
     return 0;
   }
   if (sub === "set") {
     const [, key, value] = args;
-    if (!key || value === undefined) { deps.io.err("usage: hr config set <key> <value>"); return 1; }
+    if (!key || value === undefined) {
+      deps.io.err("usage: hr config set <key> <value>");
+      return 1;
+    }
     try {
       settings.set(key, value);
       deps.io.out(`set ${key}`);

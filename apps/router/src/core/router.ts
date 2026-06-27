@@ -11,7 +11,9 @@ interface RenderState {
   buffer: string[];
 }
 
-function surfaceKey(s: Surface): string { return `${s.gateway}:${s.conversationId}`; }
+function surfaceKey(s: Surface): string {
+  return `${s.gateway}:${s.conversationId}`;
+}
 
 export function chunk(s: string): string[] {
   if (!s) return ["(done)"];
@@ -24,12 +26,18 @@ export class Router {
   private state = new Map<string, RenderState>();
   private chains = new Map<string, Promise<unknown>>();
 
-  constructor(private core: ControlPlane, private sessions: SessionsStore, private projects: ProjectsStore) {
+  constructor(
+    private core: ControlPlane,
+    private sessions: SessionsStore,
+    private projects: ProjectsStore,
+  ) {
     this.core.subscribe((e) => this.onEvent(e));
   }
 
   async onConnect(
-    gatewayId: string, actor: string, opts: { name?: string; gitUrl?: string; settings?: ProjectSettings },
+    gatewayId: string,
+    actor: string,
+    opts: { name?: string; gitUrl?: string; settings?: ProjectSettings },
   ): Promise<{ workspaceId: string; project: Project }> {
     const gw = this.core.gateways.get(gatewayId);
     if (!gw) throw new Error(`unknown gateway: ${gatewayId}`);
@@ -47,7 +55,10 @@ export class Router {
     if (!gw) throw new Error(`unknown gateway: ${gatewayId}`);
     const conversationId = await gw.createConversation(workspaceId, prompt.slice(0, 80));
     await this.core.startSession({
-      projectId: project.projectId, prompt, actor, surface: { gateway: gatewayId, conversationId },
+      projectId: project.projectId,
+      prompt,
+      actor,
+      surface: { gateway: gatewayId, conversationId },
     });
   }
 
@@ -73,23 +84,46 @@ export class Router {
 
   private serial(key: string, fn: () => Promise<void>): void {
     const prev = this.chains.get(key) ?? Promise.resolve();
-    const stored = prev.catch(() => {}).then(fn).catch(() => {});
+    const stored = prev
+      .catch(() => {})
+      .then(fn)
+      .catch(() => {});
     this.chains.set(key, stored);
-    stored.then(() => { if (this.chains.get(key) === stored) this.chains.delete(key); });
+    stored.then(() => {
+      if (this.chains.get(key) === stored) this.chains.delete(key);
+    });
   }
 
   private stateFor(sessionPk: string): RenderState {
     let st = this.state.get(sessionPk);
-    if (!st) { st = { status: new Map(), buffer: [] }; this.state.set(sessionPk, st); }
+    if (!st) {
+      st = { status: new Map(), buffer: [] };
+      this.state.set(sessionPk, st);
+    }
     return st;
   }
 
   private onEvent(e: CoreEvent): void {
-    if (e.kind === "text") { this.stateFor(e.sessionPk).buffer.push(e.text); return; }
-    if (e.kind === "status") { this.serial(e.sessionPk, () => this.renderStatus(e.sessionPk, e.text)); return; }
-    if (e.kind === "result") { this.serial(e.sessionPk, () => this.renderResult(e.sessionPk)); return; }
-    if (e.kind === "error") { this.serial(e.sessionPk, () => this.renderError(e.sessionPk, e.message)); return; }
-    if (e.kind === "session.ended") { this.state.delete(e.sessionPk); return; }
+    if (e.kind === "text") {
+      this.stateFor(e.sessionPk).buffer.push(e.text);
+      return;
+    }
+    if (e.kind === "status") {
+      this.serial(e.sessionPk, () => this.renderStatus(e.sessionPk, e.text));
+      return;
+    }
+    if (e.kind === "result") {
+      this.serial(e.sessionPk, () => this.renderResult(e.sessionPk));
+      return;
+    }
+    if (e.kind === "error") {
+      this.serial(e.sessionPk, () => this.renderError(e.sessionPk, e.message));
+      return;
+    }
+    if (e.kind === "session.ended") {
+      this.state.delete(e.sessionPk);
+      return;
+    }
   }
 
   private async renderStatus(sessionPk: string, text: string): Promise<void> {

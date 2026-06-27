@@ -10,7 +10,7 @@ test("help leads with OPTIONS and lists only doctor + run", () => {
   expect(h).toContain("OPTIONS");
   expect(h).toContain("doctor");
   expect(h).toContain("run");
-  expect(h).not.toContain("config");   // hidden
+  expect(h).not.toContain("config"); // hidden
   expect(h).not.toContain("init");
   expect(h).not.toContain("start");
 });

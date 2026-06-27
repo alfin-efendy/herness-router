@@ -8,7 +8,8 @@ const KEY_MAP: Record<string, string> = {
 
 export function migrateSettings(db: Database): void {
   const get = (k: string) => db.query<{ value: string }, [string]>("SELECT value FROM settings WHERE key=?").get(k);
-  const set = (k: string, v: string) => db.run("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [k, v]);
+  const set = (k: string, v: string) =>
+    db.run("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", [k, v]);
   const del = (k: string) => db.run("DELETE FROM settings WHERE key=?", [k]);
   for (const [oldK, newK] of Object.entries(KEY_MAP)) {
     const old = get(oldK);

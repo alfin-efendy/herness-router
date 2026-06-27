@@ -13,7 +13,8 @@ test("server does a real localhost roundtrip", async () => {
   const server = startApprovalServer(allower);
   try {
     const res = await fetch(`${server.url}/approve`, {
-      method: "POST", headers: { "content-type": "application/json" },
+      method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({ sessionPk: "s1", tool: "Bash", input: { command: "x" } }),
     });
     expect(await res.json()).toEqual({ permissionDecision: "allow" });
@@ -36,7 +37,9 @@ test("server rejects bad JSON with 400", async () => {
   const server = startApprovalServer(allower);
   try {
     const res = await fetch(`${server.url}/approve`, {
-      method: "POST", headers: { "content-type": "application/json" }, body: "not json",
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "not json",
     });
     expect(res.status).toBe(400);
   } finally {

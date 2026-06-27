@@ -13,7 +13,13 @@ function ctl() {
 }
 function configured() {
   const c = ctl();
-  for (const [k, v] of [["discord.token","t"],["discord.app_id","a"],["discord.guild_id","g"],["workdir_root","/r"]] as const) c.set(k, v);
+  for (const [k, v] of [
+    ["discord.token", "t"],
+    ["discord.app_id", "a"],
+    ["discord.guild_id", "g"],
+    ["workdir_root", "/r"],
+  ] as const)
+    c.set(k, v);
   return c;
 }
 
@@ -28,13 +34,15 @@ test("configured app shows the dashboard and switches tabs", async () => {
   await flush();
   expect(lastFrame()).toContain("マ Harness Router");
   expect(lastFrame()).toContain("Status");
-  stdin.write("2"); await flush();           // jump to Daemon tab
+  stdin.write("2");
+  await flush(); // jump to Daemon tab
   expect(lastFrame()).toContain("press s to start");
 });
 
 test("? toggles the options overlay", async () => {
   const { stdin, lastFrame } = render(<App controller={configured()} />);
   await flush();
-  stdin.write("?"); await flush();
+  stdin.write("?");
+  await flush();
   expect(lastFrame()).toContain("Options");
 });

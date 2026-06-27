@@ -11,7 +11,7 @@ test("StatusDot shows filled when on", () => {
 });
 
 test("TabBar highlights active and lists all tabs", () => {
-  const f = render(<TabBar tabs={["Status","Daemon","Sessions","Config"]} active={1} />).lastFrame()!;
+  const f = render(<TabBar tabs={["Status", "Daemon", "Sessions", "Config"]} active={1} />).lastFrame()!;
   expect(f).toContain("Status");
   expect(f).toContain("Daemon");
   expect(f).toContain("Config");

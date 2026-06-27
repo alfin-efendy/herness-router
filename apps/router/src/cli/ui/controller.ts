@@ -37,7 +37,14 @@ export interface ControllerDeps {
   killDaemon?: (pid: number, signal: NodeJS.Signals | number) => void;
 }
 
-export interface SessionRow { sessionPk: string; projectId: string; status: string; title?: string; startedBy?: string; lastText?: string }
+export interface SessionRow {
+  sessionPk: string;
+  projectId: string;
+  status: string;
+  title?: string;
+  startedBy?: string;
+  lastText?: string;
+}
 
 export class AppController extends EventEmitter {
   readonly db: Database;
@@ -55,28 +62,69 @@ export class AppController extends EventEmitter {
     this.dataDir = deps.dataDir ?? dirname(deps.dbPath);
   }
 
-  protected emitChange(): void { this.emit("change"); }
+  protected emitChange(): void {
+    this.emit("change");
+  }
 
-  get(key: string): string | undefined { return this.settings.get(key); }
-  set(key: string, value: string): void { this.settings.set(key, value); this.emitChange(); }
-  settingKeys(): string[] { return Object.keys(SETTING_DEFS); }
-  isSecret(key: string): boolean { return Boolean(SETTING_DEFS[key]?.secret); }
-  missingRequired(): string[] { return missingRequiredSettings(this.settings, this.catalog); }
-  isConfigured(): boolean { return isConfiguredFn(this.settings, this.catalog); }
+  get(key: string): string | undefined {
+    return this.settings.get(key);
+  }
+  set(key: string, value: string): void {
+    this.settings.set(key, value);
+    this.emitChange();
+  }
+  settingKeys(): string[] {
+    return Object.keys(SETTING_DEFS);
+  }
+  isSecret(key: string): boolean {
+    return Boolean(SETTING_DEFS[key]?.secret);
+  }
+  missingRequired(): string[] {
+    return missingRequiredSettings(this.settings, this.catalog);
+  }
+  isConfigured(): boolean {
+    return isConfiguredFn(this.settings, this.catalog);
+  }
 
-  field(key: string): ConfigField | undefined { return this.fieldIndex.get(key); }
-  generalFields(): ConfigField[] { return allFields(this.catalog).filter((f) => GLOBAL_KEYS.has(f.key) && !f.control); }
-  gatewayDescriptors(): GatewayDescriptor[] { return this.catalog.gateways; }
-  runtimeDescriptors(): RuntimeDescriptor[] { return this.catalog.runtimes; }
-  gatewayFields(id: string): ConfigField[] { return this.catalog.gateway(id)?.fields ?? []; }
-  runtimeFields(id: string): ConfigField[] { return this.catalog.runtime(id)?.fields ?? []; }
-  enabledGateways(): string[] { return csv(this.get("enabled_gateways")); }
-  enabledRuntimes(): string[] { return csv(this.get("enabled_runtimes")); }
-  defaultRuntime(): string { return this.get("default_runtime") ?? ""; }
-  setEnabledGateways(ids: string[]): void { this.set("enabled_gateways", ids.join(",")); }
-  setEnabledRuntimes(ids: string[]): void { this.set("enabled_runtimes", ids.join(",")); }
-  setDefaultRuntime(id: string): void { this.set("default_runtime", id); }
-  requiredMissingFields(): ConfigField[] { return requiredMissingFields(this.settings, this.catalog); }
+  field(key: string): ConfigField | undefined {
+    return this.fieldIndex.get(key);
+  }
+  generalFields(): ConfigField[] {
+    return allFields(this.catalog).filter((f) => GLOBAL_KEYS.has(f.key) && !f.control);
+  }
+  gatewayDescriptors(): GatewayDescriptor[] {
+    return this.catalog.gateways;
+  }
+  runtimeDescriptors(): RuntimeDescriptor[] {
+    return this.catalog.runtimes;
+  }
+  gatewayFields(id: string): ConfigField[] {
+    return this.catalog.gateway(id)?.fields ?? [];
+  }
+  runtimeFields(id: string): ConfigField[] {
+    return this.catalog.runtime(id)?.fields ?? [];
+  }
+  enabledGateways(): string[] {
+    return csv(this.get("enabled_gateways"));
+  }
+  enabledRuntimes(): string[] {
+    return csv(this.get("enabled_runtimes"));
+  }
+  defaultRuntime(): string {
+    return this.get("default_runtime") ?? "";
+  }
+  setEnabledGateways(ids: string[]): void {
+    this.set("enabled_gateways", ids.join(","));
+  }
+  setEnabledRuntimes(ids: string[]): void {
+    this.set("enabled_runtimes", ids.join(","));
+  }
+  setDefaultRuntime(id: string): void {
+    this.set("default_runtime", id);
+  }
+  requiredMissingFields(): ConfigField[] {
+    return requiredMissingFields(this.settings, this.catalog);
+  }
   detectRuntime(id: string): Promise<ToolInfo & { authenticated?: boolean }> {
     return this.catalog.runtime(id)?.detect() ?? Promise.resolve({ found: false });
   }
@@ -96,13 +144,21 @@ export class AppController extends EventEmitter {
   logs(): string[] {
     const p = join(this.dataDir, "daemon.log");
     if (!existsSync(p)) return [];
-    try { return readFileSync(p, "utf8").split("\n").filter(Boolean).slice(-200); } catch { return []; }
+    try {
+      return readFileSync(p, "utf8").split("\n").filter(Boolean).slice(-200);
+    } catch {
+      return [];
+    }
   }
 
   sessions(): SessionRow[] {
     const store = new SessionsStore(this.db);
     return store.list().map((s) => ({
-      sessionPk: s.sessionPk, projectId: s.projectId, status: s.status, title: s.title, startedBy: s.startedBy,
+      sessionPk: s.sessionPk,
+      projectId: s.projectId,
+      status: s.status,
+      title: s.title,
+      startedBy: s.startedBy,
     }));
   }
 
@@ -127,12 +183,17 @@ export class AppController extends EventEmitter {
     const s = readStatus(this.dataDir);
     if (s && s.pid > 0 && isAlive(s.pid)) {
       const kill = this.deps.killDaemon ?? ((pid, sig) => process.kill(pid, sig));
-      try { kill(s.pid, "SIGTERM"); } catch { /* already gone */ }
+      try {
+        kill(s.pid, "SIGTERM");
+      } catch {
+        /* already gone */
+      }
     }
     this.emitChange();
   }
 
   async toggleDaemon(): Promise<void> {
-    if (this.daemon().running) this.stopDaemon(); else await this.startDaemon();
+    if (this.daemon().running) this.stopDaemon();
+    else await this.startDaemon();
   }
 }

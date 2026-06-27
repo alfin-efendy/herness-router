@@ -1,8 +1,19 @@
 // apps/router/src/gateways/discord/client-port.ts
 import {
-  Client, Events, GatewayIntentBits, ChannelType, REST, Routes, MessageFlags,
-  ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, GuildMember,
-  type TextChannel, type ThreadChannel,
+  Client,
+  Events,
+  GatewayIntentBits,
+  ChannelType,
+  REST,
+  Routes,
+  MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  GuildMember,
+  type TextChannel,
+  type ThreadChannel,
 } from "discord.js";
 import type { DiscordPort, InboundMessage, InboundInteraction } from "./index";
 import { buildCommands } from "./commands";
@@ -58,7 +69,9 @@ export class DiscordClientPort implements DiscordPort {
             mode: interaction.options.getString("mode") ?? undefined,
           },
         },
-        async (text) => { await interaction.editReply(text); },
+        async (text) => {
+          await interaction.editReply(text);
+        },
       );
     });
 
@@ -96,9 +109,17 @@ export class DiscordClientPort implements DiscordPort {
     await message.edit(text);
   }
 
-  async requestApproval(conversationId: string, req: {
-    requestId: string; tool: string; summary: string; approverRoleIds: string[]; startedBy?: string; timeoutMs: number;
-  }): Promise<{ decision: "allow" | "deny"; actor: string }> {
+  async requestApproval(
+    conversationId: string,
+    req: {
+      requestId: string;
+      tool: string;
+      summary: string;
+      approverRoleIds: string[];
+      startedBy?: string;
+      timeoutMs: number;
+    },
+  ): Promise<{ decision: "allow" | "deny"; actor: string }> {
     const channel = (await this.client.channels.fetch(conversationId)) as TextChannel | ThreadChannel | null;
     if (!channel) return { decision: "deny", actor: "no-channel" };
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -124,12 +145,19 @@ export class DiscordClientPort implements DiscordPort {
           settled = true;
           collector.stop("done");
           resolve({ decision, actor: i.user.id }); // lock the decision BEFORE the fallible UI edit
-          await i.update({ content: `${decision === "allow" ? "✅ Approved" : "🚫 Denied"} by <@${i.user.id}> — **${req.tool}**`, components: [] }).catch(() => {});
+          await i
+            .update({
+              content: `${decision === "allow" ? "✅ Approved" : "🚫 Denied"} by <@${i.user.id}> — **${req.tool}**`,
+              components: [],
+            })
+            .catch(() => {});
         } catch {
           // a rejected interaction must never crash the daemon; if unsettled, collector 'end' will deny
         }
       });
-      collector.on("end", () => { if (!settled) resolve({ decision: "deny", actor: "timeout" }); });
+      collector.on("end", () => {
+        if (!settled) resolve({ decision: "deny", actor: "timeout" });
+      });
     });
   }
 }

@@ -14,10 +14,21 @@ function configured() {
     dbPath: join(root, "db.sqlite"),
     detect: { claude: detectClaude, git: detectGit },
     dataDir: root,
-    spawnDaemon: (cmd) => { spawns.push(cmd); return { pid: 4242 }; },
-    killDaemon: (pid, sig) => { kills.push([pid, sig]); },
+    spawnDaemon: (cmd) => {
+      spawns.push(cmd);
+      return { pid: 4242 };
+    },
+    killDaemon: (pid, sig) => {
+      kills.push([pid, sig]);
+    },
   });
-  for (const [k, v] of [["discord.token","t"],["discord.app_id","a"],["discord.guild_id","g"],["workdir_root",root]] as const) c.set(k, v);
+  for (const [k, v] of [
+    ["discord.token", "t"],
+    ["discord.app_id", "a"],
+    ["discord.guild_id", "g"],
+    ["workdir_root", root],
+  ] as const)
+    c.set(k, v);
   return { c, root, spawns, kills };
 }
 
@@ -45,8 +56,13 @@ test("startDaemon records an error (no spawn) when required settings missing", a
   const root = mkdtempSync(join(tmpdir(), "hr-ctl2-"));
   const spawns: string[][] = [];
   const c = new AppController({
-    dbPath: join(root, "db.sqlite"), detect: { claude: detectClaude, git: detectGit },
-    dataDir: root, spawnDaemon: (cmd) => { spawns.push(cmd); return { pid: 1 }; },
+    dbPath: join(root, "db.sqlite"),
+    detect: { claude: detectClaude, git: detectGit },
+    dataDir: root,
+    spawnDaemon: (cmd) => {
+      spawns.push(cmd);
+      return { pid: 1 };
+    },
   }); // migration seeds enabled_gateways=discord, but discord.token unset
   await c.startDaemon();
   expect(spawns).toHaveLength(0);

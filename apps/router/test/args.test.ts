@@ -4,8 +4,11 @@ import type { HarnessRunInput } from "../src/harness/types";
 
 function input(over: Partial<HarnessRunInput> = {}): HarnessRunInput {
   return {
-    workdir: "/wt", prompt: "do it", permissionMode: "default",
-    signal: new AbortController().signal, approve: async () => ({ behavior: "allow" }),
+    workdir: "/wt",
+    prompt: "do it",
+    permissionMode: "default",
+    signal: new AbortController().signal,
+    approve: async () => ({ behavior: "allow" }),
     ...over,
   };
 }

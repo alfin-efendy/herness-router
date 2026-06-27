@@ -11,14 +11,20 @@ function wire(permMode: "default" | "bypassPermissions") {
   const captured: Array<HarnessRunInput["approval"]> = [];
   class Cap implements Harness {
     readonly id = "claude-code";
-    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> { captured.push(i.approval); yield { type: "result", usage: {} }; }
+    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+      captured.push(i.approval);
+      yield { type: "result", usage: {} };
+    }
   }
   const db = openDb(":memory:");
   const projects = new ProjectsStore(db);
   projects.insert({ projectId: "p1", name: "f", workdir: "/repo", harness: "claude-code", permMode });
   const sessions = new SessionsStore(db);
   const cp = new ControlPlane({
-    projects, sessions, settings: new SettingsStore(db), workdirRoot: "/root",
+    projects,
+    sessions,
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
     worktree: { pathFor: (r, p, s) => `${r}/${p}/${s}`, create: async () => {}, remove: async () => {} },
   });
   cp.harnesses.register("claude-code", () => new Cap());

@@ -30,5 +30,10 @@ test("surfaces: one session, multiple conversations", () => {
   s.addSurface("discord", "thread-1", "s1");
   s.addSurface("slack", "ts-2", "s1");
   expect(s.resolveByConversation("discord", "thread-1")?.sessionPk).toBe("s1");
-  expect(s.surfaces("s1").map((x) => x.conversationId).sort()).toEqual(["thread-1", "ts-2"]);
+  expect(
+    s
+      .surfaces("s1")
+      .map((x) => x.conversationId)
+      .sort(),
+  ).toEqual(["thread-1", "ts-2"]);
 });

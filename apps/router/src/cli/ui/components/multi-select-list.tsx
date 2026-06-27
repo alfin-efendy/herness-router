@@ -2,9 +2,18 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import { theme } from "../theme";
 
-export interface MultiSelectItem { id: string; label: string; description?: string }
+export interface MultiSelectItem {
+  id: string;
+  label: string;
+  description?: string;
+}
 
-export function MultiSelectList({ items, selected, onToggle, renderRight }: {
+export function MultiSelectList({
+  items,
+  selected,
+  onToggle,
+  renderRight,
+}: {
   items: MultiSelectItem[];
   selected: Set<string>;
   onToggle: (id: string) => void;
@@ -22,8 +31,9 @@ export function MultiSelectList({ items, selected, onToggle, renderRight }: {
         const right = renderRight?.(it.id) ?? "";
         return (
           <Text key={it.id} color={i === idx ? theme.accent : theme.text}>
-            {(i === idx ? "› " : "  ")}[{selected.has(it.id) ? "x" : " "}] {it.label}
-            {it.description ? ` — ${it.description}` : ""}{right ? `  ${right}` : ""}
+            {i === idx ? "› " : "  "}[{selected.has(it.id) ? "x" : " "}] {it.label}
+            {it.description ? ` — ${it.description}` : ""}
+            {right ? `  ${right}` : ""}
           </Text>
         );
       })}

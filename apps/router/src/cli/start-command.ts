@@ -17,7 +17,10 @@ import type { ProviderCatalog } from "../providers/types";
 import { csv } from "../config/required";
 
 export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: Telemetry; catalog?: ProviderCatalog }): {
-  gateways: Gateway[]; cp: ControlPlane; start(): Promise<void>; stop(): Promise<void>;
+  gateways: Gateway[];
+  cp: ControlPlane;
+  start(): Promise<void>;
+  stop(): Promise<void>;
 } {
   const cat = deps.catalog ?? defaultCatalog;
   const db = deps.db ?? openDb(deps.dbPath);
@@ -30,8 +33,12 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
   const otelEndpoint = settings.get("otel_endpoint");
   if (deps.telemetry) telemetry = deps.telemetry;
   else if (otelEndpoint) {
-    try { telemetry = createOtelTelemetry({ endpoint: otelEndpoint }); }
-    catch { process.stderr.write("[telemetry] OTel init failed — falling back to console\n"); telemetry = new ConsoleTelemetry(); }
+    try {
+      telemetry = createOtelTelemetry({ endpoint: otelEndpoint });
+    } catch {
+      process.stderr.write("[telemetry] OTel init failed — falling back to console\n");
+      telemetry = new ConsoleTelemetry();
+    }
   } else telemetry = new ConsoleTelemetry();
 
   const cp = new ControlPlane({ projects, sessions, settings, workdirRoot, telemetry });
@@ -53,7 +60,8 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
   cp.approvalUrl = ipc.url;
   cp.hookBinPath = `${import.meta.dir}/../hook/pretooluse-bin.ts`;
   return {
-    gateways, cp,
+    gateways,
+    cp,
     start: () => Promise.all(gateways.map((g) => g.start())).then(() => {}),
     stop: async () => {
       await Promise.all(gateways.map((g) => g.stop?.()));
