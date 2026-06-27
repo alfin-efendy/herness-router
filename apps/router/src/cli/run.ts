@@ -1,0 +1,106 @@
+import { openDb } from "../store/db";
+import { SettingsStore } from "../config/store";
+import { SETTING_DEFS } from "../config/schema";
+import type { detectClaude, detectGit } from "../harness/detect";
+import type { Harness } from "../harness/types";
+import { runInit } from "./wizard";
+import { cmdRun } from "./run-command";
+import { cmdStart } from "./start-command";
+
+export interface IO {
+  out(s: string): void;
+  err(s: string): void;
+  prompt(q: string): Promise<string>;
+}
+
+export interface CliDeps {
+  io: IO;
+  dbPath: string;
+  detect: { claude: typeof detectClaude; git: typeof detectGit };
+  harnessFactory?: () => Harness;
+}
+
+function redact(key: string, value: string): string {
+  return SETTING_DEFS[key]?.secret ? "•".repeat(8) : value;
+}
+
+async function cmdConfig(args: string[], deps: CliDeps): Promise<number> {
+  const settings = new SettingsStore(openDb(deps.dbPath));
+  const sub = args[0];
+  if (sub === "get") {
+    const key = args[1];
+    if (!key) { deps.io.err("usage: harness config get <key>"); return 1; }
+    deps.io.out(settings.get(key) ?? "");
+    return 0;
+  }
+  if (sub === "set") {
+    const [, key, value] = args;
+    if (!key || value === undefined) { deps.io.err("usage: harness config set <key> <value>"); return 1; }
+    try {
+      settings.set(key, value);
+      deps.io.out(`set ${key}`);
+      return 0;
+    } catch (e) {
+      deps.io.err((e as Error).message);
+      return 1;
+    }
+  }
+  if (sub === "list") {
+    const persisted = settings.list();
+    for (const key of Object.keys(SETTING_DEFS)) {
+      const storedValue: string | undefined = persisted[key];
+      if (storedValue !== undefined) {
+        deps.io.out(`${key} = ${redact(key, storedValue)}`);
+      } else {
+        const defaultValue: string | undefined = SETTING_DEFS[key]?.default;
+        if (defaultValue !== undefined) {
+          deps.io.out(`${key} = ${redact(key, defaultValue)} (default)`);
+        } else {
+          deps.io.out(`${key} = (unset)`);
+        }
+      }
+    }
+    return 0;
+  }
+  deps.io.err("usage: harness config <get|set|list> ...");
+  return 1;
+}
+
+async function cmdDoctor(deps: CliDeps): Promise<number> {
+  const settings = new SettingsStore(openDb(deps.dbPath));
+  const git = await deps.detect.git();
+  const claude = await deps.detect.claude();
+  const missing = settings.missingRequired();
+
+  deps.io.out(`git:    ${git.found ? "OK " + (git.version ?? "") : "NOT FOUND"}`);
+  deps.io.out(`claude: ${claude.found ? "OK " + (claude.version ?? "") : "NOT FOUND"}`);
+  deps.io.out(`auth:   ${claude.found ? "unknown (relies on host login)" : "n/a"}`);
+  deps.io.out(missing.length ? `settings: missing ${missing.join(", ")}` : "settings: OK");
+
+  const ok = git.found && claude.found && missing.length === 0;
+  deps.io.out(ok ? "doctor: PASS" : "doctor: FAIL");
+  return ok ? 0 : 1;
+}
+
+export async function runCli(args: string[], deps: CliDeps): Promise<number> {
+  const [cmd, ...rest] = args;
+  switch (cmd) {
+    case "config":
+      return cmdConfig(rest, deps);
+    case "doctor":
+      return cmdDoctor(deps);
+    case "init":
+      return runInit(deps);
+    case "run":
+      return cmdRun(rest, deps);
+    case "start":
+      return cmdStart(deps);
+    case undefined:
+    case "help":
+      deps.io.out("harness <config|doctor|init|run|start>");
+      return 0;
+    default:
+      deps.io.err(`unknown command: ${cmd}`);
+      return 1;
+  }
+}

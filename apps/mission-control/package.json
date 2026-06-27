@@ -1,0 +1,5 @@
+{
+  "name": "@harness/mission-control",
+  "private": true,
+  "type": "module"
+}

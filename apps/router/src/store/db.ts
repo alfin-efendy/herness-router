@@ -1,0 +1,66 @@
+import { Database } from "bun:sqlite";
+import { chmodSync } from "node:fs";
+
+export function migrate(db: Database): void {
+  db.run(`CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS projects (
+    project_id TEXT PRIMARY KEY,
+    name TEXT,
+    workdir TEXT NOT NULL,
+    source TEXT,
+    harness TEXT NOT NULL DEFAULT 'claude-code',
+    model TEXT,
+    effort TEXT,
+    perm_mode TEXT NOT NULL DEFAULT 'default',
+    created_by TEXT,
+    created_at INTEGER
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS project_bindings (
+    gateway TEXT NOT NULL,
+    workspace_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    PRIMARY KEY (gateway, workspace_id)
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS sessions (
+    session_pk TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    agent_session_id TEXT,
+    worktree_path TEXT,
+    branch TEXT,
+    title TEXT,
+    status TEXT NOT NULL DEFAULT 'idle',
+    started_by TEXT,
+    created_at INTEGER,
+    last_active INTEGER
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS session_surfaces (
+    gateway TEXT NOT NULL,
+    conversation_id TEXT NOT NULL,
+    session_pk TEXT NOT NULL,
+    PRIMARY KEY (gateway, conversation_id)
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS audit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gateway TEXT,
+    conversation_id TEXT,
+    actor TEXT,
+    action TEXT,
+    tool TEXT,
+    decision TEXT,
+    at INTEGER
+  )`);
+}
+
+export function openDb(path: string): Database {
+  const db = new Database(path);
+  if (path !== ":memory:") {
+    chmodSync(path, 0o600);
+  }
+  db.run("PRAGMA journal_mode = WAL");
+  db.run("PRAGMA foreign_keys = ON");
+  migrate(db);
+  return db;
+}
