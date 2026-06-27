@@ -1,0 +1,47 @@
+name: npm-publish
+# Manually publish the npm binary-wrapper packages on demand, for a given version.
+# Builds the 7 binaries from the CURRENT default-branch code and publishes them
+# under the supplied version (the app code on main matches the released tag of
+# the same version, so this is equivalent to publishing that release to npm).
+# Use when a release's npm job needs to be (re)run, or when npm was added/renamed
+# after a release was already cut.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, without the leading v (e.g. 0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  npm-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+      - run: bun install --frozen-lockfile
+      - run: ./scripts/build-binaries.sh
+      - name: Stamp version + assemble packages
+        run: |
+          bun scripts/npm/set-version.ts "${{ inputs.version }}"
+          ./scripts/npm/assemble.sh
+      - name: Publish platform packages first
+        run: |
+          for dir in npm/platform/*/; do
+            npm publish "$dir" --access public
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish main package last
+        run: npm publish npm/harness-router --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
