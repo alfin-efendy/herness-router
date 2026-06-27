@@ -39,12 +39,14 @@ Verify your environment:
 
 ```bash
 hr doctor
-# git:      OK ...
-# claude:   OK ...
-# auth:     unknown (relies on host login)
-# settings: ...
-# doctor:   PASS | FAIL
+# git:    OK 2.43.0
+# claude: OK 2.1.191
+# auth:   unknown (relies on host login)
+# settings: OK
+# doctor: PASS
 ```
+
+`doctor` prints `PASS` only when git, claude, and all required settings are present — otherwise `FAIL` with the missing pieces.
 
 Then launch the dashboard. **The first run starts an interactive setup wizard** — pick a gateway (Discord) and a runtime (Claude Code), then fill the required fields (at minimum `workdir_root`, the parent folder where your repos live):
 
@@ -115,8 +117,8 @@ Settings live in a local SQLite database at `~/.local/share/harness-router/harne
 | `hr` | Open the dashboard; the first run launches the setup wizard. |
 | `hr doctor` | Check your environment (git, claude, settings). |
 | `hr run --dir <repo> --prompt <text> [--model x] [--effort y] [--mode m]` | One-shot session in a repo. |
-| `hr --help` | Show help. |
-| `hr --version` | Print the version. |
+| `hr --help` (or `-h`) | Show help. |
+| `hr --version` (or `-v`) | Print the version. |
 
 ## Development (from source)
 
