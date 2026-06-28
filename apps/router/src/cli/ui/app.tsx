@@ -4,7 +4,6 @@ import type { AppController } from "./controller";
 import { useController } from "./use-controller";
 import { Header } from "./components/header";
 import { StatusBar, type Hint } from "./components/status-bar";
-import { Panel } from "./components/panel";
 import { OptionsOverlay } from "./components/options-overlay";
 import { StatusTab } from "./tabs/status";
 import { DaemonTab } from "./tabs/daemon";
