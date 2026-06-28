@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { resolveToolPolicy, canApprove, summarizeTool } from "../src/core/permissions";
+import { resolveToolPolicy, canApprove, summarizeTool, isAdmin, gatePermMode, parseRoleIds } from "../src/core/permissions";
 
 test("resolveToolPolicy by mode and tool", () => {
   expect(resolveToolPolicy("bypassPermissions", "Bash")).toBe("allow");
@@ -22,8 +22,6 @@ test("summarizeTool", () => {
   expect(summarizeTool("Edit", { file_path: "src/a.ts" })).toBe("Edit: src/a.ts");
   expect(summarizeTool("Glob", {})).toBe("Glob");
 });
-
-import { isAdmin, gatePermMode, parseRoleIds } from "../src/core/permissions";
 
 test("parseRoleIds splits, trims, drops empties", () => {
   expect(parseRoleIds("a, b ,,c")).toEqual(["a", "b", "c"]);
