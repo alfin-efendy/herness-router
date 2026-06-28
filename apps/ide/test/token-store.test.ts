@@ -56,3 +56,28 @@ test("getAccessToken returns null and clears on refresh failure", async () => {
   expect(await ts.getAccessToken("p1", refresh)).toBeNull();
   expect(ts.has("p1")).toBe(false);
 });
+
+test("getAccessToken returns stored token for far-future expiry without calling refresh", async () => {
+  const ts = new TokenStore(dir(), fakeVault(true));
+  ts.save("p1", set({ expiresAt: Date.now() + 3_600_000 }));
+  let refreshCalls = 0;
+  const refresh = async () => {
+    refreshCalls++;
+    return set();
+  };
+  expect(await ts.getAccessToken("p1", refresh)).toBe("at");
+  expect(refreshCalls).toBe(0); // refresh was not called
+});
+
+test("getAccessToken returns null and clears when expired with no refreshToken", async () => {
+  const ts = new TokenStore(dir(), fakeVault(true));
+  ts.save("p1", set({ expiresAt: Date.now() - 1000, refreshToken: undefined }));
+  let refreshCalls = 0;
+  const refresh = async () => {
+    refreshCalls++;
+    return set();
+  };
+  expect(await ts.getAccessToken("p1", refresh)).toBeNull();
+  expect(ts.has("p1")).toBe(false);
+  expect(refreshCalls).toBe(0); // refresh was not called
+});
