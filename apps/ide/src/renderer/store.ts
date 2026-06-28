@@ -1,6 +1,6 @@
 // apps/ide/src/renderer/store.ts
 import { create } from "zustand";
-import type { Project, Session, CoreEvent, ApprovalRequestFrame } from "@harness/protocol";
+import type { Project, Session, CoreEvent, ApprovalRequestFrame, ReadFileResult } from "@harness/protocol";
 import type { ConnState, ConnectionSummary } from "../shared/ipc-contract";
 
 interface CockpitState {
@@ -12,6 +12,8 @@ interface CockpitState {
   transcripts: Record<string, CoreEvent[]>;
   pendingApprovals: ApprovalRequestFrame[];
   connections: ConnectionSummary[];
+  openFilePath: string | null;
+  openFile: ReadFileResult | null;
   setConnection: (s: ConnState) => void;
   setConnId: (id: string | null) => void;
   setProjects: (p: Project[]) => void;
@@ -22,6 +24,8 @@ interface CockpitState {
   removeApproval: (requestId: string) => void;
   clearApprovals: () => void;
   setConnections: (list: ConnectionSummary[]) => void;
+  setOpenFile: (path: string, content: ReadFileResult) => void;
+  closeFile: () => void;
 }
 
 export const useStore = create<CockpitState>((set) => ({
@@ -33,11 +37,13 @@ export const useStore = create<CockpitState>((set) => ({
   transcripts: {},
   pendingApprovals: [],
   connections: [],
+  openFilePath: null,
+  openFile: null,
   setConnection: (s) => set({ connection: s }),
   setConnId: (id) => set({ connId: id }),
   setProjects: (p) => set({ projects: p }),
   setSessions: (s) => set({ sessions: s }),
-  setActive: (pk) => set({ activeSessionPk: pk }),
+  setActive: (pk) => set({ activeSessionPk: pk, openFilePath: null, openFile: null }),
   applyEvent: (e) =>
     set((st) => {
       const prev = st.transcripts[e.sessionPk] ?? [];
@@ -55,4 +61,6 @@ export const useStore = create<CockpitState>((set) => ({
     })),
   clearApprovals: () => set({ pendingApprovals: [] }),
   setConnections: (list) => set({ connections: list }),
+  setOpenFile: (path, content) => set({ openFilePath: path, openFile: content }),
+  closeFile: () => set({ openFilePath: null, openFile: null }),
 }));
