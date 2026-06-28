@@ -60,7 +60,14 @@ export function openDb(path: string): Database {
   const db = new Database(path);
   if (path !== ":memory:") {
     chmodSync(path, 0o600);
-    try { chmodSync(dirname(path), 0o700); } catch { /* skip if we don't own the parent dir (e.g. /tmp in tests) */ }
+    try {
+      chmodSync(dirname(path), 0o700);
+    } catch (e) {
+      // skip when we don't own the parent dir (e.g. /tmp in tests / root-owned paths);
+      // surface anything unexpected (read-only FS, etc.) instead of silently swallowing
+      const code = (e as { code?: string }).code;
+      if (code !== "EPERM" && code !== "EACCES") throw e;
+    }
   }
   db.run("PRAGMA journal_mode = WAL");
   db.run("PRAGMA foreign_keys = ON");
