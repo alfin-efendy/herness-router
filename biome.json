@@ -12,7 +12,8 @@
       "!assets/**",
       "!outputs/**",
       "!apps/router/src/cli/brand.ts",
-      "!apps/router/src/cli/meta.ts"
+      "!apps/router/src/cli/meta.ts",
+      "!.claude/worktrees/**"
     ]
   },
   "formatter": {
