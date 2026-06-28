@@ -53,5 +53,10 @@
   },
   "javascript": {
     "formatter": { "quoteStyle": "double", "semicolons": "always" }
+  },
+  "css": {
+    "parser": { "cssModules": false, "allowWrongLineComments": false, "tailwindDirectives": true },
+    "formatter": { "enabled": true },
+    "linter": { "enabled": true }
   }
 }

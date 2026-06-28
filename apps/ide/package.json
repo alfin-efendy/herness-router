@@ -15,8 +15,12 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react-dom": "^19.0.0",
+    "bun-plugin-tailwind": "^0.1.2",
+    "clsx": "^2.1.1",
+    "electron": "^33.0.0",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.1"
   }
 }
