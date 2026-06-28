@@ -99,13 +99,18 @@ function makeWire(events: HarnessEvent[]) {
 
   cp.harnesses.register("claude-code", () => new FakeHarness());
 
-  return { cp, tel };
+  return { cp, tel, settings };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 test("telemetry captures no secret token or prompt body in spans or counts", async () => {
-  const { cp, tel } = makeWire([{ type: "result", usage: {} }]);
+  const { cp, tel, settings } = makeWire([{ type: "result", usage: {} }]);
+
+  // The token IS reachable in settings, so its absence from telemetry below is a
+  // meaningful negative (not merely "never in scope"). Today the token is never read
+  // on the telemetry path; this guards against a future regression that forwards it.
+  expect(settings.get("discord.token")).toBe(SECRET_TOKEN);
 
   // Drive a real harness.run with the distinctive prompt text.
   await cp.startSession({ projectId: "p1", prompt: PROMPT_TEXT });
