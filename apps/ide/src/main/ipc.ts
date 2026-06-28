@@ -16,4 +16,10 @@ export function registerIpc(getClient: () => RemoteControlPlane | null): void {
   ipcMain.handle("stopSession", async (_e, sessionPk: string) => need().stopSession(sessionPk));
   ipcMain.handle("endSession", async (_e, sessionPk: string, opts?: { keepBranch?: boolean }) => need().endSession(sessionPk, opts));
   ipcMain.handle("getConnId", async () => getClient()?.connId ?? null);
+  ipcMain.handle("connectProject", async (_e, input: { gitUrl?: string; name?: string }) =>
+    need().connectProject({ gateway: "ide", workspaceId: crypto.randomUUID(), name: input.name, gitUrl: input.gitUrl }),
+  );
+  ipcMain.handle("resolveApproval", async (_e, requestId: string, decision: "allow" | "deny") => {
+    getClient()?.resolveApproval(requestId, decision);
+  });
 }
