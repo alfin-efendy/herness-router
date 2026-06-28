@@ -25,7 +25,10 @@ export function canApprove(o: { clickerRoleIds: string[]; approverRoleIds: strin
 
 /** Split a comma-separated role-id setting into a trimmed, non-empty list. */
 export function parseRoleIds(raw: string | undefined): string[] {
-  return (raw ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return (raw ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /**
