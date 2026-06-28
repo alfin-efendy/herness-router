@@ -1,5 +1,5 @@
 // apps/router/test/serve/auth.test.ts
-import { test, expect } from "bun:test";
+import { test, expect, setSystemTime } from "bun:test";
 import { SignJWT, generateKeyPair, exportJWK } from "jose";
 import { openDb } from "../../src/store/db";
 import { SettingsStore } from "../../src/config/store";
@@ -45,4 +45,22 @@ test("oidc mode verifies a JWT against a JWKS and checks aud", async () => {
     .setExpirationTime("5m")
     .sign(privateKey);
   expect(await auth.authenticate(`Bearer ${badAud}`)).toBeNull();
+});
+
+test("WS ticket expires after TTL", () => {
+  const settings = new SettingsStore(openDb(":memory:"));
+  const auth = createAuthenticator({ settings, localToken: "secret" });
+  const now = Date.now();
+  setSystemTime(new Date(now));
+  const t = auth.issueTicket("local");
+  // Ticket is valid before TTL expires
+  // Re-issue a fresh ticket (the previous issue + consume checks single-use)
+  const t2 = auth.issueTicket("local");
+  expect(auth.consumeTicket(t2)).toEqual({ actor: "local" });
+  // Now advance clock past the 30s TTL
+  const t3 = auth.issueTicket("local");
+  setSystemTime(new Date(now + 30_001));
+  expect(auth.consumeTicket(t3)).toBeNull();
+  // Restore clock
+  setSystemTime();
 });

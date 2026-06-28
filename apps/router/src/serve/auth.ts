@@ -56,8 +56,8 @@ export function createAuthenticator(deps: AuthDeps): Authenticator {
     }
     // oidc
     try {
-      const issuer = deps.settings.get("oidc.issuer") || undefined;
-      const audience = deps.settings.get("oidc.audience") || undefined;
+      const issuer = deps.settings.get("oidc.issuer") ?? undefined;
+      const audience = deps.settings.get("oidc.audience") ?? undefined;
       const { payload } = await jwtVerify(token, getJwks(), { issuer, audience });
       return { actor: actorFromClaims(payload) };
     } catch {
