@@ -57,6 +57,13 @@ function makeHarness(): HarnessBridge {
     })),
     onApprovalRequest: mock((_cb: Parameters<HarnessBridge["onApprovalRequest"]>[0]) => () => {}),
     resolveApproval: mock((_requestId: string, _decision: "allow" | "deny") => undefined),
+    listConnections: mock(async () => []),
+    addConnection: mock(async (_input: Parameters<HarnessBridge["addConnection"]>[0]) => undefined),
+    removeConnection: mock(async (_id: string) => undefined),
+    selectConnection: mock(async (_id: string) => undefined),
+    signIn: mock(async (_id: string) => undefined),
+    signOut: mock(async (_id: string) => undefined),
+    onConnectionsChange: mock((_cb: Parameters<HarnessBridge["onConnectionsChange"]>[0]) => () => {}),
   };
 }
 

@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { EVENT_CHANNEL, CONNECTION_CHANNEL, APPROVAL_CHANNEL, type HarnessBridge } from "../shared/ipc-contract";
+import {
+  EVENT_CHANNEL,
+  CONNECTION_CHANNEL,
+  APPROVAL_CHANNEL,
+  CONNECTIONS_CHANNEL,
+  type HarnessBridge,
+  type ConnectionSummary,
+  type AddConnectionInput,
+} from "../shared/ipc-contract";
 
 const bridge: HarnessBridge = {
   listProjects: () => ipcRenderer.invoke("listProjects"),
@@ -26,6 +34,17 @@ const bridge: HarnessBridge = {
     const handler = (_e: unknown, payload: Parameters<typeof cb>[0]) => cb(payload);
     ipcRenderer.on(APPROVAL_CHANNEL, handler);
     return () => ipcRenderer.removeListener(APPROVAL_CHANNEL, handler);
+  },
+  listConnections: () => ipcRenderer.invoke("listConnections"),
+  addConnection: (input) => ipcRenderer.invoke("addConnection", input),
+  removeConnection: (id) => ipcRenderer.invoke("removeConnection", id),
+  selectConnection: (id) => ipcRenderer.invoke("selectConnection", id),
+  signIn: (id) => ipcRenderer.invoke("signIn", id),
+  signOut: (id) => ipcRenderer.invoke("signOut", id),
+  onConnectionsChange: (cb) => {
+    const handler = (_e: unknown, payload: Parameters<typeof cb>[0]) => cb(payload);
+    ipcRenderer.on(CONNECTIONS_CHANNEL, handler);
+    return () => ipcRenderer.removeListener(CONNECTIONS_CHANNEL, handler);
   },
 };
 

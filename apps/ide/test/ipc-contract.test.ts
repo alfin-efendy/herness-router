@@ -13,5 +13,11 @@ test("IPC_COMMANDS covers the 2a command surface", () => {
     "getConnId",
     "connectProject",
     "resolveApproval",
+    "listConnections",
+    "addConnection",
+    "removeConnection",
+    "selectConnection",
+    "signIn",
+    "signOut",
   ]);
 });

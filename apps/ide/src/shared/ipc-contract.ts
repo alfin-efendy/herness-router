@@ -11,13 +11,36 @@ export const IPC_COMMANDS = [
   "getConnId",
   "connectProject",
   "resolveApproval",
+  "listConnections",
+  "addConnection",
+  "removeConnection",
+  "selectConnection",
+  "signIn",
+  "signOut",
 ] as const;
 export type IpcCommand = (typeof IPC_COMMANDS)[number];
 
 export const EVENT_CHANNEL = "harness:event";
 export const CONNECTION_CHANNEL = "harness:connection";
 export const APPROVAL_CHANNEL = "harness:approval";
+export const CONNECTIONS_CHANNEL = "harness:connections";
 export type ConnState = "connecting" | "open" | "closed";
+
+export interface ConnectionSummary {
+  id: string;
+  label: string;
+  baseUrl: string;
+  authMode: "loopback" | "oidc";
+  active: boolean;
+  signedIn: boolean;
+}
+
+export interface AddConnectionInput {
+  label: string;
+  baseUrl: string;
+  authMode: "loopback" | "oidc";
+  oidc?: { issuer: string; clientId: string; scopes: string };
+}
 
 export interface HarnessBridge {
   listProjects(): Promise<Project[]>;
@@ -33,6 +56,13 @@ export interface HarnessBridge {
   connectProject(input: { gitUrl?: string; name?: string }): Promise<Project>;
   onApprovalRequest(cb: (r: ApprovalRequestFrame) => void): () => void;
   resolveApproval(requestId: string, decision: "allow" | "deny"): void;
+  listConnections(): Promise<ConnectionSummary[]>;
+  addConnection(input: AddConnectionInput): Promise<void>;
+  removeConnection(id: string): Promise<void>;
+  selectConnection(id: string): Promise<void>;
+  signIn(id: string): Promise<void>;
+  signOut(id: string): Promise<void>;
+  onConnectionsChange(cb: (list: ConnectionSummary[]) => void): () => void;
 }
 
 declare global {
