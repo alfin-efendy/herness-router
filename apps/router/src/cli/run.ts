@@ -32,12 +32,15 @@ async function cmdConfig(args: string[], deps: CliDeps): Promise<number> {
   const settings = new SettingsStore(openDb(deps.dbPath));
   const sub = args[0];
   if (sub === "get") {
-    const key = args[1];
+    const rest = args.slice(1);
+    const reveal = rest.includes("--reveal");
+    const key = rest.find((a) => a !== "--reveal");
     if (!key) {
-      deps.io.err("usage: hr config get <key>");
+      deps.io.err("usage: hr config get <key> [--reveal]");
       return 1;
     }
-    deps.io.out(settings.get(key) ?? "");
+    const value = settings.get(key) ?? "";
+    deps.io.out(reveal || !value ? value : redact(key, value));
     return 0;
   }
   if (sub === "set") {
