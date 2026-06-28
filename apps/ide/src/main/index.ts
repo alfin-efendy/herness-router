@@ -16,7 +16,12 @@ if (!gotLock) {
     registerIpc(() => handle?.client ?? null);
     const info = discoverLocalRouter();
     if (info) {
-      handle = createSession({ info, send: (channel, payload) => win.webContents.send(channel, payload) });
+      handle = createSession({
+        info,
+        send: (channel, payload) => {
+          if (!win.isDestroyed()) win.webContents.send(channel, payload);
+        },
+      });
       await handle.connect().catch((e) => console.error("connect failed:", e));
     } else {
       console.error("no local router found (serve.json absent) — start `hr serve`");
