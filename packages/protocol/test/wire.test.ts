@@ -2,7 +2,7 @@ import { test, expect } from "bun:test";
 import { RPC_METHODS } from "../src/index";
 import type { RpcRequest, RpcResponse, ServerFrame, ClientFrame, ApprovalRequestFrame } from "../src/index";
 
-test("RPC_METHODS lists the eight command methods", () => {
+test("RPC_METHODS lists the command methods", () => {
   expect([...RPC_METHODS]).toEqual([
     "listProjects",
     "getProject",
@@ -12,6 +12,8 @@ test("RPC_METHODS lists the eight command methods", () => {
     "connectProject",
     "stopSession",
     "endSession",
+    "listDir",
+    "readFile",
   ]);
 });
 

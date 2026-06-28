@@ -10,6 +10,8 @@ export const RPC_METHODS = [
   "connectProject",
   "stopSession",
   "endSession",
+  "listDir",
+  "readFile",
 ] as const;
 export type RpcMethod = (typeof RPC_METHODS)[number];
 

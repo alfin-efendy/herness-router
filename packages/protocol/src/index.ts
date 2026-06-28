@@ -54,6 +54,18 @@ export interface ApprovalRequest {
   timeoutMs?: number;
 }
 
+export interface DirEntry {
+  name: string;
+  type: "file" | "dir";
+}
+
+export interface ReadFileResult {
+  content: string;
+  encoding: "utf8" | "base64";
+  binary: boolean;
+  truncated: boolean;
+}
+
 export type ApprovalDecision = { decision: "allow" | "deny"; actor: string };
 
 export type Unsubscribe = () => void;
@@ -101,6 +113,8 @@ export interface ControlPlaneApi {
   stopSession(sessionPk: string): Promise<void>;
   endSession(sessionPk: string, opts?: { keepBranch?: boolean }): Promise<void>;
   requestApproval(req: { sessionPk: string; tool: string; input: unknown }): Promise<"allow" | "deny">;
+  listDir(req: { sessionPk: string; path: string }): Promise<DirEntry[]>;
+  readFile(req: { sessionPk: string; path: string }): Promise<ReadFileResult>;
   subscribe(handler: (e: CoreEvent) => void): Unsubscribe;
 }
 
