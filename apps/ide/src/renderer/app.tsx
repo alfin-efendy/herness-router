@@ -4,6 +4,7 @@ import { hydrate } from "./ipc-bridge";
 import { TopBar } from "./screens/TopBar";
 import { ProjectsSessionsTree } from "./screens/ProjectsSessionsTree";
 import { SessionTranscript } from "./screens/SessionTranscript";
+import { ApprovalsRail } from "./screens/ApprovalsRail";
 
 export function App() {
   useEffect(() => hydrate(), []);
@@ -17,7 +18,9 @@ export function App() {
         <main className="min-w-0 flex-1 overflow-auto">
           <SessionTranscript />
         </main>
-        <aside className="w-72 shrink-0 overflow-auto border-l" data-testid="right-rail" />
+        <aside className="w-72 shrink-0 overflow-auto border-l" data-testid="right-rail">
+          <ApprovalsRail />
+        </aside>
       </div>
     </div>
   );
