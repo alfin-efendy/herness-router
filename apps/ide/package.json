@@ -17,6 +17,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@happy-dom/global-registrator": "^20.10.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "bun-plugin-tailwind": "^0.1.2",
