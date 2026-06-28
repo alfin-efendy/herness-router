@@ -20,12 +20,14 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.6.0",
+    "ws": "^8.21.0",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.10.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.18.1",
     "bun-plugin-tailwind": "^0.1.2",
     "electron": "^33.0.0",
     "tailwindcss": "^4.3.1"
