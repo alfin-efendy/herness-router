@@ -2,12 +2,14 @@
 import { useStore } from "./store";
 
 export function hydrate(): () => void {
-  const { setConnection, setConnId, setProjects, setSessions, applyEvent, addApproval, clearApprovals } = useStore.getState();
+  const { setConnection, setConnId, setProjects, setSessions, applyEvent, addApproval, clearApprovals, setConnections } =
+    useStore.getState();
 
   async function snapshot() {
     setConnId(await window.harness.getConnId());
     setProjects(await window.harness.listProjects());
     setSessions(await window.harness.listSessions());
+    setConnections(await window.harness.listConnections());
   }
 
   const offEvent = window.harness.onEvent((e) => applyEvent(e));
@@ -17,9 +19,11 @@ export function hydrate(): () => void {
     if (s === "closed") clearApprovals();
   });
   const offApproval = window.harness.onApprovalRequest((r) => addApproval(r));
+  const offConns = window.harness.onConnectionsChange((list) => setConnections(list));
   return () => {
     offEvent();
     offConn();
     offApproval();
+    offConns();
   };
 }

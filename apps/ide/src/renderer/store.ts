@@ -1,7 +1,7 @@
 // apps/ide/src/renderer/store.ts
 import { create } from "zustand";
 import type { Project, Session, CoreEvent, ApprovalRequestFrame } from "@harness/protocol";
-import type { ConnState } from "../shared/ipc-contract";
+import type { ConnState, ConnectionSummary } from "../shared/ipc-contract";
 
 interface CockpitState {
   connection: ConnState;
@@ -11,6 +11,7 @@ interface CockpitState {
   activeSessionPk: string | null;
   transcripts: Record<string, CoreEvent[]>;
   pendingApprovals: ApprovalRequestFrame[];
+  connections: ConnectionSummary[];
   setConnection: (s: ConnState) => void;
   setConnId: (id: string | null) => void;
   setProjects: (p: Project[]) => void;
@@ -20,6 +21,7 @@ interface CockpitState {
   addApproval: (r: ApprovalRequestFrame) => void;
   removeApproval: (requestId: string) => void;
   clearApprovals: () => void;
+  setConnections: (list: ConnectionSummary[]) => void;
 }
 
 export const useStore = create<CockpitState>((set) => ({
@@ -30,6 +32,7 @@ export const useStore = create<CockpitState>((set) => ({
   activeSessionPk: null,
   transcripts: {},
   pendingApprovals: [],
+  connections: [],
   setConnection: (s) => set({ connection: s }),
   setConnId: (id) => set({ connId: id }),
   setProjects: (p) => set({ projects: p }),
@@ -51,4 +54,5 @@ export const useStore = create<CockpitState>((set) => ({
       pendingApprovals: st.pendingApprovals.filter((a) => a.requestId !== requestId),
     })),
   clearApprovals: () => set({ pendingApprovals: [] }),
+  setConnections: (list) => set({ connections: list }),
 }));
