@@ -32,3 +32,11 @@ test("runLoopbackAuth rejects on state mismatch", async () => {
   };
   await expect(runLoopbackAuth(mockClient(), profile, openExternal, 5_000)).rejects.toThrow();
 });
+
+test("runLoopbackAuth rejects when code is missing from callback", async () => {
+  const openExternal = (url: string) => {
+    const u = new URL(url.replace("__authurl", ""));
+    fetch(`${u.origin}/callback?state=st`).catch(() => {});
+  };
+  await expect(runLoopbackAuth(mockClient(), profile, openExternal, 5_000)).rejects.toThrow();
+});

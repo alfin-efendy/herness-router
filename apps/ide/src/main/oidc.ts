@@ -23,19 +23,27 @@ export async function runLoopbackAuth(
   return new Promise<TokenSet>((resolve, reject) => {
     const server = createServer();
     let timer: ReturnType<typeof setTimeout>;
+    let settled = false;
     const done = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       server.close();
       fn();
     };
     let redirectUri = "";
-    let auth: { authUrl: string; verifier: string; state: string; nonce: string };
+    let auth: { authUrl: string; verifier: string; state: string; nonce: string } | null = null;
 
     server.on("request", async (req, res) => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       if (url.pathname !== "/callback") {
         res.statusCode = 404;
         res.end();
+        return;
+      }
+      if (!auth) {
+        res.statusCode = 503;
+        res.end("not ready");
         return;
       }
       const code = url.searchParams.get("code");
