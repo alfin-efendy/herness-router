@@ -30,24 +30,30 @@ function setup() {
 
 test("POST /rpc listProjects returns inserted projects", async () => {
   const { server } = setup();
-  const res = await fetch(`${server.url}/rpc`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: "Bearer secret" },
-    body: JSON.stringify({ id: "1", method: "listProjects" }),
-  });
-  const data = (await res.json()) as { ok: boolean; result: Project[] };
-  expect(data.ok).toBe(true);
-  expect(data.result[0]?.projectId).toBe("p1");
-  server.stop();
+  try {
+    const res = await fetch(`${server.url}/rpc`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer secret" },
+      body: JSON.stringify({ id: "1", method: "listProjects" }),
+    });
+    const data = (await res.json()) as { ok: boolean; result: Project[] };
+    expect(data.ok).toBe(true);
+    expect(data.result[0]?.projectId).toBe("p1");
+  } finally {
+    server.stop();
+  }
 });
 
 test("POST /rpc rejects a missing/invalid token with 401", async () => {
   const { server } = setup();
-  const res = await fetch(`${server.url}/rpc`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: "Bearer nope" },
-    body: JSON.stringify({ id: "1", method: "listProjects" }),
-  });
-  expect(res.status).toBe(401);
-  server.stop();
+  try {
+    const res = await fetch(`${server.url}/rpc`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer nope" },
+      body: JSON.stringify({ id: "1", method: "listProjects" }),
+    });
+    expect(res.status).toBe(401);
+  } finally {
+    server.stop();
+  }
 });

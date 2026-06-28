@@ -43,6 +43,8 @@ async function dispatch(cp: ControlPlane, method: RpcMethod, params: any, actor:
       return cp.stopSession(p.sessionPk);
     case "endSession":
       return cp.endSession(p.sessionPk, p.opts);
+    default:
+      throw new Error("unhandled method: " + method);
   }
 }
 
@@ -81,7 +83,7 @@ export function startServeServer(cp: ControlPlane, opts: ServeOptions): { url: s
           const result = await dispatch(cp, body.method, body.params, authed.actor);
           return Response.json({ id: body.id, ok: true, result } satisfies RpcResponse);
         } catch (e) {
-          return Response.json({ id: body.id, ok: false, error: (e as Error).message } satisfies RpcResponse);
+          return Response.json({ id: body.id, ok: false, error: e instanceof Error ? e.message : String(e) } satisfies RpcResponse);
         }
       }
 
@@ -91,7 +93,7 @@ export function startServeServer(cp: ControlPlane, opts: ServeOptions): { url: s
         return Response.json({ ticket: auth.issueTicket(authed.actor) });
       }
 
-      if (url.pathname === "/ws") {
+      if (url.pathname === "/ws" && req.method === "GET") {
         const ticket = url.searchParams.get("ticket");
         const authed = ticket ? auth.consumeTicket(ticket) : null;
         if (!authed) return new Response("unauthorized", { status: 401 });
