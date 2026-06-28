@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   npm-publish:
@@ -42,7 +43,7 @@ jobs:
             if npm view "${name}@${ver}" version >/dev/null 2>&1; then
               echo "skip ${name}@${ver} (already published)"
             else
-              npm publish "$dir" --access public
+              npm publish "$dir" --access public --provenance
             fi
           done
         env:
@@ -54,7 +55,7 @@ jobs:
           if npm view "${name}@${ver}" version >/dev/null 2>&1; then
             echo "skip ${name}@${ver} (already published)"
           else
-            npm publish ./npm/harness-router --access public
+            npm publish ./npm/harness-router --access public --provenance
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
