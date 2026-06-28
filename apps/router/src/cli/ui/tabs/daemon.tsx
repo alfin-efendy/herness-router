@@ -4,7 +4,7 @@ import type { AppController } from "../controller";
 import { Panel } from "../components/panel";
 import { StatusDot } from "../components/status-dot";
 import { Badge } from "../components/badge";
-import { palette } from "../theme";
+import { palette, symbols } from "../theme";
 
 function uptime(startedAt?: number): string {
   if (!startedAt) return "—";
@@ -20,7 +20,11 @@ export function DaemonTab({ controller }: { controller: AppController }) {
     <Box flexDirection="column">
       <Panel title="Daemon" focus>
         <Box>
-          {d.starting ? <Badge tone="warn">● connecting…</Badge> : <StatusDot on={d.running} label={d.running ? "running" : "stopped"} />}
+          {d.starting ? (
+            <Badge tone="warn">{symbols().dot} connecting…</Badge>
+          ) : (
+            <StatusDot on={d.running} label={d.running ? "running" : "stopped"} />
+          )}
           <Text color={palette.dim}>
             {"    uptime "}
             {uptime(d.startedAt)}

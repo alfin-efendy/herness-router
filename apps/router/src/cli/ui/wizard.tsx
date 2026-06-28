@@ -128,7 +128,7 @@ export function Wizard({ controller, onDone }: { controller: AppController; onDo
           {f.example ? `  (e.g. ${f.example})` : ""}
         </Text>
         <Box marginTop={1}>
-          <Text>{"› "}</Text>
+          <Text>{symbols().caret + " "}</Text>
           <TextInput value={draft} onChange={setDraft} onSubmit={submit} mask={f.secret ? "•" : undefined} />
         </Box>
         {error && (
