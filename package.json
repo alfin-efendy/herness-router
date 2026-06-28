@@ -17,6 +17,6 @@
     "@biomejs/biome": "2.5.1",
     "@types/bun": "latest",
     "react-devtools-core": "^7.0.1",
-    "typescript": "^5"
+    "typescript": "^6"
   }
 }
