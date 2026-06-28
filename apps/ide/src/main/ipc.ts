@@ -1,6 +1,8 @@
 // apps/ide/src/main/ipc.ts
 import { ipcMain } from "electron";
 import type { RemoteControlPlane } from "@harness/client";
+import type { ConnectionManager } from "./connection-manager";
+import type { AddConnectionInput } from "../shared/ipc-contract";
 
 export function registerIpc(getClient: () => RemoteControlPlane | null): void {
   const need = (): RemoteControlPlane => {
@@ -22,4 +24,13 @@ export function registerIpc(getClient: () => RemoteControlPlane | null): void {
   ipcMain.handle("resolveApproval", async (_e, requestId: string, decision: "allow" | "deny") => {
     getClient()?.resolveApproval(requestId, decision);
   });
+}
+
+export function registerConnectionIpc(manager: ConnectionManager): void {
+  ipcMain.handle("listConnections", async () => manager.list());
+  ipcMain.handle("addConnection", async (_e, input: AddConnectionInput) => manager.add(input));
+  ipcMain.handle("removeConnection", async (_e, id: string) => manager.remove(id));
+  ipcMain.handle("selectConnection", async (_e, id: string) => manager.select(id));
+  ipcMain.handle("signIn", async (_e, id: string) => manager.signIn(id));
+  ipcMain.handle("signOut", async (_e, id: string) => manager.signOut(id));
 }
