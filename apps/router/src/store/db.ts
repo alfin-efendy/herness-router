@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { chmodSync } from "node:fs";
+import { dirname } from "node:path";
 import { migrateSettings } from "../config/migrate-settings";
 
 export function migrate(db: Database): void {
@@ -59,6 +60,7 @@ export function openDb(path: string): Database {
   const db = new Database(path);
   if (path !== ":memory:") {
     chmodSync(path, 0o600);
+    try { chmodSync(dirname(path), 0o700); } catch { /* skip if we don't own the parent dir (e.g. /tmp in tests) */ }
   }
   db.run("PRAGMA journal_mode = WAL");
   db.run("PRAGMA foreign_keys = ON");
