@@ -1,5 +1,5 @@
 // apps/ide/test/files-tab.test.tsx
-import { test, expect, mock, beforeAll, afterAll, beforeEach } from "bun:test";
+import { test, expect, mock, beforeAll, afterAll, beforeEach, afterEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
 // CodeMirror is DOM/worker-heavy; stub it (2b pattern) and assert the props we pass.
@@ -30,6 +30,8 @@ function props(el: Element) {
   return (el as any)[k];
 }
 
+const roots: ReturnType<typeof createRoot>[] = [];
+
 beforeEach(() => {
   useStore.setState({ activeSessionPk: "s1", openFilePath: null, openFile: null });
   (window as any).harness = {
@@ -41,9 +43,21 @@ beforeEach(() => {
   };
 });
 
+afterEach(async () => {
+  await act(async () => {
+    for (const root of roots) {
+      root.unmount();
+    }
+    roots.length = 0;
+  });
+  useStore.setState({ activeSessionPk: null, openFilePath: null, openFile: null });
+  (window as any).harness = undefined;
+});
+
 test("renders the worktree root tree and opens a file on click", async () => {
   const el = document.createElement("div");
   const root = createRoot(el);
+  roots.push(root);
   await act(async () => {
     root.render(<FilesTab />);
   });
@@ -53,8 +67,9 @@ test("renders the worktree root tree and opens a file on click", async () => {
   const fileBtn = [...el.querySelectorAll("button")].find((b) => /README\.md/.test(b.textContent ?? ""))!;
   await act(async () => {
     props(fileBtn).onClick({});
+    await Promise.resolve(); // ensure the readFile promise resolves inside act
   });
-  await act(async () => {});
+  await act(async () => {}); // flush any remaining microtasks/state updates
   expect((window as any).harness.readFile).toHaveBeenCalledWith({ sessionPk: "s1", path: "README.md" });
   expect(el.querySelector("[data-testid=cm]")?.textContent).toBe("# hi");
 });
@@ -63,6 +78,7 @@ test("empty state when no active session", async () => {
   useStore.setState({ activeSessionPk: null });
   const el = document.createElement("div");
   const root = createRoot(el);
+  roots.push(root);
   await act(async () => {
     root.render(<FilesTab />);
   });
