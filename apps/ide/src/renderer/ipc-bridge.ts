@@ -2,7 +2,7 @@
 import { useStore } from "./store";
 
 export function hydrate(): () => void {
-  const { setConnection, setConnId, setProjects, setSessions, applyEvent } = useStore.getState();
+  const { setConnection, setConnId, setProjects, setSessions, applyEvent, addApproval } = useStore.getState();
 
   async function snapshot() {
     setConnId(await window.harness.getConnId());
@@ -15,8 +15,10 @@ export function hydrate(): () => void {
     setConnection(s);
     if (s === "open") void snapshot();
   });
+  const offApproval = window.harness.onApprovalRequest((r) => addApproval(r));
   return () => {
     offEvent();
     offConn();
+    offApproval();
   };
 }
