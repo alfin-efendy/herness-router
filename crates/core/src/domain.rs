@@ -94,7 +94,7 @@ pub enum AgentEvent {
 
 /// Public event broadcast to consumers (the Tauri layer re-emits these).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase")]
 pub enum CoreEvent {
     SessionCreated { session_pk: String, project_id: String },
     Status { session_pk: String, text: String },
@@ -126,11 +126,11 @@ mod tests {
     }
 
     #[test]
-    fn core_event_serializes_with_kind_tag_and_camel_case() {
+    fn core_event_serializes_with_camel_tag_and_snake_fields() {
         let e = CoreEvent::SessionCreated { session_pk: "s1".into(), project_id: "p1".into() };
         let j = serde_json::to_value(&e).unwrap();
         assert_eq!(j["kind"], "sessionCreated");
-        assert_eq!(j["sessionPk"], "s1");
-        assert_eq!(j["projectId"], "p1");
+        assert_eq!(j["session_pk"], "s1");
+        assert_eq!(j["project_id"], "p1");
     }
 }

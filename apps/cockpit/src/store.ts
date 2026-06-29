@@ -99,8 +99,10 @@ export const useStore = create<State>((set, get) => ({
     await get().refresh();
   },
   resolveApproval: async (requestId, allow) => {
-    await commands.resolveApproval(requestId, allow);
-    get().clearApproval(requestId);
+    try {
+      await commands.resolveApproval(requestId, allow);
+      get().clearApproval(requestId);
+    } catch (e) { console.error("resolveApproval failed", e); }
   },
 
   init: async () => {
