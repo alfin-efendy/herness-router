@@ -24,3 +24,11 @@ test("approval.requested adds a pending approval; resolving removes it", () => {
   useStore.getState().clearApproval("r1");
   expect(useStore.getState().pendingApprovals).toHaveLength(0);
 });
+
+test("multiple text events accumulate in order", () => {
+  useStore.setState({ projects: [], sessions: [], transcripts: {}, pendingApprovals: [], focusedSessionPk: null });
+  const s = useStore.getState();
+  s.applyCoreEvent({ kind: "text", session_pk: "s1", text: "a" });
+  s.applyCoreEvent({ kind: "text", session_pk: "s1", text: "b" });
+  expect(useStore.getState().transcripts["s1"].map((l) => l.text)).toEqual(["a", "b"]);
+});
