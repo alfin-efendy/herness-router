@@ -1,6 +1,11 @@
+mod commands;
+mod error;
+
 use std::sync::Arc;
 use harness_core::{ControlPlane, Store};
 use tauri::Manager;
+use specta_typescript::BigIntExportBehavior;
+use tauri_specta::{collect_commands, Builder};
 
 fn resolve_hook_path(app: &tauri::AppHandle) -> String {
     // In dev, the hook binary is built into target/<profile>/harness-hook.
@@ -18,10 +23,38 @@ fn resolve_hook_path(app: &tauri::AppHandle) -> String {
     "harness-hook".to_string()
 }
 
+fn make_builder() -> Builder<tauri::Wry> {
+    Builder::<tauri::Wry>::new().commands(collect_commands![
+        commands::list_projects,
+        commands::list_sessions,
+        commands::connect_project,
+        commands::start_session,
+        commands::continue_session,
+        commands::stop_session,
+        commands::end_session,
+        commands::resolve_approval,
+        commands::read_file,
+        commands::pick_directory,
+    ])
+}
+
 pub fn run() {
+    let builder = make_builder();
+
+    #[cfg(debug_assertions)]
+    builder
+        .export(
+            specta_typescript::Typescript::default()
+                .bigint(BigIntExportBehavior::Number),
+            "../src/bindings.ts",
+        )
+        .expect("export bindings");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
+        .invoke_handler(builder.invoke_handler())
+        .setup(move |app| {
+            builder.mount_events(app);
             let handle = app.handle().clone();
             // Build the engine synchronously on the async runtime.
             let cp = tauri::async_runtime::block_on(async {
@@ -32,10 +65,28 @@ pub fn run() {
             });
             // Enable the approval side-channel; errors are non-fatal (no hook binary in CI).
             cp.enable_approvals(resolve_hook_path(&handle)).ok();
-            // Make Arc<ControlPlane> available to all Tauri commands (Tasks 4+).
+            // Make Arc<ControlPlane> available to all Tauri commands.
             app.manage(cp);
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running cockpit");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Generates `src/bindings.ts` without launching the Tauri GUI.
+    /// Run via: `cargo test -p cockpit export_bindings -- --nocapture`
+    #[test]
+    fn export_bindings() {
+        make_builder()
+            .export(
+                specta_typescript::Typescript::default()
+                    .bigint(BigIntExportBehavior::Number),
+                "../src/bindings.ts",
+            )
+            .expect("export bindings");
+    }
 }
