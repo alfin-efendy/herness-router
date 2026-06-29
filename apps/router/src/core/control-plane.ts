@@ -8,6 +8,7 @@ import type {
   StartSessionRequest,
   ContinueSessionRequest,
   ConnectProjectRequest,
+  PermMode,
 } from "@harness/protocol";
 import type { ProjectsStore } from "../store/projects";
 import type { SessionsStore } from "../store/sessions";
@@ -23,7 +24,7 @@ import { expandHome } from "../config/paths";
 import { Registry } from "./registry";
 import { GatewayRegistry } from "./gateway-registry";
 import { EventBus } from "./events";
-import { resolveToolPolicy, summarizeTool } from "./permissions";
+import { resolveToolPolicy, summarizeTool, isAdmin, gatePermMode, parseRoleIds } from "./permissions";
 import { materializeAttachments, buildManifest, parseAllowedExt, parseAllowedHosts } from "./attachments";
 import type { AttachmentRef } from "@harness/protocol";
 
@@ -182,6 +183,12 @@ export class ControlPlane implements ControlPlaneApi {
 
     const workdir = join(root, name);
     const s = req.settings ?? {};
+    const requestedMode = (s.permMode ?? (this.deps.settings.get("default_perm_mode") as PermMode) ?? "default") as PermMode;
+    const admin = isAdmin({
+      userRoleIds: req.actorRoleIds ?? [],
+      adminRoleIds: parseRoleIds(this.deps.settings.get("admin_role_ids")),
+    });
+    const { mode: permMode } = gatePermMode(requestedMode, admin);
     const project: Project = {
       projectId: crypto.randomUUID(),
       name,
@@ -190,7 +197,7 @@ export class ControlPlane implements ControlPlaneApi {
       harness: s.harness ?? (this.deps.settings.get("default_runtime") || "claude-code"),
       model: s.model ?? (this.deps.settings.get("default_model") || undefined),
       effort: s.effort ?? (this.deps.settings.get("default_effort") || undefined),
-      permMode: s.permMode ?? (this.deps.settings.get("default_perm_mode") as Project["permMode"]) ?? "default",
+      permMode,
       createdBy: req.actor,
       createdAt: Date.now(),
     };
@@ -240,10 +247,7 @@ export class ControlPlane implements ControlPlaneApi {
       const rawTimeout = Number(this.deps.settings.get("approval_timeout_ms") ?? "300000");
       const timeoutMs = Number.isFinite(rawTimeout) ? rawTimeout : 300000;
 
-      const approverRoleIds = (this.deps.settings.get("approver_role_ids") ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const approverRoleIds = parseRoleIds(this.deps.settings.get("approver_role_ids"));
       const startedBy = session.startedBy;
 
       this.events.emit({ kind: "approval.requested", sessionPk: req.sessionPk, requestId, tool: req.tool, summary });

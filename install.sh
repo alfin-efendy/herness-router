@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-REPO="alfin-efendy/herness-router"
+REPO="alfin-efendy/harness-router"
 INSTALL_DIR="${HR_INSTALL_DIR:-$HOME/.local/bin}"
 VERSION="${HR_VERSION:-latest}"
 
@@ -39,6 +39,11 @@ if [ "$VERSION" = "latest" ]; then
 else
   tag="$VERSION"
 fi
+
+# reject anything that isn't a plain version tag (e.g. v1.2.3, 1.2.3, v1.2.3-rc.1)
+case "$tag" in
+  *[!A-Za-z0-9._-]*|"") err "invalid version/tag: '$tag'" ;;
+esac
 
 ver="${tag#v}"
 asset="harness-router_${ver}_${goos}_${goarch}${suffix}.tar.gz"

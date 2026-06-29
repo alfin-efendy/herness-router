@@ -16,6 +16,7 @@ export interface InboundInteraction {
   userId: string;
   channelId: string;
   options: Record<string, string | undefined>;
+  roleIds?: string[];
 }
 export interface DiscordPort {
   botUserId(): string | undefined;
@@ -44,8 +45,8 @@ export interface InboundRouter {
   onConnect(
     gatewayId: string,
     actor: string,
-    opts: { name?: string; gitUrl?: string; settings?: ProjectSettings },
-  ): Promise<{ workspaceId: string; project: { name: string } }>;
+    opts: { name?: string; gitUrl?: string; settings?: ProjectSettings; actorRoleIds?: string[] },
+  ): Promise<{ workspaceId: string; project: { name: string }; permModeDowngraded?: boolean }>;
   onStart(gatewayId: string, workspaceId: string, actor: string, prompt: string, attachments?: AttachmentRef[]): Promise<void>;
   onReply(gatewayId: string, conversationId: string, actor: string, prompt: string, attachments?: AttachmentRef[]): Promise<void>;
   onEnd(gatewayId: string, conversationId: string): Promise<void>;
@@ -128,12 +129,16 @@ export class DiscordGateway implements Gateway {
           effort: e.options.effort,
           permMode: e.options.mode as PermMode | undefined,
         };
-        const { workspaceId } = await this.router.onConnect(this.id, e.userId, {
+        const { workspaceId, permModeDowngraded } = await this.router.onConnect(this.id, e.userId, {
           name: e.options.name,
           gitUrl: e.options.git,
           settings,
+          actorRoleIds: e.roleIds ?? [],
         });
-        await reply(`✅ connected → <#${workspaceId}>`);
+        await reply(
+          `✅ connected → <#${workspaceId}>` +
+            (permModeDowngraded ? `\n⚠️ bypassPermissions requires an admin role — using default mode.` : ""),
+        );
       } else if (e.name === "end") {
         await this.router.onEnd(this.id, e.channelId);
         await reply("🟥 session ended");

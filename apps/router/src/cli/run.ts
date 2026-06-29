@@ -9,6 +9,7 @@ import { cmdRun } from "./run-command";
 import { launchUi } from "./ui/launch";
 import { helpText, version } from "./meta";
 import { runDaemon } from "./daemon-process";
+import { paint } from "./ui/theme";
 
 export interface IO {
   out(s: string): void;
@@ -31,12 +32,15 @@ async function cmdConfig(args: string[], deps: CliDeps): Promise<number> {
   const settings = new SettingsStore(openDb(deps.dbPath));
   const sub = args[0];
   if (sub === "get") {
-    const key = args[1];
+    const rest = args.slice(1);
+    const reveal = rest.includes("--reveal");
+    const key = rest.find((a) => a !== "--reveal");
     if (!key) {
-      deps.io.err("usage: hr config get <key>");
+      deps.io.err("usage: hr config get <key> [--reveal]");
       return 1;
     }
-    deps.io.out(settings.get(key) ?? "");
+    const value = settings.get(key) ?? "";
+    deps.io.out(reveal || !value ? value : redact(key, value));
     return 0;
   }
   if (sub === "set") {
@@ -81,13 +85,13 @@ async function cmdDoctor(deps: CliDeps): Promise<number> {
   const claude = await deps.detect.claude();
   const missing = missingRequiredSettings(settings, catalog);
 
-  deps.io.out(`git:    ${git.found ? "OK " + (git.version ?? "") : "NOT FOUND"}`);
-  deps.io.out(`claude: ${claude.found ? "OK " + (claude.version ?? "") : "NOT FOUND"}`);
+  deps.io.out(`git:    ${git.found ? paint("OK", "ok") + " " + (git.version ?? "") : paint("NOT FOUND", "bad")}`);
+  deps.io.out(`claude: ${claude.found ? paint("OK", "ok") + " " + (claude.version ?? "") : paint("NOT FOUND", "bad")}`);
   deps.io.out(`auth:   ${claude.found ? "unknown (relies on host login)" : "n/a"}`);
-  deps.io.out(missing.length ? `settings: missing ${missing.join(", ")}` : "settings: OK");
+  deps.io.out(missing.length ? `settings: ${paint("missing " + missing.join(", "), "warn")}` : `settings: ${paint("OK", "ok")}`);
 
   const ok = git.found && claude.found && missing.length === 0;
-  deps.io.out(ok ? "doctor: PASS" : "doctor: FAIL");
+  deps.io.out(ok ? `doctor: ${paint("PASS", "ok", { bold: true })}` : `doctor: ${paint("FAIL", "bad")}`);
   return ok ? 0 : 1;
 }
 
