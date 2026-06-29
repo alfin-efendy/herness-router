@@ -84,6 +84,7 @@ test("onStart forwards attachments so the manifest reaches the harness prompt", 
   const db = openDb(":memory:");
   const settings = new SettingsStore(db);
   settings.set("workdir_root", root);
+  settings.set("attachment_allowed_hosts", ""); // placeholder host "cdn" is not a real Discord host; disable host gate
   const projects = new ProjectsStore(db);
   const sessions = new SessionsStore(db);
   const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -116,6 +117,7 @@ test("onReply forwards attachments so the manifest reaches the harness prompt", 
   const db = openDb(":memory:");
   const settings = new SettingsStore(db);
   settings.set("workdir_root", root);
+  settings.set("attachment_allowed_hosts", ""); // placeholder host "cdn" is not a real Discord host; disable host gate
   const projects = new ProjectsStore(db);
   const sessions = new SessionsStore(db);
   const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);

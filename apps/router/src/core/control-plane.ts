@@ -24,7 +24,7 @@ import { Registry } from "./registry";
 import { GatewayRegistry } from "./gateway-registry";
 import { EventBus } from "./events";
 import { resolveToolPolicy, summarizeTool } from "./permissions";
-import { materializeAttachments, buildManifest, parseAllowedExt } from "./attachments";
+import { materializeAttachments, buildManifest, parseAllowedExt, parseAllowedHosts } from "./attachments";
 import type { AttachmentRef } from "@harness/protocol";
 
 export interface WorktreeOps {
@@ -213,7 +213,9 @@ export class ControlPlane implements ControlPlaneApi {
       await this.worktree.remove(project.workdir, session.worktreePath).catch(() => {});
     }
     const attRoot = expandHome(this.deps.settings.get("workdir_root") ?? "");
-    rmSync(join(attRoot, ".harness-attachments", sessionPk), { recursive: true, force: true });
+    try {
+      rmSync(join(attRoot, ".harness-attachments", sessionPk), { recursive: true, force: true });
+    } catch {}
     this.deps.sessions.update(sessionPk, { status: "ended" });
     this.events.emit({ kind: "session.ended", sessionPk });
   }
@@ -284,6 +286,7 @@ export class ControlPlane implements ControlPlaneApi {
         maxBytes: Number(this.deps.settings.get("attachment_max_bytes") ?? "26214400"),
         maxCount,
         allowedExt: parseAllowedExt(this.deps.settings.get("attachment_allowed_ext")),
+        allowedHosts: parseAllowedHosts(this.deps.settings.get("attachment_allowed_hosts")),
         fetchImpl: this.deps.fetchImpl,
       });
     } catch (e) {

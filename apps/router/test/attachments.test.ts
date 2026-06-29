@@ -6,6 +6,7 @@ import {
   materializeAttachments,
   buildManifest,
   parseAllowedExt,
+  parseAllowedHosts,
   sanitizeName,
   type AttachmentRef,
 } from "../src/core/attachments";
@@ -32,7 +33,7 @@ const ref = (over: Partial<AttachmentRef>): AttachmentRef => ({
 });
 
 function opts(destDir: string, over: Partial<Parameters<typeof materializeAttachments>[1]> = {}) {
-  return { destDir, maxBytes: 1_000_000, maxCount: 10, allowedExt: [], ...over };
+  return { destDir, maxBytes: 1_000_000, maxCount: 10, allowedExt: [], allowedHosts: [], ...over };
 }
 
 test("saves a valid file and reports it", async () => {
@@ -153,7 +154,47 @@ test("rejects a body larger than maxBytes via content-length before buffering", 
 test("parseAllowedExt normalizes and sanitizeName strips paths", () => {
   expect(parseAllowedExt("PNG, .jpg ,,")).toEqual(["png", "jpg"]);
   expect(parseAllowedExt(undefined)).toEqual([]);
+  expect(parseAllowedHosts("cdn.discordapp.com, Media.DiscordApp.net ,,")).toEqual(["cdn.discordapp.com", "media.discordapp.net"]);
+  expect(parseAllowedHosts(undefined)).toEqual([]);
   expect(sanitizeName("../x.png")).toBe("x.png");
   expect(sanitizeName("a b.png")).toBe("a_b.png");
   expect(sanitizeName("..")).toBe("file");
+});
+
+test("host allowlist: allows trusted https host, blocks untrusted host and http", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "att-host-"));
+  const fetchImpl = (async (url: string | URL) => {
+    const u = String(url);
+    if (u === "https://cdn.discordapp.com/x" || u === "https://evil.com/x" || u === "http://cdn.discordapp.com/x") {
+      return new Response(PNG);
+    }
+    return new Response(null, { status: 404 });
+  }) as unknown as typeof fetch;
+
+  const discordRef = ref({ name: "a.png", url: "https://cdn.discordapp.com/x", size: PNG.byteLength });
+  const evilRef = ref({ name: "b.png", url: "https://evil.com/x", size: PNG.byteLength });
+  const httpRef = ref({ name: "c.png", url: "http://cdn.discordapp.com/x", size: PNG.byteLength });
+
+  const res = await materializeAttachments(
+    [discordRef, evilRef, httpRef],
+    opts(dir, { allowedHosts: ["cdn.discordapp.com"], fetchImpl }),
+  );
+
+  expect(res.saved.length).toBe(1);
+  expect(res.saved[0]!.name).toBe("a.png");
+  expect(res.skipped.length).toBe(2);
+  expect(res.skipped.some((s) => s.name === "b.png" && /untrusted host/.test(s.reason))).toBe(true);
+  expect(res.skipped.some((s) => s.name === "c.png" && /untrusted host/.test(s.reason))).toBe(true);
+});
+
+test("streaming cap fires without Content-Length header", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "att-cap-"));
+  // Bun does NOT set content-length for Response(Uint8Array) — tests the readCapped path
+  const fetchImpl = (async () => new Response(new Uint8Array(500))) as unknown as typeof fetch;
+  const res = await materializeAttachments(
+    [ref({ name: "big.png", url: "https://cdn/x", size: 10 })], // declared size passes pre-check
+    opts(dir, { maxBytes: 100, fetchImpl }),
+  );
+  expect(res.saved.length).toBe(0);
+  expect(res.skipped[0]!.reason).toMatch(/exceeds/);
 });

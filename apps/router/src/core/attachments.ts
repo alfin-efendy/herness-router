@@ -9,6 +9,7 @@ export interface MaterializeOpts {
   maxBytes: number;
   maxCount: number;
   allowedExt: string[]; // lowercase, no leading dot; [] = allow all
+  allowedHosts: string[]; // lowercase hostnames; [] = no host restriction
   fetchImpl?: typeof fetch;
 }
 export interface SavedAttachment {
@@ -33,6 +34,8 @@ const SIGNATURES: { ext: string[]; magic: number[] }[] = [
   { ext: ["pdf"], magic: [0x25, 0x50, 0x44, 0x46] },
   { ext: ["zip"], magic: [0x50, 0x4b, 0x03, 0x04] },
   { ext: ["gz", "gzip"], magic: [0x1f, 0x8b] },
+  { ext: ["exe", "dll"], magic: [0x4d, 0x5a] },
+  { ext: ["elf"], magic: [0x7f, 0x45, 0x4c, 0x46] },
 ];
 
 function extOf(name: string): string {
@@ -84,10 +87,45 @@ export function parseAllowedExt(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+export function parseAllowedHosts(raw: string | undefined): string[] {
+  return (raw ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function displayName(name: string): string {
+  return name.replace(/[\r\n\t\x00-\x1f]/g, " ").slice(0, 120);
+}
+
+async function readCapped(res: Response, maxBytes: number): Promise<Uint8Array | null> {
+  if (!res.body) {
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return buf.byteLength > maxBytes ? null : buf;
+  }
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    out.set(c, off);
+    off += c.byteLength;
+  }
+  return out;
 }
 
 export async function materializeAttachments(refs: AttachmentRef[], opts: MaterializeOpts): Promise<MaterializeResult> {
@@ -112,6 +150,20 @@ export async function materializeAttachments(refs: AttachmentRef[], opts: Materi
       continue;
     }
 
+    if (opts.allowedHosts.length > 0) {
+      let host: string | undefined;
+      try {
+        const u = new URL(ref.url);
+        if (u.protocol === "https:") host = u.hostname.toLowerCase();
+      } catch {
+        host = undefined;
+      }
+      if (!host || !opts.allowedHosts.includes(host)) {
+        skipped.push({ name: ref.name, reason: "untrusted host" });
+        continue;
+      }
+    }
+
     let bytes: Uint8Array;
     try {
       const res = await doFetch(ref.url);
@@ -121,7 +173,12 @@ export async function materializeAttachments(refs: AttachmentRef[], opts: Materi
         skipped.push({ name: ref.name, reason: `exceeds ${opts.maxBytes} bytes` });
         continue;
       }
-      bytes = new Uint8Array(await res.arrayBuffer());
+      const capped = await readCapped(res, opts.maxBytes);
+      if (capped === null) {
+        skipped.push({ name: ref.name, reason: `exceeds ${opts.maxBytes} bytes` });
+        continue;
+      }
+      bytes = capped;
     } catch (e) {
       skipped.push({ name: ref.name, reason: `download failed: ${(e as Error).message}` });
       continue;
@@ -156,7 +213,7 @@ export function buildManifest(result: MaterializeResult): string {
     }
   }
   for (const s of result.skipped) {
-    lines.push(`⚠️ Skipped ${s.name}: ${s.reason}`);
+    lines.push(`⚠️ Skipped ${displayName(s.name)}: ${s.reason}`);
   }
   return lines.join("\n");
 }

@@ -27,6 +27,7 @@ async function wire() {
   const db = openDb(":memory:");
   const settings = new SettingsStore(db);
   settings.set("workdir_root", root);
+  settings.set("attachment_allowed_hosts", ""); // placeholder host "cdn" is not a real Discord host; disable host gate
   const projects = new ProjectsStore(db);
   const sessions = new SessionsStore(db);
   const harness = new CaptureHarness();

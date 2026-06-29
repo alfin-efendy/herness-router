@@ -37,4 +37,5 @@ test("attachment settings validate and expose defaults", () => {
   expect(store.get("attachment_max_bytes")).toBe("26214400");
   expect(store.get("attachment_max_count")).toBe("10");
   expect(store.get("attachment_allowed_ext")).toBeUndefined(); // blank = all
+  expect(store.get("attachment_allowed_hosts")).toBe("cdn.discordapp.com,media.discordapp.net");
 });

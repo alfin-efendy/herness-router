@@ -49,6 +49,7 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
     projects,
     sessions: new SessionsStore(db),
     settings,
+    // one-shot CLI path never passes attachments, so the attachments-root divergence from settings.workdir_root is inert
     workdirRoot: dirname(workdir),
   });
   const defaultRuntime = settings.get("default_runtime") || "claude-code";

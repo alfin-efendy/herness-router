@@ -55,6 +55,12 @@ export const GLOBAL_FIELDS: ConfigField[] = [
     label: "Attachment allowed extensions",
     help: "Comma-separated allowed file extensions (e.g. png,jpg,pdf); blank = all types",
   },
+  {
+    key: "attachment_allowed_hosts",
+    label: "Attachment allowed hosts",
+    default: "cdn.discordapp.com,media.discordapp.net",
+    help: "Comma-separated hostnames attachments may be downloaded from; blank = no host restriction",
+  },
   { key: "enabled_gateways", label: "Enabled gateways", control: true, help: "(managed by the Providers picker)" },
   { key: "enabled_runtimes", label: "Enabled runtimes", control: true, help: "(managed by the Providers picker)" },
   { key: "default_runtime", label: "Default runtime", control: true, help: "(managed by the Providers picker)" },
