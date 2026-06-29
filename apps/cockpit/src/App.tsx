@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useStore } from "./store";
 import { ProjectsTree } from "./components/ProjectsTree";
 import { SessionTranscript } from "./components/SessionTranscript";
+import { FileViewer } from "./components/FileViewer";
 import { Badge } from "./components/ui/badge";
 
 export default function App() {
@@ -15,9 +16,10 @@ export default function App() {
           <Badge variant="secondary">{pending}</Badge> session(s) need approval
         </div>
       )}
-      <div className="grid flex-1 grid-cols-[260px_1fr]">
+      <div className="grid flex-1 grid-cols-[260px_1fr_360px]">
         <aside className="border-r border-zinc-200 dark:border-zinc-800"><ProjectsTree /></aside>
         <main className="min-w-0"><SessionTranscript /></main>
+        <aside className="border-l border-zinc-200 dark:border-zinc-800"><FileViewer /></aside>
       </div>
     </div>
   );
