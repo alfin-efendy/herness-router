@@ -42,13 +42,16 @@ pub fn run() {
     let builder = make_builder();
 
     #[cfg(debug_assertions)]
-    builder
-        .export(
-            specta_typescript::Typescript::default()
-                .bigint(BigIntExportBehavior::Number),
-            "../src/bindings.ts",
-        )
-        .expect("export bindings");
+    {
+        let out = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/bindings.ts");
+        builder
+            .export(
+                specta_typescript::Typescript::default()
+                    .bigint(BigIntExportBehavior::Number),
+                &out,
+            )
+            .expect("export bindings");
+    }
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -81,11 +84,12 @@ mod tests {
     /// Run via: `cargo test -p cockpit export_bindings -- --nocapture`
     #[test]
     fn export_bindings() {
+        let out = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/bindings.ts");
         make_builder()
             .export(
                 specta_typescript::Typescript::default()
                     .bigint(BigIntExportBehavior::Number),
-                "../src/bindings.ts",
+                &out,
             )
             .expect("export bindings");
     }

@@ -38,6 +38,7 @@ pub async fn start_session(
     project_id: String,
     prompt: String,
 ) -> R<Session> {
+    // `.inner()` -> &Arc<ControlPlane>: start/continue_session take `self: &Arc<Self>`.
     Ok(cp.inner().start_session(&project_id, &prompt).await?)
 }
 
@@ -48,6 +49,7 @@ pub async fn continue_session(
     session_pk: String,
     prompt: String,
 ) -> R<()> {
+    // `.inner()` -> &Arc<ControlPlane>: start/continue_session take `self: &Arc<Self>`.
     Ok(cp.inner().continue_session(&session_pk, &prompt).await?)
 }
 
@@ -89,8 +91,9 @@ pub async fn read_file(path: String) -> R<String> {
 #[tauri::command]
 #[specta::specta]
 pub async fn pick_directory(app: tauri::AppHandle) -> Option<String> {
-    app.dialog()
-        .file()
-        .blocking_pick_folder()
+    tokio::task::spawn_blocking(move || app.dialog().file().blocking_pick_folder())
+        .await
+        .ok()
+        .flatten()
         .map(|p| p.to_string())
 }
