@@ -1,0 +1,37 @@
+import { useStore } from "@/store";
+import { Button } from "@/components/ui/button";
+
+const DOT: Record<string, string> = {
+  running: "bg-blue-500",
+  idle: "bg-zinc-400",
+  interrupted: "bg-amber-500",
+  ended: "bg-zinc-300",
+};
+
+export function ProjectsTree() {
+  const { projects, sessions, focusedSessionPk, setFocused, addProject } = useStore();
+  return (
+    <div className="flex h-full flex-col gap-2 p-2">
+      <Button size="sm" variant="secondary" onClick={() => addProject()}>+ Add project</Button>
+      <div className="flex-1 overflow-auto">
+        {projects.map((p) => (
+          <div key={p.projectId} className="mb-2">
+            <div className="px-2 py-1 text-xs font-semibold text-zinc-500">{p.name}</div>
+            {sessions.filter((s) => s.projectId === p.projectId).map((s) => (
+              <button
+                key={s.sessionPk}
+                onClick={() => setFocused(s.sessionPk)}
+                className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm ${
+                  focusedSessionPk === s.sessionPk ? "bg-zinc-200 dark:bg-zinc-800" : ""
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${DOT[s.status] ?? "bg-zinc-400"}`} />
+                <span className="truncate">{s.title ?? s.sessionPk.slice(0, 8)}</span>
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
