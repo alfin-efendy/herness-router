@@ -69,7 +69,7 @@ impl ApprovalServer {
         let token = crate::paths::new_id();
         let server = Arc::new(
             tiny_http::Server::http("127.0.0.1:0")
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?,
+                .map_err(|e| std::io::Error::other(e.to_string()))?,
         );
         let port = server.server_addr().to_ip().map(|a| a.port()).unwrap_or(0);
         let url = format!("http://127.0.0.1:{port}/{token}");
@@ -83,8 +83,6 @@ impl ApprovalServer {
                     continue;
                 }
                 let mut body = String::new();
-                #[allow(unused_imports)]
-                use std::io::Read;
                 let _ = request.as_reader().read_to_string(&mut body);
                 let decision = match serde_json::from_str::<ApproveBody>(&body) {
                     Ok(b) => handle.block_on(decider.decide(b.session_pk, b.tool, b.input)),
@@ -130,7 +128,7 @@ mod tests {
         let hub = ApprovalHub::new();
         let rx = hub.register("req-1".into());
         assert!(hub.resolve("req-1", true));
-        assert_eq!(rx.await.unwrap(), true);
+        assert!(rx.await.unwrap());
         // resolving an unknown id returns false
         assert!(!hub.resolve("nope", true));
     }
