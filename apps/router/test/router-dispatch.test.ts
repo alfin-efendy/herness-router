@@ -1,6 +1,7 @@
 // apps/router/test/router-dispatch.test.ts
 import { test, expect } from "bun:test";
 import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { AttachmentRef } from "@harness/protocol";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -74,4 +75,73 @@ test("onReply continues the session for that conversation", async () => {
   await router.onReply("fake", conv, "u1", "second");
   await router.idle();
   expect(sessions.list()[0]!.status).toBe("idle"); // ran and settled
+});
+
+test("onStart forwards attachments so the manifest reaches the harness prompt", async () => {
+  // local wiring with a prompt-capturing harness + fake fetch
+  const { mkdtempSync } = await import("node:fs");
+  const root = mkdtempSync(join(tmpdir(), "disp-att-"));
+  const db = openDb(":memory:");
+  const settings = new SettingsStore(db);
+  settings.set("workdir_root", root);
+  settings.set("attachment_allowed_hosts", ""); // placeholder host "cdn" is not a real Discord host; disable host gate
+  const projects = new ProjectsStore(db);
+  const sessions = new SessionsStore(db);
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const fetchImpl = (async (u: string | URL) =>
+    String(u) === "https://cdn/a" ? new Response(PNG) : new Response(null, { status: 404 })) as unknown as typeof fetch;
+  const prompts: string[] = [];
+  const cp = new ControlPlane({ projects, sessions, settings, workdirRoot: root, fetchImpl });
+  cp.harnesses.register("claude-code", () => ({
+    id: "claude-code",
+    async *run(i: HarnessRunInput) {
+      prompts.push(i.prompt);
+      yield { type: "result", usage: {} } as HarnessEvent;
+    },
+  }));
+  const gw = new FakeGateway();
+  cp.gateways.register(gw);
+  const router = new Router(cp, sessions, projects);
+
+  const { workspaceId } = await router.onConnect("fake", "u1", { name: "att" });
+  const atts: AttachmentRef[] = [{ name: "a.png", url: "https://cdn/a", contentType: "image/png", size: PNG.byteLength }];
+  await router.onStart("fake", workspaceId, "u1", "see attached", atts);
+  await router.idle();
+  expect(prompts[0]).toContain("see attached");
+  expect(prompts[0]).toContain("a.png");
+});
+
+test("onReply forwards attachments so the manifest reaches the harness prompt", async () => {
+  const { mkdtempSync } = await import("node:fs");
+  const root = mkdtempSync(join(tmpdir(), "disp-att2-"));
+  const db = openDb(":memory:");
+  const settings = new SettingsStore(db);
+  settings.set("workdir_root", root);
+  settings.set("attachment_allowed_hosts", ""); // placeholder host "cdn" is not a real Discord host; disable host gate
+  const projects = new ProjectsStore(db);
+  const sessions = new SessionsStore(db);
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const fetchImpl = (async (u: string | URL) =>
+    String(u) === "https://cdn/a" ? new Response(PNG) : new Response(null, { status: 404 })) as unknown as typeof fetch;
+  const prompts: string[] = [];
+  const cp = new ControlPlane({ projects, sessions, settings, workdirRoot: root, fetchImpl });
+  cp.harnesses.register("claude-code", () => ({
+    id: "claude-code",
+    async *run(i: HarnessRunInput) {
+      prompts.push(i.prompt);
+      yield { type: "result", usage: {} } as HarnessEvent;
+    },
+  }));
+  const gw = new FakeGateway();
+  cp.gateways.register(gw);
+  const router = new Router(cp, sessions, projects);
+  const { workspaceId } = await router.onConnect("fake", "u1", { name: "att2" });
+  await router.onStart("fake", workspaceId, "u1", "first");
+  await router.idle();
+  const conv = sessions.surfaces(sessions.list()[0]!.sessionPk)[0]!.conversationId;
+  const atts: AttachmentRef[] = [{ name: "a.png", url: "https://cdn/a", contentType: "image/png", size: PNG.byteLength }];
+  await router.onReply("fake", conv, "u1", "see reply", atts);
+  await router.idle();
+  expect(prompts[1]).toContain("see reply");
+  expect(prompts[1]).toContain("a.png");
 });

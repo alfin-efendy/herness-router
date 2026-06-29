@@ -38,6 +38,13 @@ export interface Surface {
   conversationId: string;
 }
 
+export interface AttachmentRef {
+  name: string;
+  url: string;
+  contentType?: string;
+  size: number;
+}
+
 export interface ProjectSettings {
   harness?: string;
   model?: string;
@@ -72,12 +79,14 @@ export interface StartSessionRequest {
   prompt: string;
   actor?: string;
   surface?: Surface;
+  attachments?: AttachmentRef[];
 }
 
 export interface ContinueSessionRequest {
   sessionPk: string;
   prompt: string;
   actor?: string;
+  attachments?: AttachmentRef[];
 }
 
 export interface ConnectProjectRequest {

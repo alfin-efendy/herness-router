@@ -28,3 +28,14 @@ test("SettingsStore set rejects invalid value", () => {
   const store = new SettingsStore(openDb(":memory:"));
   expect(() => store.set("default_perm_mode", "bogus")).toThrow();
 });
+
+test("attachment settings validate and expose defaults", () => {
+  expect(validateSetting("attachment_max_bytes", "abc")).toMatch(/integer/i);
+  expect(validateSetting("attachment_max_bytes", "26214400")).toBeNull();
+  expect(validateSetting("attachment_max_count", "0")).toBeNull();
+  const store = new SettingsStore(openDb(":memory:"));
+  expect(store.get("attachment_max_bytes")).toBe("26214400");
+  expect(store.get("attachment_max_count")).toBe("10");
+  expect(store.get("attachment_allowed_ext")).toBeUndefined(); // blank = all
+  expect(store.get("attachment_allowed_hosts")).toBe("cdn.discordapp.com,media.discordapp.net");
+});
