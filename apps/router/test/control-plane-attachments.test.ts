@@ -33,7 +33,7 @@ async function wire() {
   const cp = new ControlPlane({ projects, sessions, settings, workdirRoot: root, fetchImpl });
   cp.harnesses.register("claude-code", () => harness);
   const project = await cp.connectProject({ gateway: "fake", workspaceId: "ws", actor: "u", name: "proj" });
-  return { cp, sessions, harness, project, root };
+  return { cp, sessions, harness, project, root, settings };
 }
 
 test("startSession with an attachment appends a manifest path to the prompt", async () => {
@@ -68,4 +68,29 @@ test("no attachments leaves the prompt unchanged", async () => {
   const { cp, harness, project } = await wire();
   await cp.startSession({ projectId: project.projectId, prompt: "plain", actor: "u" });
   expect(harness.prompts[0]).toBe("plain");
+});
+
+test("maxCount=0 disables attachments; prompt passes through unchanged", async () => {
+  const { cp, harness, project, settings } = await wire();
+  settings.set("attachment_max_count", "0");
+  await cp.startSession({
+    projectId: project.projectId,
+    prompt: "hello",
+    actor: "u",
+    attachments: [{ name: "a.png", url: "https://cdn/a", contentType: "image/png", size: PNG.byteLength }],
+  });
+  expect(harness.prompts[0]).toBe("hello");
+});
+
+test("continueSession with an attachment injects the manifest", async () => {
+  const { cp, harness, project } = await wire();
+  const session = await cp.startSession({ projectId: project.projectId, prompt: "first", actor: "u" });
+  await cp.continueSession({
+    sessionPk: session.sessionPk,
+    prompt: "and this",
+    actor: "u",
+    attachments: [{ name: "a.png", url: "https://cdn/a", contentType: "image/png", size: PNG.byteLength }],
+  });
+  expect(harness.prompts[1]).toContain("and this");
+  expect(harness.prompts[1]).toContain("a.png");
 });

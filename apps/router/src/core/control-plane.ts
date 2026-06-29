@@ -277,13 +277,21 @@ export class ControlPlane implements ControlPlaneApi {
     if (maxCount <= 0) return prompt || "User sent attachments, but attachment support is disabled."; // feature disabled
     const root = expandHome(this.deps.settings.get("workdir_root") ?? "");
     const destDir = join(root, ".harness-attachments", sessionPk);
-    const result = await materializeAttachments(attachments, {
-      destDir,
-      maxBytes: Number(this.deps.settings.get("attachment_max_bytes") ?? "26214400"),
-      maxCount,
-      allowedExt: parseAllowedExt(this.deps.settings.get("attachment_allowed_ext")),
-      fetchImpl: this.deps.fetchImpl,
-    });
+    let result;
+    try {
+      result = await materializeAttachments(attachments, {
+        destDir,
+        maxBytes: Number(this.deps.settings.get("attachment_max_bytes") ?? "26214400"),
+        maxCount,
+        allowedExt: parseAllowedExt(this.deps.settings.get("attachment_allowed_ext")),
+        fetchImpl: this.deps.fetchImpl,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return prompt
+        ? `${prompt}\n\n⚠️ Could not process attachments: ${msg}`
+        : `User sent attachments, but they could not be processed: ${msg}`;
+    }
     const manifest = buildManifest(result);
     if (!manifest) return prompt;
     if (!prompt) {
