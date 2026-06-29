@@ -213,8 +213,8 @@ impl Store {
         let conn = self.pool.get().await?;
         conn.interact(move |c| {
             c.execute(
-                "UPDATE sessions SET status='idle', last_active=?2 WHERE session_pk=?1 AND status='running'",
-                params![pk, last_active],
+                "UPDATE sessions SET status=?2, last_active=?3 WHERE session_pk=?1 AND status=?4",
+                params![pk, SessionStatus::Idle.as_str(), last_active, SessionStatus::Running.as_str()],
             )
         })
         .await

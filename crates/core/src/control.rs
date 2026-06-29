@@ -433,6 +433,14 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         let stored = cp.list_sessions(Some(&project.project_id)).await.unwrap();
         assert_eq!(stored[0].status, crate::domain::SessionStatus::Interrupted);
+        // Proves the token was registered before spawn and cancellation actually fired:
+        // a cancelled run reaches its tail and removes itself from `running`. If the token
+        // had been registered too late, the BlockingRunner would block forever and this map
+        // would still contain the session.
+        assert!(
+            cp.running.lock().unwrap().is_empty(),
+            "running map not empty => cancellation did not fire (token registered too late)"
+        );
     }
 
     #[tokio::test]
