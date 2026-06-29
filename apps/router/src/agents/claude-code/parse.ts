@@ -1,4 +1,4 @@
-import type { HarnessEvent } from "../types";
+import type { AgentEvent } from "../types";
 
 function toolSummary(name: string, input: unknown): string {
   const obj = (input ?? {}) as Record<string, unknown>;
@@ -7,7 +7,7 @@ function toolSummary(name: string, input: unknown): string {
   return typeof target === "string" ? `${name}: ${target}` : name;
 }
 
-export function parseLine(line: string): HarnessEvent[] {
+export function parseLine(line: string): AgentEvent[] {
   let d: Record<string, unknown>;
   try {
     d = JSON.parse(line) as Record<string, unknown>;
@@ -21,7 +21,7 @@ export function parseLine(line: string): HarnessEvent[] {
 
   if (d.type === "assistant") {
     const msg = d.message as { content?: Array<Record<string, unknown>> } | undefined;
-    const out: HarnessEvent[] = [];
+    const out: AgentEvent[] = [];
     for (const b of msg?.content ?? []) {
       if (b.type === "text" && typeof b.text === "string") out.push({ type: "text", text: b.text });
       else if (b.type === "tool_use") out.push({ type: "status", text: toolSummary(String(b.name), b.input) });

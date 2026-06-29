@@ -3,7 +3,7 @@ import React from "react";
 import { render } from "ink-testing-library";
 import { AppController } from "../../src/cli/ui/controller";
 import { Wizard } from "../../src/cli/ui/wizard";
-import { detectClaude, detectGit } from "../../src/harness/detect";
+import { detectClaude, detectGit } from "../../src/agents/detect";
 
 const flush = () => new Promise((r) => setTimeout(r, 30));
 

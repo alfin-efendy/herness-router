@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { defaultRunner, detectClaude, detectGit, type Runner } from "../src/harness/detect";
+import { defaultRunner, detectClaude, detectGit, type Runner } from "../src/agents/detect";
 
 const fakeRun =
   (map: Record<string, { exitCode: number; stdout: string }>): Runner =>

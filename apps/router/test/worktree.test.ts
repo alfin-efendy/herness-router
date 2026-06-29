@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { worktreePathFor, createWorktree, removeWorktree } from "../src/harness/worktree";
+import { worktreePathFor, createWorktree, removeWorktree } from "../src/agents/worktree";
 
 async function tempRepo(): Promise<string> {
   const dir = mkdtempSync(join(tmpdir(), "harness-wt-"));

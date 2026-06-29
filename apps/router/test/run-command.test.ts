@@ -4,8 +4,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli, type CliDeps, type IO } from "../src/cli/run";
-import { detectClaude, detectGit } from "../src/harness/detect";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import { detectClaude, detectGit } from "../src/agents/detect";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 
 async function tempRepo(): Promise<string> {
   const dir = mkdtempSync(join(tmpdir(), "harness-run-"));
@@ -16,9 +16,9 @@ async function tempRepo(): Promise<string> {
   return dir;
 }
 
-class FakeHarness implements Harness {
+class FakeHarness implements Agent {
   readonly id = "claude-code";
-  async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+  async *run(_i: AgentRunInput): AsyncIterable<AgentEvent> {
     yield { type: "init", sessionId: "agent-x" };
     yield { type: "text", text: "all done" };
     yield { type: "result", usage: {} };

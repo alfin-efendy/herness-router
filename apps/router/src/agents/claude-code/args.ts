@@ -1,4 +1,4 @@
-import type { HarnessRunInput } from "../types";
+import type { AgentRunInput } from "../types";
 
 export function buildHookSettings(hookBinPath: string): string {
   return JSON.stringify({
@@ -6,7 +6,7 @@ export function buildHookSettings(hookBinPath: string): string {
   });
 }
 
-export function buildClaudeArgs(input: HarnessRunInput, newSessionId: string): string[] {
+export function buildClaudeArgs(input: AgentRunInput, newSessionId: string): string[] {
   const args: string[] = ["-p", input.prompt, "--output-format", "stream-json", "--verbose"];
   if (input.resume) args.push("--resume", input.resume);
   else args.push("--session-id", newSessionId);

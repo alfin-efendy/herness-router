@@ -1,8 +1,8 @@
 import { test, expect } from "bun:test";
-import { ClaudeCodeHarness, type ClaudeRunner } from "../src/harness/claude-code/index";
-import type { HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import { ClaudeCodeHarness, type ClaudeRunner } from "../src/agents/claude-code/index";
+import type { AgentEvent, AgentRunInput } from "../src/agents/types";
 
-function runInput(over: Partial<HarnessRunInput> = {}): HarnessRunInput {
+function runInput(over: Partial<AgentRunInput> = {}): AgentRunInput {
   return {
     workdir: "/wt",
     prompt: "go",
@@ -20,8 +20,8 @@ const scripted =
       for (const l of lines) yield l;
     })();
 
-async function collect(it: AsyncIterable<HarnessEvent>): Promise<HarnessEvent[]> {
-  const out: HarnessEvent[] = [];
+async function collect(it: AsyncIterable<AgentEvent>): Promise<AgentEvent[]> {
+  const out: AgentEvent[] = [];
   for await (const e of it) out.push(e);
   return out;
 }

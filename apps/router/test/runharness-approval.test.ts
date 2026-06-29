@@ -1,6 +1,6 @@
 // apps/router/test/runharness-approval.test.ts
 import { test, expect } from "bun:test";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";
@@ -8,10 +8,10 @@ import { SettingsStore } from "../src/config/store";
 import { ControlPlane } from "../src/core/control-plane";
 
 function wire(permMode: "default" | "bypassPermissions") {
-  const captured: Array<HarnessRunInput["approval"]> = [];
-  class Cap implements Harness {
+  const captured: Array<AgentRunInput["approval"]> = [];
+  class Cap implements Agent {
     readonly id = "claude-code";
-    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(i: AgentRunInput): AsyncIterable<AgentEvent> {
       captured.push(i.approval);
       yield { type: "result", usage: {} };
     }

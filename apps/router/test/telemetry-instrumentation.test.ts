@@ -1,7 +1,7 @@
 // apps/router/test/telemetry-instrumentation.test.ts
 import { test, expect } from "bun:test";
 import type { Telemetry, Span, Attrs } from "../src/observability/types";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";
@@ -35,10 +35,10 @@ class Recording implements Telemetry {
   }
 }
 
-function wire(events: HarnessEvent[], permMode: "default" | "bypassPermissions" = "bypassPermissions") {
-  class H implements Harness {
+function wire(events: AgentEvent[], permMode: "default" | "bypassPermissions" = "bypassPermissions") {
+  class H implements Agent {
     readonly id = "claude-code";
-    async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(_i: AgentRunInput): AsyncIterable<AgentEvent> {
       for (const e of events) yield e;
     }
   }

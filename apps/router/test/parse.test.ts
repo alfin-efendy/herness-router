@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { parseLine } from "../src/harness/claude-code/parse";
+import { parseLine } from "../src/agents/claude-code/parse";
 
 test("init event yields init with session id", () => {
   const line = JSON.stringify({ type: "system", subtype: "init", session_id: "abc" });

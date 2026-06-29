@@ -1,6 +1,6 @@
 // apps/router/test/lifecycle.test.ts
 import { test, expect } from "bun:test";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import type { CoreEvent } from "@harness/protocol";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
@@ -49,9 +49,9 @@ test("startSession rolls back the worktree if session insert fails", async () =>
 });
 
 test("endSession aborts, removes worktree, marks ended, emits", async () => {
-  class Never implements Harness {
+  class Never implements Agent {
     readonly id = "claude-code";
-    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(i: AgentRunInput): AsyncIterable<AgentEvent> {
       // block until aborted
       await new Promise<void>((resolve) => i.signal.addEventListener("abort", () => resolve()));
     }

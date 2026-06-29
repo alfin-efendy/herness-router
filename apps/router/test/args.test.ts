@@ -1,8 +1,8 @@
 import { test, expect } from "bun:test";
-import { buildClaudeArgs } from "../src/harness/claude-code/args";
-import type { HarnessRunInput } from "../src/harness/types";
+import { buildClaudeArgs } from "../src/agents/claude-code/args";
+import type { AgentRunInput } from "../src/agents/types";
 
-function input(over: Partial<HarnessRunInput> = {}): HarnessRunInput {
+function input(over: Partial<AgentRunInput> = {}): AgentRunInput {
   return {
     workdir: "/wt",
     prompt: "do it",

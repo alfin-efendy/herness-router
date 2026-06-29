@@ -4,14 +4,14 @@ export type ToolPermissionResult = { behavior: "allow"; updatedInput?: unknown }
 
 export type ApproveFn = (req: { tool: string; input: unknown }) => Promise<ToolPermissionResult>;
 
-export type HarnessEvent =
+export type AgentEvent =
   | { type: "init"; sessionId: string }
   | { type: "status"; text: string }
   | { type: "text"; text: string }
   | { type: "result"; usage?: unknown; sessionId?: string }
   | { type: "error"; message: string };
 
-export interface HarnessRunInput {
+export interface AgentRunInput {
   workdir: string;
   resume?: string;
   prompt: string;
@@ -23,7 +23,7 @@ export interface HarnessRunInput {
   approval?: { url: string; sessionPk: string; hookBinPath: string };
 }
 
-export interface Harness {
+export interface Agent {
   readonly id: string;
-  run(input: HarnessRunInput): AsyncIterable<HarnessEvent>;
+  run(input: AgentRunInput): AsyncIterable<AgentEvent>;
 }

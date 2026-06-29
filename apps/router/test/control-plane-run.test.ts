@@ -1,6 +1,6 @@
 // apps/router/test/control-plane-run.test.ts
 import { test, expect } from "bun:test";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import type { CoreEvent } from "@harness/protocol";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
@@ -8,15 +8,15 @@ import { SessionsStore } from "../src/store/sessions";
 import { SettingsStore } from "../src/config/store";
 import { ControlPlane } from "../src/core/control-plane";
 
-class FakeHarness implements Harness {
+class FakeHarness implements Agent {
   readonly id = "claude-code";
-  constructor(private events: HarnessEvent[]) {}
-  async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+  constructor(private events: AgentEvent[]) {}
+  async *run(_i: AgentRunInput): AsyncIterable<AgentEvent> {
     for (const e of this.events) yield e;
   }
 }
 
-function setup(events: HarnessEvent[]) {
+function setup(events: AgentEvent[]) {
   const db = openDb(":memory:");
   const projects = new ProjectsStore(db);
   projects.insert({ projectId: "p1", name: "foo", workdir: "/repo/foo", harness: "claude-code", permMode: "default" });
@@ -64,9 +64,9 @@ test("continueSession resumes the stored agent session id", async () => {
   const projects = new ProjectsStore(db);
   projects.insert({ projectId: "p1", name: "foo", workdir: "/repo/foo", harness: "claude-code", permMode: "default" });
   const sessions = new SessionsStore(db);
-  class CapHarness implements Harness {
+  class CapHarness implements Agent {
     readonly id = "claude-code";
-    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(i: AgentRunInput): AsyncIterable<AgentEvent> {
       captured.push(i.resume);
       yield { type: "result", usage: {} };
     }
@@ -89,9 +89,9 @@ test("continueSession re-persists agentSessionId when result carries a rotated s
   const projects = new ProjectsStore(db);
   projects.insert({ projectId: "p1", name: "foo", workdir: "/repo/foo", harness: "claude-code", permMode: "default" });
   const sessions = new SessionsStore(db);
-  class CapHarness implements Harness {
+  class CapHarness implements Agent {
     readonly id = "claude-code";
-    async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(_i: AgentRunInput): AsyncIterable<AgentEvent> {
       yield { type: "result", usage: {}, sessionId: "rotated" };
     }
   }

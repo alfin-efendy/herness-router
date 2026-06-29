@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runCli, type IO } from "./run";
-import { detectClaude, detectGit } from "../harness/detect";
+import { detectClaude, detectGit } from "../agents/detect";
 
 process.on("unhandledRejection", (reason) => {
   console.error("unhandledRejection:", reason);

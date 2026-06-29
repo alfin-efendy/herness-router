@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../types";
+import type { Agent, AgentEvent, AgentRunInput } from "../types";
 import { buildClaudeArgs } from "./args";
 import { parseLine } from "./parse";
 
@@ -48,11 +48,11 @@ export const defaultClaudeRunner: ClaudeRunner = async function* (args, { cwd, s
   }
 };
 
-export class ClaudeCodeHarness implements Harness {
+export class ClaudeCodeHarness implements Agent {
   readonly id = "claude-code";
   constructor(private runner: ClaudeRunner = defaultClaudeRunner) {}
 
-  async *run(input: HarnessRunInput): AsyncIterable<HarnessEvent> {
+  async *run(input: AgentRunInput): AsyncIterable<AgentEvent> {
     const sessionId = input.resume ?? crypto.randomUUID();
     if (!input.resume) yield { type: "init", sessionId };
     const args = buildClaudeArgs(input, sessionId);

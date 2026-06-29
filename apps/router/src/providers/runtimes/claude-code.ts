@@ -1,6 +1,6 @@
 import type { RuntimeDescriptor } from "../types";
-import { ClaudeCodeHarness } from "../../harness/claude-code/index";
-import { detectClaude } from "../../harness/detect";
+import { ClaudeCodeHarness } from "../../agents/claude-code/index";
+import { detectClaude } from "../../agents/detect";
 
 export const claudeCodeRuntime: RuntimeDescriptor = {
   id: "claude-code",

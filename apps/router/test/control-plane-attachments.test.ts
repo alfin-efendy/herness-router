@@ -7,12 +7,12 @@ import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";
 import { SettingsStore } from "../src/config/store";
 import { ControlPlane } from "../src/core/control-plane";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 
-class CaptureHarness implements Harness {
+class CaptureHarness implements Agent {
   readonly id = "claude-code";
   prompts: string[] = [];
-  async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+  async *run(i: AgentRunInput): AsyncIterable<AgentEvent> {
     this.prompts.push(i.prompt);
     yield { type: "result", usage: {} };
   }

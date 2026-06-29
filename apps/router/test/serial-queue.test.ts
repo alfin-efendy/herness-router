@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";
@@ -8,9 +8,9 @@ import { ControlPlane } from "../src/core/control-plane";
 
 test("queued continueSession resumes with the first run's agent session id", async () => {
   const resumes: (string | undefined)[] = [];
-  class H implements Harness {
+  class H implements Agent {
     readonly id = "claude-code";
-    async *run(i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(i: AgentRunInput): AsyncIterable<AgentEvent> {
       resumes.push(i.resume);
       if (!i.resume) yield { type: "init", sessionId: "agent-A" };
       await new Promise((r) => setTimeout(r, 10));
@@ -38,9 +38,9 @@ test("queued continueSession resumes with the first run's agent session id", asy
 test("two continueSession calls on the same session run serially", async () => {
   const order: string[] = [];
   let active = 0;
-  class SlowHarness implements Harness {
+  class SlowHarness implements Agent {
     readonly id = "claude-code";
-    async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(_i: AgentRunInput): AsyncIterable<AgentEvent> {
       active++;
       order.push(`start(active=${active})`);
       await new Promise((r) => setTimeout(r, 20));

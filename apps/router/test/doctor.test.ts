@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import { runCli, type CliDeps, type IO } from "../src/cli/run";
-import type { Runner } from "../src/harness/detect";
-import { detectClaude, detectGit } from "../src/harness/detect";
+import type { Runner } from "../src/agents/detect";
+import { detectClaude, detectGit } from "../src/agents/detect";
 
 function depsWith(run: Runner, dbPath = ":memory:") {
   const lines: string[] = [];

@@ -1,7 +1,7 @@
 import type { Gateway } from "../gateways/types";
 import type { InboundRouter } from "../gateways/discord/index";
-import type { Harness } from "../harness/types";
-import type { ToolInfo } from "../harness/detect";
+import type { Agent } from "../agents/types";
+import type { ToolInfo } from "../agents/detect";
 
 export interface ConfigField {
   key: string;
@@ -32,7 +32,7 @@ export interface RuntimeDescriptor {
   kind: "runtime";
   fields: ConfigField[];
   detect(): Promise<ToolInfo & { authenticated?: boolean }>;
-  build(): Harness;
+  build(): Agent;
 }
 
 export type ProviderDescriptor = GatewayDescriptor | RuntimeDescriptor;

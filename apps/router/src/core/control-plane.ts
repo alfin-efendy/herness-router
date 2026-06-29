@@ -13,13 +13,13 @@ import type {
 import type { ProjectsStore } from "../store/projects";
 import type { SessionsStore } from "../store/sessions";
 import type { SettingsStore } from "../config/store";
-import type { Harness, HarnessRunInput } from "../harness/types";
+import type { Agent, AgentRunInput } from "../agents/types";
 import type { Gateway } from "../gateways/types";
 import type { Telemetry } from "../observability/types";
 import { NoopTelemetry } from "../observability/types";
 import { mkdirSync, rmSync } from "node:fs";
 import { basename, join } from "node:path";
-import { createWorktree, removeWorktree, worktreePathFor } from "../harness/worktree";
+import { createWorktree, removeWorktree, worktreePathFor } from "../agents/worktree";
 import { expandHome } from "../config/paths";
 import { Registry } from "./registry";
 import { GatewayRegistry } from "./gateway-registry";
@@ -47,7 +47,7 @@ export interface ControlPlaneDeps {
 const allowAll = async () => ({ behavior: "allow" as const });
 
 export class ControlPlane implements ControlPlaneApi {
-  readonly harnesses = new Registry<Harness>();
+  readonly harnesses = new Registry<Agent>();
   readonly gateways = new GatewayRegistry();
   readonly events = new EventBus();
   approvalUrl?: string;
@@ -317,7 +317,7 @@ export class ControlPlane implements ControlPlaneApi {
       project.permMode === "default" && this.approvalUrl && this.hookBinPath
         ? { url: this.approvalUrl, sessionPk, hookBinPath: this.hookBinPath }
         : undefined;
-    const input: HarnessRunInput = {
+    const input: AgentRunInput = {
       workdir: this.deps.sessions.get(sessionPk)?.worktreePath ?? project.workdir,
       resume,
       prompt,

@@ -3,8 +3,8 @@ import { SettingsStore } from "../config/store";
 import { SETTING_DEFS } from "../config/schema";
 import { missingRequiredSettings } from "../config/required";
 import { catalog } from "../providers/catalog";
-import type { detectClaude, detectGit } from "../harness/detect";
-import type { Harness } from "../harness/types";
+import type { detectClaude, detectGit } from "../agents/detect";
+import type { Agent } from "../agents/types";
 import { cmdRun } from "./run-command";
 import { launchUi } from "./ui/launch";
 import { helpText, version } from "./meta";
@@ -21,7 +21,7 @@ export interface CliDeps {
   io: IO;
   dbPath: string;
   detect: { claude: typeof detectClaude; git: typeof detectGit };
-  harnessFactory?: () => Harness;
+  harnessFactory?: () => Agent;
 }
 
 function redact(key: string, value: string): string {

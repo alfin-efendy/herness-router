@@ -8,7 +8,7 @@
 
 import { test, expect } from "bun:test";
 import type { Telemetry, Span, Attrs } from "../src/observability/types";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";
@@ -58,10 +58,10 @@ class Recording implements Telemetry {
 }
 
 // ─── Fake harness that emits a minimal successful result ─────────────────────
-function makeWire(events: HarnessEvent[]) {
-  class FakeHarness implements Harness {
+function makeWire(events: AgentEvent[]) {
+  class FakeHarness implements Agent {
     readonly id = "claude-code";
-    async *run(_input: HarnessRunInput): AsyncIterable<HarnessEvent> {
+    async *run(_input: AgentRunInput): AsyncIterable<AgentEvent> {
       for (const e of events) yield e;
     }
   }

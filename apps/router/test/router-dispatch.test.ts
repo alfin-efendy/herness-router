@@ -1,6 +1,6 @@
 // apps/router/test/router-dispatch.test.ts
 import { test, expect } from "bun:test";
-import type { Harness, HarnessEvent, HarnessRunInput } from "../src/harness/types";
+import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import type { AttachmentRef } from "@harness/protocol";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,9 +13,9 @@ import { ControlPlane } from "../src/core/control-plane";
 import { Router } from "../src/core/router";
 import { FakeGateway } from "./fake-gateway";
 
-class OneShot implements Harness {
+class OneShot implements Agent {
   readonly id = "claude-code";
-  async *run(_i: HarnessRunInput): AsyncIterable<HarnessEvent> {
+  async *run(_i: AgentRunInput): AsyncIterable<AgentEvent> {
     yield { type: "text", text: "hi" };
     yield { type: "result", usage: {} };
   }
@@ -94,9 +94,9 @@ test("onStart forwards attachments so the manifest reaches the harness prompt", 
   const cp = new ControlPlane({ projects, sessions, settings, workdirRoot: root, fetchImpl });
   cp.harnesses.register("claude-code", () => ({
     id: "claude-code",
-    async *run(i: HarnessRunInput) {
+    async *run(i: AgentRunInput) {
       prompts.push(i.prompt);
-      yield { type: "result", usage: {} } as HarnessEvent;
+      yield { type: "result", usage: {} } as AgentEvent;
     },
   }));
   const gw = new FakeGateway();
@@ -127,9 +127,9 @@ test("onReply forwards attachments so the manifest reaches the harness prompt", 
   const cp = new ControlPlane({ projects, sessions, settings, workdirRoot: root, fetchImpl });
   cp.harnesses.register("claude-code", () => ({
     id: "claude-code",
-    async *run(i: HarnessRunInput) {
+    async *run(i: AgentRunInput) {
       prompts.push(i.prompt);
-      yield { type: "result", usage: {} } as HarnessEvent;
+      yield { type: "result", usage: {} } as AgentEvent;
     },
   }));
   const gw = new FakeGateway();
