@@ -1,4 +1,4 @@
-// apps/router/src/core/approval-server.ts
+// packages/core/src/core/approval-server.ts
 export interface ApproveBody {
   sessionPk: string;
   tool: string;

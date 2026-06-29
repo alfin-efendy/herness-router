@@ -1,4 +1,4 @@
-// apps/router/src/cli/run-command.ts
+// apps/cli/src/cli/run-command.ts
 import { parseArgs } from "node:util";
 import { dirname, resolve } from "node:path";
 import type { CoreEvent } from "@harness/protocol";

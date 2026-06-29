@@ -1,4 +1,4 @@
-// apps/router/test/control-plane-run.test.ts
+// packages/core/test/control-plane-run.test.ts
 import { test, expect } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import type { CoreEvent } from "@harness/protocol";

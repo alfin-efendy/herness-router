@@ -1,4 +1,4 @@
-// apps/router/test/approval-server.test.ts
+// packages/core/test/approval-server.test.ts
 import { test, expect } from "bun:test";
 import { handleApprove, startApprovalServer, type ApproveBody } from "../src/core/approval-server";
 

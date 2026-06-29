@@ -1,4 +1,4 @@
-// apps/router/test/claude-code-hook.test.ts
+// packages/core/test/claude-code-hook.test.ts
 import { test, expect } from "bun:test";
 import { buildClaudeArgs } from "../src/agents/claude-code/args";
 import { ClaudeCodeHarness, type ClaudeRunner } from "../src/agents/claude-code/index";

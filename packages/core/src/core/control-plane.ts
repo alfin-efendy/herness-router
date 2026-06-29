@@ -1,4 +1,4 @@
-// apps/router/src/core/control-plane.ts
+// packages/core/src/core/control-plane.ts
 import type {
   ControlPlaneApi,
   Project,

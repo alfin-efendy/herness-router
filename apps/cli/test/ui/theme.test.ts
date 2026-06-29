@@ -1,4 +1,4 @@
-// apps/router/test/ui/theme.test.ts
+// apps/cli/test/ui/theme.test.ts
 import { test, expect } from "bun:test";
 import { palette, symbols, borderStyle, colorEnabled, paint } from "../../src/cli/ui/theme";
 

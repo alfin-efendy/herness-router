@@ -1,4 +1,4 @@
-// apps/router/test/router-dispatch.test.ts
+// packages/core/test/router-dispatch.test.ts
 import { test, expect } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import type { AttachmentRef } from "@harness/protocol";

@@ -1,4 +1,4 @@
-// apps/router/src/core/router.ts
+// packages/core/src/core/router.ts
 import type { CoreEvent, Surface, Project, ProjectSettings, AttachmentRef } from "@harness/protocol";
 import type { MessageRef } from "../gateways/types";
 import type { SessionsStore } from "../store/sessions";

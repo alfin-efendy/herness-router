@@ -1,4 +1,4 @@
-// apps/router/test/run-command.test.ts
+// apps/cli/test/run-command.test.ts
 import { test, expect } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";

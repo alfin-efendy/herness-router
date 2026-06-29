@@ -1,4 +1,4 @@
-// apps/router/test/lifecycle.test.ts
+// packages/core/test/lifecycle.test.ts
 import { test, expect } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import type { CoreEvent } from "@harness/protocol";

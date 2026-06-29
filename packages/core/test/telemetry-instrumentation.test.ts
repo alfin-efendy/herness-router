@@ -1,4 +1,4 @@
-// apps/router/test/telemetry-instrumentation.test.ts
+// packages/core/test/telemetry-instrumentation.test.ts
 import { test, expect } from "bun:test";
 import type { Telemetry, Span, Attrs } from "../src/observability/types";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";

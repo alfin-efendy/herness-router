@@ -39,7 +39,7 @@ test("brand metadata points to packaged logo assets", () => {
     const path = fileURLToPath(asset);
     expect(path).toContain("/assets/brand/");
     expect(path).not.toContain("/assets/brand/harness-router/");
-    expect(path).not.toContain("/apps/router/assets/");
+    expect(path).not.toContain("/apps/cli/assets/");
     expect(existsSync(path)).toBe(true);
   }
 });

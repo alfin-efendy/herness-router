@@ -1,4 +1,4 @@
-// apps/router/src/observability/otel.ts
+// packages/core/src/observability/otel.ts
 // Real OTLP telemetry adapter — active only when `otel_endpoint` is configured.
 // Every method body is try/caught so a telemetry failure NEVER throws into the core.
 

@@ -1,4 +1,4 @@
-// apps/router/test/discord-gateway.test.ts
+// packages/core/test/discord-gateway.test.ts
 import { test, expect } from "bun:test";
 import { DiscordGateway, type DiscordPort, type InboundRouter, type InboundMessage } from "../src/gateways/discord/index";
 

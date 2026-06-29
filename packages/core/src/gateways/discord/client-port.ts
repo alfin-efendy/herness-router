@@ -1,4 +1,4 @@
-// apps/router/src/gateways/discord/client-port.ts
+// packages/core/src/gateways/discord/client-port.ts
 import {
   Client,
   Events,

@@ -1,4 +1,4 @@
-// apps/router/test/approval-coordinator.test.ts
+// packages/core/test/approval-coordinator.test.ts
 import { test, expect } from "bun:test";
 import type { ApprovalDecision } from "@harness/protocol";
 import { openDb } from "../src/store/db";

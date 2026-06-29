@@ -1,4 +1,4 @@
-// apps/router/test/runharness-approval.test.ts
+// packages/core/test/runharness-approval.test.ts
 import { test, expect } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import { openDb } from "../src/store/db";

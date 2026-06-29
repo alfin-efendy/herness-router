@@ -1,4 +1,4 @@
-// apps/router/test/telemetry-no-secrets.test.ts
+// packages/core/test/telemetry-no-secrets.test.ts
 //
 // Regression guard: proves that no secret (e.g. discord.token) or prompt body
 // ever reaches a telemetry span / counter attribute.
