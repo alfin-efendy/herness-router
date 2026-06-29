@@ -131,6 +131,25 @@ test("buildManifest lists saved paths and skips; empty when nothing", () => {
   expect(text).toContain("exceeds");
 });
 
+test("rejects a body larger than maxBytes via content-length before buffering", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "att-"));
+  const counter = { n: 0 };
+  // Body is a valid small PNG (passes post-download size check), but Content-Length
+  // header is set to 500 — larger than maxBytes (100). Without the pre-buffer guard
+  // the file would be saved; with it the file must be skipped.
+  const fetchBig = (async () => {
+    counter.n++;
+    return new Response(PNG, { headers: { "content-length": "500" } });
+  }) as unknown as typeof fetch;
+  const res = await materializeAttachments(
+    [ref({ name: "a.png", url: "u1", size: 10 })], // declared size passes the pre-check
+    opts(dir, { maxBytes: 100, fetchImpl: fetchBig }),
+  );
+  expect(res.saved.length).toBe(0);
+  expect(res.skipped[0]!.reason).toMatch(/exceeds/);
+  expect(counter.n).toBe(1); // fetch happened, but body was NOT fully trusted
+});
+
 test("parseAllowedExt normalizes and sanitizeName strips paths", () => {
   expect(parseAllowedExt("PNG, .jpg ,,")).toEqual(["png", "jpg"]);
   expect(parseAllowedExt(undefined)).toEqual([]);

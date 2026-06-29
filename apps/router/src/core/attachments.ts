@@ -116,6 +116,11 @@ export async function materializeAttachments(refs: AttachmentRef[], opts: Materi
     try {
       const res = await doFetch(ref.url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const declared = Number(res.headers.get("content-length") ?? "");
+      if (Number.isFinite(declared) && declared > opts.maxBytes) {
+        skipped.push({ name: ref.name, reason: `exceeds ${opts.maxBytes} bytes` });
+        continue;
+      }
       bytes = new Uint8Array(await res.arrayBuffer());
     } catch (e) {
       skipped.push({ name: ref.name, reason: `download failed: ${(e as Error).message}` });
