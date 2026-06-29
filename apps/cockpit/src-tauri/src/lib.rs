@@ -5,7 +5,6 @@ mod events;
 use std::sync::Arc;
 use harness_core::{ControlPlane, Store};
 use tauri::Manager;
-use specta_typescript::BigIntExportBehavior;
 use tauri_specta::{collect_commands, collect_events, Builder};
 
 fn resolve_hook_path(app: &tauri::AppHandle) -> String {
@@ -50,7 +49,7 @@ pub fn run() {
         builder
             .export(
                 specta_typescript::Typescript::default()
-                    .bigint(BigIntExportBehavior::Number),
+                    .bigint(specta_typescript::BigIntExportBehavior::Number),
                 &out,
             )
             .expect("export bindings");
@@ -111,7 +110,7 @@ mod tests {
         make_builder()
             .export(
                 specta_typescript::Typescript::default()
-                    .bigint(BigIntExportBehavior::Number),
+                    .bigint(specta_typescript::BigIntExportBehavior::Number),
                 &out,
             )
             .expect("export bindings");
