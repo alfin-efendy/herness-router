@@ -11,9 +11,6 @@
         "typescript": "^5",
       },
     },
-    "apps/ide": {
-      "name": "@harness/ide",
-    },
     "apps/mission-control": {
       "name": "@harness/mission-control",
     },
@@ -22,7 +19,7 @@
     },
     "apps/router": {
       "name": "@harness/router",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "bin": {
         "harness": "./src/cli/index.ts",
       },
@@ -44,6 +41,21 @@
       "devDependencies": {
         "@types/react": "^19.2.17",
         "ink-testing-library": "^4.0.0",
+      },
+    },
+    "packages/core": {
+      "name": "@harness/core",
+      "version": "0.2.0",
+      "dependencies": {
+        "@harness/protocol": "workspace:*",
+        "@opentelemetry/api": "^1.9.1",
+        "@opentelemetry/exporter-metrics-otlp-http": "^0.219.0",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
+        "@opentelemetry/resources": "^2.8.0",
+        "@opentelemetry/sdk-metrics": "^2.8.0",
+        "@opentelemetry/sdk-trace-base": "^2.8.0",
+        "@opentelemetry/semantic-conventions": "^1.41.1",
+        "discord.js": "^14.26.4",
       },
     },
     "packages/protocol": {
@@ -83,7 +95,7 @@
 
     "@discordjs/ws": ["@discordjs/ws@1.2.3", "", { "dependencies": { "@discordjs/collection": "^2.1.0", "@discordjs/rest": "^2.5.1", "@discordjs/util": "^1.1.0", "@sapphire/async-queue": "^1.5.2", "@types/ws": "^8.5.10", "@vladfrangu/async_event_emitter": "^2.2.4", "discord-api-types": "^0.38.1", "tslib": "^2.6.2", "ws": "^8.17.0" } }, "sha512-wPlQDxEmlDg5IxhJPuxXr3Vy9AjYq5xCvFWGJyD7w7Np8ZGu+Mc+97LCoEc/+AYCo2IDpKioiH0/c/mj5ZR9Uw=="],
 
-    "@harness/ide": ["@harness/ide@workspace:apps/ide"],
+    "@harness/core": ["@harness/core@workspace:packages/core"],
 
     "@harness/mission-control": ["@harness/mission-control@workspace:apps/mission-control"],
 
