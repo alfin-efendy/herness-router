@@ -19,7 +19,7 @@ test("text and status events append lines to the session transcript", () => {
   s.applyCoreEvent({ kind: "sessionCreated", session_pk: "s1", project_id: "p1" });
   s.applyCoreEvent({ kind: "status", session_pk: "s1", text: "Bash: ls" });
   s.applyCoreEvent({ kind: "text", session_pk: "s1", text: "hello" });
-  const lines = useStore.getState().transcripts["s1"];
+  const lines = useStore.getState().transcripts.s1;
   expect(lines.map((l) => l.kind)).toEqual(["status", "text"]);
   expect(lines[1].text).toBe("hello");
 });
@@ -38,7 +38,7 @@ test("multiple text events accumulate in order", () => {
   const s = useStore.getState();
   s.applyCoreEvent({ kind: "text", session_pk: "s1", text: "a" });
   s.applyCoreEvent({ kind: "text", session_pk: "s1", text: "b" });
-  expect(useStore.getState().transcripts["s1"].map((l) => l.text)).toEqual(["a", "b"]);
+  expect(useStore.getState().transcripts.s1.map((l) => l.text)).toEqual(["a", "b"]);
 });
 
 test("pending approvals from different sessions both count", () => {

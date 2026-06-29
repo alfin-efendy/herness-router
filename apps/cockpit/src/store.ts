@@ -56,15 +56,12 @@ export const useStore = create<State>((set, get) => ({
               { sessionPk: e.session_pk, requestId: e.request_id, tool: e.tool, summary: e.summary },
             ],
           };
-        case "result":
-        case "sessionEnded":
         default:
           return {};
       }
     }),
 
-  clearApproval: (requestId) =>
-    set((st) => ({ pendingApprovals: st.pendingApprovals.filter((a) => a.requestId !== requestId) })),
+  clearApproval: (requestId) => set((st) => ({ pendingApprovals: st.pendingApprovals.filter((a) => a.requestId !== requestId) })),
 
   setFocused: (pk) => set({ focusedSessionPk: pk }),
   // Selecting a project clears the focused session so the center shows the "start a new session" composer.

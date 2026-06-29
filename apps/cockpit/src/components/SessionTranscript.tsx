@@ -41,17 +41,36 @@ export function SessionTranscript() {
         <span className="text-sm font-medium">{session?.title ?? focusedSessionPk.slice(0, 8)}</span>
         <span className="text-xs text-zinc-500">{session?.status}</span>
         <span className="flex-1" />
-        <button type="button" className="text-xs text-zinc-500 hover:text-zinc-900" onClick={() => useStore.getState().stop(focusedSessionPk)}>Stop</button>
-        <button type="button" className="text-xs text-zinc-500 hover:text-red-600" onClick={() => useStore.getState().end(focusedSessionPk)}>End</button>
+        <button
+          type="button"
+          className="text-xs text-zinc-500 hover:text-zinc-900"
+          onClick={() => useStore.getState().stop(focusedSessionPk)}
+        >
+          Stop
+        </button>
+        <button
+          type="button"
+          className="text-xs text-zinc-500 hover:text-red-600"
+          onClick={() => useStore.getState().end(focusedSessionPk)}
+        >
+          End
+        </button>
       </div>
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-auto p-4">
         {lines.length === 0 && <div className="text-sm text-zinc-500">Waiting for output…</div>}
         {lines.map((l, i) => (
-          <div key={i} className={
-            l.kind === "status" ? "text-xs font-mono text-zinc-500"
-            : l.kind === "error" ? "rounded bg-red-50 p-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
-            : "whitespace-pre-wrap text-sm"
-          }>{l.text}</div>
+          <div
+            key={i}
+            className={
+              l.kind === "status"
+                ? "text-xs font-mono text-zinc-500"
+                : l.kind === "error"
+                  ? "rounded bg-red-50 p-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                  : "whitespace-pre-wrap text-sm"
+            }
+          >
+            {l.text}
+          </div>
         ))}
       </div>
       <ApprovalPrompt sessionPk={focusedSessionPk} />

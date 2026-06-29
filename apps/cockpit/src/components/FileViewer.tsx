@@ -17,7 +17,9 @@ export function FileViewer() {
         <Input
           value={path}
           onChange={(e) => setPath(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") open(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") open();
+          }}
           placeholder="Absolute file path → Enter"
           className="h-8"
         />

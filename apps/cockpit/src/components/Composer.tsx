@@ -18,12 +18,16 @@ export function Composer({ onSubmit, disabled }: { onSubmit: (text: string) => v
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
+        }}
         placeholder="Message Claude…  (⌘/Ctrl+Enter to send)"
         className="min-h-[44px] flex-1 resize-none"
         disabled={disabled || sending}
       />
-      <Button onClick={submit} disabled={disabled || sending}>{sending ? "Sending…" : "Send"}</Button>
+      <Button onClick={submit} disabled={disabled || sending}>
+        {sending ? "Sending…" : "Send"}
+      </Button>
     </div>
   );
 }
