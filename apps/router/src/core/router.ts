@@ -1,5 +1,5 @@
 // apps/router/src/core/router.ts
-import type { CoreEvent, Surface, Project, ProjectSettings } from "@harness/protocol";
+import type { CoreEvent, Surface, Project, ProjectSettings, AttachmentRef } from "@harness/protocol";
 import type { MessageRef } from "../gateways/types";
 import type { SessionsStore } from "../store/sessions";
 import type { ProjectsStore } from "../store/projects";
@@ -48,24 +48,37 @@ export class Router {
     return { workspaceId, project };
   }
 
-  async onStart(gatewayId: string, workspaceId: string, actor: string, prompt: string): Promise<void> {
+  async onStart(
+    gatewayId: string,
+    workspaceId: string,
+    actor: string,
+    prompt: string,
+    attachments?: AttachmentRef[],
+  ): Promise<void> {
     const project = this.projects.resolveByWorkspace(gatewayId, workspaceId);
     if (!project) return;
     const gw = this.core.gateways.get(gatewayId);
     if (!gw) throw new Error(`unknown gateway: ${gatewayId}`);
-    const conversationId = await gw.createConversation(workspaceId, prompt.slice(0, 80));
+    const conversationId = await gw.createConversation(workspaceId, prompt.slice(0, 80) || "session");
     await this.core.startSession({
       projectId: project.projectId,
       prompt,
       actor,
       surface: { gateway: gatewayId, conversationId },
+      attachments,
     });
   }
 
-  async onReply(gatewayId: string, conversationId: string, actor: string, prompt: string): Promise<void> {
+  async onReply(
+    gatewayId: string,
+    conversationId: string,
+    actor: string,
+    prompt: string,
+    attachments?: AttachmentRef[],
+  ): Promise<void> {
     const session = this.sessions.resolveByConversation(gatewayId, conversationId);
     if (!session) return;
-    await this.core.continueSession({ sessionPk: session.sessionPk, prompt, actor });
+    await this.core.continueSession({ sessionPk: session.sessionPk, prompt, actor, attachments });
   }
 
   async onEnd(gatewayId: string, conversationId: string): Promise<void> {
