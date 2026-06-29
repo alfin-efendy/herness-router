@@ -13,7 +13,7 @@ export function FileViewer() {
   };
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-zinc-200 p-2 dark:border-zinc-800">
+      <div className="border-b border-border p-2">
         <Input
           value={path}
           onChange={(e) => setPath(e.target.value)}

@@ -13,7 +13,7 @@ export function Composer({ onSubmit, disabled }: { onSubmit: (text: string) => v
     setText("");
   };
   return (
-    <div className="flex gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800">
+    <div className="flex gap-2 border-t border-border p-3">
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
