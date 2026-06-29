@@ -9,6 +9,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@harness/ui": "workspace:*",
     "@base-ui/react": "^1.6.0",
     "@codemirror/view": "^6.43.4",
     "@fontsource-variable/geist": "^5.2.9",
