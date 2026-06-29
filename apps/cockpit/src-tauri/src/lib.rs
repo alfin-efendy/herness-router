@@ -1,11 +1,12 @@
 mod commands;
 mod error;
+mod events;
 
 use std::sync::Arc;
 use harness_core::{ControlPlane, Store};
 use tauri::Manager;
 use specta_typescript::BigIntExportBehavior;
-use tauri_specta::{collect_commands, Builder};
+use tauri_specta::{collect_commands, collect_events, Builder};
 
 fn resolve_hook_path(app: &tauri::AppHandle) -> String {
     // In dev, the hook binary is built into target/<profile>/harness-hook.
@@ -24,18 +25,20 @@ fn resolve_hook_path(app: &tauri::AppHandle) -> String {
 }
 
 fn make_builder() -> Builder<tauri::Wry> {
-    Builder::<tauri::Wry>::new().commands(collect_commands![
-        commands::list_projects,
-        commands::list_sessions,
-        commands::connect_project,
-        commands::start_session,
-        commands::continue_session,
-        commands::stop_session,
-        commands::end_session,
-        commands::resolve_approval,
-        commands::read_file,
-        commands::pick_directory,
-    ])
+    Builder::<tauri::Wry>::new()
+        .commands(collect_commands![
+            commands::list_projects,
+            commands::list_sessions,
+            commands::connect_project,
+            commands::start_session,
+            commands::continue_session,
+            commands::stop_session,
+            commands::end_session,
+            commands::resolve_approval,
+            commands::read_file,
+            commands::pick_directory,
+        ])
+        .events(collect_events![events::CoreEventMsg])
 }
 
 pub fn run() {
@@ -68,8 +71,28 @@ pub fn run() {
             });
             // Enable the approval side-channel; errors are non-fatal (no hook binary in CI).
             cp.enable_approvals(resolve_hook_path(&handle)).ok();
+            // Subscribe BEFORE manage() moves the Arc.
+            let mut rx = cp.subscribe();
             // Make Arc<ControlPlane> available to all Tauri commands.
             app.manage(cp);
+            // Bridge: forward every CoreEvent from the broadcast channel to the webview.
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use tokio::sync::broadcast::error::RecvError;
+                use tauri_specta::Event as _;
+                loop {
+                    match rx.recv().await {
+                        Ok(ev) => {
+                            let _ = events::CoreEventMsg { event: ev }.emit(&app_handle);
+                        }
+                        Err(RecvError::Lagged(n)) => {
+                            eprintln!("[cockpit] CoreEvent bridge lagged, skipped {n} event(s)");
+                            continue;
+                        }
+                        Err(RecvError::Closed) => break,
+                    }
+                }
+            });
             Ok(())
         })
         .run(tauri::generate_context!())

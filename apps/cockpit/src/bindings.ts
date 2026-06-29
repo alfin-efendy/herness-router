@@ -80,6 +80,11 @@ async pickDirectory() : Promise<string | null> {
 /** user-defined events **/
 
 
+export const events = __makeEvents__<{
+coreEventMsg: CoreEventMsg
+}>({
+coreEventMsg: "core-event-msg"
+})
 
 /** user-defined constants **/
 
@@ -88,6 +93,11 @@ async pickDirectory() : Promise<string | null> {
 /** user-defined types **/
 
 export type CmdError = { message: string }
+/**
+ * Public event broadcast to consumers (the Tauri layer re-emits these).
+ */
+export type CoreEvent = { kind: "sessionCreated"; session_pk: string; project_id: string } | { kind: "status"; session_pk: string; text: string } | { kind: "text"; session_pk: string; text: string } | { kind: "result"; session_pk: string } | { kind: "approvalRequested"; session_pk: string; request_id: string; tool: string; summary: string } | { kind: "error"; session_pk: string; message: string } | { kind: "sessionEnded"; session_pk: string }
+export type CoreEventMsg = { event: CoreEvent }
 export type PermMode = "default" | "acceptEdits" | "bypassPermissions"
 export type Project = { projectId: string; name: string; workdir: string; source: string | null; harness: string; model: string | null; effort: string | null; permMode: PermMode; createdAt: number | null }
 export type Session = { sessionPk: string; projectId: string; agentSessionId: string | null; worktreePath: string | null; branch: string | null; title: string | null; status: SessionStatus; createdAt: number | null; lastActive: number | null }
