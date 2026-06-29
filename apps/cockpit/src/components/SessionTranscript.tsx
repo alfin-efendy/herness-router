@@ -5,6 +5,15 @@ import { ApprovalPrompt } from "./ApprovalPrompt";
 
 export function SessionTranscript() {
   const { focusedSessionPk, transcripts, sessions, send, start, selectedProjectId, projects } = useStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lines = focusedSessionPk ? (transcripts[focusedSessionPk] ?? []) : [];
+
+  // Keep the latest streamed line in view. Hooks MUST run before any early return (Rules of Hooks).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deps are intentional re-run triggers (scroll on new line / session switch).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [lines.length, focusedSessionPk]);
 
   if (!focusedSessionPk) {
     // A project is selected but no session focused → let the user start a new session on it.
@@ -24,14 +33,7 @@ export function SessionTranscript() {
     }
     return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Select a project (left) to start a session.</div>;
   }
-  const lines = transcripts[focusedSessionPk] ?? [];
   const session = sessions.find((s) => s.sessionPk === focusedSessionPk);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [lines.length]);
 
   return (
     <div className="flex h-full flex-col">
@@ -39,8 +41,8 @@ export function SessionTranscript() {
         <span className="text-sm font-medium">{session?.title ?? focusedSessionPk.slice(0, 8)}</span>
         <span className="text-xs text-zinc-500">{session?.status}</span>
         <span className="flex-1" />
-        <button className="text-xs text-zinc-500 hover:text-zinc-900" onClick={() => useStore.getState().stop(focusedSessionPk)}>Stop</button>
-        <button className="text-xs text-zinc-500 hover:text-red-600" onClick={() => useStore.getState().end(focusedSessionPk)}>End</button>
+        <button type="button" className="text-xs text-zinc-500 hover:text-zinc-900" onClick={() => useStore.getState().stop(focusedSessionPk)}>Stop</button>
+        <button type="button" className="text-xs text-zinc-500 hover:text-red-600" onClick={() => useStore.getState().end(focusedSessionPk)}>End</button>
       </div>
       <div ref={scrollRef} className="flex-1 space-y-2 overflow-auto p-4">
         {lines.length === 0 && <div className="text-sm text-zinc-500">Waiting for output…</div>}
