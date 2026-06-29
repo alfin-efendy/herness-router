@@ -1,5 +1,13 @@
 [package]
-name = "harness-hook"
+name = "hook"
 version = "0.0.0"
 edition.workspace = true
 license.workspace = true
+
+[[bin]]
+name = "harness-hook"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = { workspace = true }
+ureq = { version = "2", features = ["json"] }
