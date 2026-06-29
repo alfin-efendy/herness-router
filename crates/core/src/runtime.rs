@@ -1,6 +1,107 @@
 use crate::domain::{AgentEvent, PermMode};
 use crate::policy::tool_summary;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
+
+pub trait ClaudeRunner: Send + Sync + 'static {
+    fn spawn(
+        &self,
+        args: Vec<String>,
+        cwd: PathBuf,
+        env: Vec<(String, String)>,
+        cancel: CancellationToken,
+    ) -> mpsc::Receiver<Result<String, String>>;
+}
+
+pub fn resolve_claude_binary() -> String {
+    if let Ok(path) = which_claude() {
+        return path;
+    }
+    if let Ok(home) = std::env::var("HOME") {
+        for p in [
+            format!("{home}/.local/bin/claude"),
+            format!("{home}/.bun/bin/claude"),
+            "/usr/local/bin/claude".to_string(),
+            "/opt/homebrew/bin/claude".to_string(),
+        ] {
+            if Path::new(&p).exists() {
+                return p;
+            }
+        }
+    }
+    "claude".to_string()
+}
+
+fn which_claude() -> Result<String, ()> {
+    let path_var = std::env::var("PATH").map_err(|_| ())?;
+    for dir in std::env::split_paths(&path_var) {
+        let candidate = dir.join("claude");
+        if candidate.exists() {
+            return Ok(candidate.to_string_lossy().into_owned());
+        }
+    }
+    Err(())
+}
+
+pub struct ProcessRunner;
+
+impl ClaudeRunner for ProcessRunner {
+    fn spawn(
+        &self,
+        args: Vec<String>,
+        cwd: PathBuf,
+        env: Vec<(String, String)>,
+        cancel: CancellationToken,
+    ) -> mpsc::Receiver<Result<String, String>> {
+        let (tx, rx) = mpsc::channel(64);
+        tokio::spawn(async move {
+            let mut cmd = tokio::process::Command::new(resolve_claude_binary());
+            cmd.args(&args)
+                .current_dir(&cwd)
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
+            for (k, v) in env {
+                cmd.env(k, v);
+            }
+            let mut child = match cmd.spawn() {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = tx.send(Err(format!("spawn failed: {e}"))).await;
+                    return;
+                }
+            };
+            let stdout = match child.stdout.take() {
+                Some(s) => s,
+                None => {
+                    let _ = tx.send(Err("no stdout".into())).await;
+                    return;
+                }
+            };
+            let mut lines = BufReader::new(stdout).lines();
+            loop {
+                tokio::select! {
+                    _ = cancel.cancelled() => {
+                        let _ = child.kill().await;
+                        break;
+                    }
+                    next = lines.next_line() => {
+                        match next {
+                            Ok(Some(line)) => {
+                                if tx.send(Ok(line)).await.is_err() { break; }
+                            }
+                            Ok(None) => break,
+                            Err(e) => { let _ = tx.send(Err(e.to_string())).await; break; }
+                        }
+                    }
+                }
+            }
+            let _ = child.wait().await;
+        });
+        rx
+    }
+}
 
 pub struct ApprovalWiring {
     pub url: String,
@@ -182,5 +283,42 @@ mod tests {
             vec![AgentEvent::Error { message: "boom".into() }]
         );
         assert_eq!(parse_line("not json"), Vec::<AgentEvent>::new());
+    }
+
+    use tokio_util::sync::CancellationToken;
+
+    struct FakeRunner {
+        lines: Vec<String>,
+    }
+    impl ClaudeRunner for FakeRunner {
+        fn spawn(
+            &self,
+            _args: Vec<String>,
+            _cwd: std::path::PathBuf,
+            _env: Vec<(String, String)>,
+            _cancel: CancellationToken,
+        ) -> tokio::sync::mpsc::Receiver<Result<String, String>> {
+            let (tx, rx) = tokio::sync::mpsc::channel(16);
+            let lines = self.lines.clone();
+            tokio::spawn(async move {
+                for l in lines {
+                    if tx.send(Ok(l)).await.is_err() {
+                        break;
+                    }
+                }
+            });
+            rx
+        }
+    }
+
+    #[tokio::test]
+    async fn runner_trait_streams_lines() {
+        let runner = FakeRunner { lines: vec!["a".into(), "b".into()] };
+        let mut rx = runner.spawn(vec![], "/tmp".into(), vec![], CancellationToken::new());
+        let mut got = Vec::new();
+        while let Some(item) = rx.recv().await {
+            got.push(item.unwrap());
+        }
+        assert_eq!(got, vec!["a".to_string(), "b".to_string()]);
     }
 }
