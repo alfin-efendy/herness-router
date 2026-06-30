@@ -26,13 +26,13 @@ function configured() {
 test("unconfigured app starts in the wizard", async () => {
   const f = render(<App controller={ctl()} />);
   await flush();
-  expect(f.lastFrame()).toContain("Harness Router · setup");
+  expect(f.lastFrame()).toContain("ryuzi · setup");
 });
 
 test("configured app shows the dashboard and switches tabs", async () => {
   const { stdin, lastFrame } = render(<App controller={configured()} />);
   await flush();
-  expect(lastFrame()).toContain("マ Harness Router");
+  expect(lastFrame()).toContain("r ryuzi");
   expect(lastFrame()).toContain("Status");
   stdin.write("2");
   await flush();

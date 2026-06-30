@@ -9,5 +9,5 @@ export const palette = {
   border: "#272b3a",
 } as const;
 
-export const symbolsUnicode = { dot: "●", dotOff: "○", ok: "✓", bad: "✗", marker: "▌", warn: "⚠", caret: "›", glyph: "マ" } as const;
-export const symbolsAscii = { dot: "*", dotOff: "o", ok: "+", bad: "x", marker: "|", warn: "!", caret: ">", glyph: "hr" } as const;
+export const symbolsUnicode = { dot: "●", dotOff: "○", ok: "✓", bad: "✗", marker: "▌", warn: "⚠", caret: "›", glyph: "r" } as const;
+export const symbolsAscii = { dot: "*", dotOff: "o", ok: "+", bad: "x", marker: "|", warn: "!", caret: ">", glyph: "r" } as const;

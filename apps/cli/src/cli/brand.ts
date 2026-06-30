@@ -1,5 +1,5 @@
-export const brandName = "Harness Router";
-export const brandGlyph = "マ";
+export const brandName = "ryuzi";
+export const brandGlyph = "r";
 
 export const brandAssets = {
   markSvg: new URL("../../../../assets/brand/mark.svg", import.meta.url),

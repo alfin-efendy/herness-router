@@ -46,3 +46,19 @@ test("config list shows defaults and unset keys on fresh db", async () => {
   expect(text).toContain("default_perm_mode = default (default)");
   expect(text).toMatch(/workdir_root = \(unset\)/);
 });
+
+test("config usage strings use the ryuzi command name", async () => {
+  const { lines, deps } = depsFor(":memory:");
+  expect(await runCli(["config", "get"], deps)).toBe(1);
+  expect(await runCli(["config", "set", "default_effort"], deps)).toBe(1);
+  expect(await runCli(["config", "bogus"], deps)).toBe(1);
+  expect(lines.join("\n")).toContain("usage: ryuzi config get <key> [--reveal]");
+  expect(lines.join("\n")).toContain("usage: ryuzi config set <key> <value>");
+  expect(lines.join("\n")).toContain("usage: ryuzi config <get|set|list> ...");
+});
+
+test("unknown commands point to ryuzi help", async () => {
+  const { lines, deps } = depsFor(":memory:");
+  expect(await runCli(["bogus"], deps)).toBe(1);
+  expect(lines.join("\n")).toContain("unknown command: bogus - run `ryuzi --help`");
+});

@@ -10,11 +10,11 @@ export function helpText(): string {
   const h = (s: string) => paint(s, "dim", { bold: true }); // section heading
   const c = (s: string) => paint(s, "accent");              // command name
   return [
-    `${paint(brandName, "signature", { bold: true })} — drive Claude Code from chat and terminal`,
+    `${paint(brandName, "signature", { bold: true })} - drive Claude Code from chat and terminal`,
     "",
     h("USAGE"),
-    `  ${c("hr")}                 open the dashboard (first run launches setup)`,
-    `  ${c("hr")} <command> [options]`,
+    `  ${c("ryuzi")}                 open the dashboard (first run launches setup)`,
+    `  ${c("ryuzi")} <command> [options]`,
     "",
     h("OPTIONS"),
     "  -h, --help         show this help",
@@ -23,6 +23,6 @@ export function helpText(): string {
     h("COMMANDS"),
     `  ${c("doctor")}             check your environment (git, claude, settings)`,
     `  ${c("run")}                one-shot session:`,
-    "                     hr run --dir <repo> --prompt <text> [--model x] [--effort y] [--mode m]",
+    "                     ryuzi run --dir <repo> --prompt <text> [--model x] [--effort y] [--mode m]",
   ].join("\n");
 }
