@@ -1,5 +1,5 @@
 // packages/core/test/control-plane-run.test.ts
-import { test, expect } from "bun:test";
+import { test, expect, afterAll } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
 import type { CoreEvent } from "@harness/protocol";
 import { openDb } from "../src/store/db";
@@ -7,10 +7,20 @@ import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";
 import { SettingsStore } from "../src/config/store";
 import { ControlPlane } from "../src/core/control-plane";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { worktreePathFor, createWorktree, removeWorktree } from "../src/agents/worktree";
+
+const tmpDirs: string[] = [];
+function mkTmp(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tmpDirs.push(dir);
+  return dir;
+}
+afterAll(() => {
+  for (const d of tmpDirs) rmSync(d, { recursive: true, force: true });
+});
 
 class FakeHarness implements Agent {
   readonly id = "claude-code";
@@ -173,7 +183,7 @@ class RenamingHarness implements Agent {
 }
 
 test("first run: the agent's branch rename is read back into session.branch and emitted", async () => {
-  const repo = mkdtempSync(join(tmpdir(), "harness-cp-"));
+  const repo = mkTmp("harness-cp-");
   await Bun.$`git -C ${repo} init -q -b main`.quiet();
   await Bun.$`git -C ${repo} config user.email x@x.x`.quiet();
   await Bun.$`git -C ${repo} config user.name x`.quiet();
@@ -183,7 +193,7 @@ test("first run: the agent's branch rename is read back into session.branch and 
   const projects = new ProjectsStore(db);
   projects.insert({ projectId: "p1", name: "foo", workdir: repo, harness: "claude-code", permMode: "default" });
   const sessions = new SessionsStore(db);
-  const root = mkdtempSync(join(tmpdir(), "harness-root-"));
+  const root = mkTmp("harness-root-");
   const cp = new ControlPlane({
     projects,
     sessions,
