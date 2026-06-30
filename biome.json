@@ -12,7 +12,9 @@
       "!assets/**",
       "!outputs/**",
       "!apps/cli/src/cli/brand.ts",
-      "!apps/cli/src/cli/meta.ts"
+      "!apps/cli/src/cli/meta.ts",
+      "!apps/cockpit/src/bindings.ts",
+      "!**/*.css"
     ]
   },
   "formatter": {

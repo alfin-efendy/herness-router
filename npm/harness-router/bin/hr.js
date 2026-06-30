@@ -22,7 +22,7 @@ function isMusl() {
   } catch {
     report = null;
   }
-  if (report && report.header && report.header.glibcVersionRuntime) return false;
+  if (report?.header?.glibcVersionRuntime) return false;
   if (report && Array.isArray(report.sharedObjects)) {
     if (report.sharedObjects.some((o) => /\/(?:libc\.musl-|ld-musl-)/.test(o))) return true;
   }

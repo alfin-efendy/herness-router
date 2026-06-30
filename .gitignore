@@ -46,3 +46,10 @@ docs/superpowers/
 # npm wrapper binaries are copied in at release time, never committed
 npm/platform/*/hr
 npm/platform/*/hr.exe
+
+/target
+
+# Local agent/skill tooling artifacts (session-local, not part of the repo)
+.agents/
+.claude/
+skills-lock.json
