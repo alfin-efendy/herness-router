@@ -62,7 +62,12 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
   return {
     gateways,
     cp,
-    start: () => Promise.all(gateways.map((g) => g.start())).then(() => {}),
+    start: () =>
+      Promise.all(gateways.map((g) => g.start())).then(() => {
+        // Resume sessions left running by a previous daemon (crash or update).
+        // Fire-and-forget so a long resumed turn never blocks startup.
+        void cp.reconcile();
+      }),
     stop: async () => {
       await Promise.all(gateways.map((g) => g.stop?.()));
       void telemetry.shutdown?.();
