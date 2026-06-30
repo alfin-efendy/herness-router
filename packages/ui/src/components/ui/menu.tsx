@@ -17,8 +17,7 @@ function MenuContent({
   sideOffset = 6,
   children,
   ...props
-}: MenuPrimitive.Popup.Props &
-  Pick<MenuPrimitive.Positioner.Props, "side" | "align" | "sideOffset">) {
+}: MenuPrimitive.Popup.Props & Pick<MenuPrimitive.Positioner.Props, "side" | "align" | "sideOffset">) {
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner side={side} align={align} sideOffset={sideOffset} className="z-50">
@@ -38,11 +37,7 @@ function MenuContent({
   );
 }
 
-function MenuItem({
-  className,
-  variant = "default",
-  ...props
-}: MenuPrimitive.Item.Props & { variant?: "default" | "destructive" }) {
+function MenuItem({ className, variant = "default", ...props }: MenuPrimitive.Item.Props & { variant?: "default" | "destructive" }) {
   return (
     <MenuPrimitive.Item
       data-slot="menu-item"
@@ -58,7 +53,7 @@ function MenuItem({
 }
 
 function MenuSeparator({ className }: { className?: string }) {
-  return <div role="separator" className={cn("my-1 h-px bg-border", className)} />;
+  return <hr className={cn("my-1 h-px border-0 bg-border", className)} />;
 }
 
 export { Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator };

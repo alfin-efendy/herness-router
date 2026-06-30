@@ -63,13 +63,29 @@ export function SessionTranscript() {
                 {l.text}
               </div>
             ) : l.kind === "status" ? (
-              <div key={i} className="pl-9 font-mono text-xs text-muted-foreground">{l.text}</div>
+              <div key={i} className="pl-9 font-mono text-xs text-muted-foreground">
+                {l.text}
+              </div>
             ) : l.kind === "error" ? (
-              <div key={i} className="ml-9 rounded-lg bg-destructive/10 p-2.5 text-sm text-destructive">{l.text}</div>
+              <div key={i} className="ml-9 rounded-lg bg-destructive/10 p-2.5 text-sm text-destructive">
+                {l.text}
+              </div>
             ) : (
               <div key={i} className="flex gap-3">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] bg-primary text-primary-foreground">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3a9 9 0 1 0 9 9" /><path d="M12 3v9l6 3" /></svg>
+                  <svg
+                    aria-hidden="true"
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                  >
+                    <path d="M12 3a9 9 0 1 0 9 9" />
+                    <path d="M12 3v9l6 3" />
+                  </svg>
                 </div>
                 <div className="min-w-0 text-[13.5px] leading-relaxed whitespace-pre-wrap">{l.text}</div>
               </div>
@@ -79,11 +95,7 @@ export function SessionTranscript() {
       </div>
 
       <ApprovalPrompt sessionPk={focusedSessionPk} />
-      <Composer
-        onSubmit={(t) => send(focusedSessionPk, t)}
-        running={running}
-        onStop={() => useStore.getState().stop(focusedSessionPk)}
-      />
+      <Composer onSubmit={(t) => send(focusedSessionPk, t)} running={running} onStop={() => useStore.getState().stop(focusedSessionPk)} />
     </div>
   );
 }

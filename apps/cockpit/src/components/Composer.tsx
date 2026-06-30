@@ -36,7 +36,10 @@ export function Composer({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (mode === "stop" && e.key === "Escape") { onStop?.(); return; }
+            if (mode === "stop" && e.key === "Escape") {
+              onStop?.();
+              return;
+            }
             if (mode === "send" && e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
           }}
           placeholder="Message Claude…"
@@ -64,7 +67,18 @@ export function Composer({
               disabled={disabled || sending}
               className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary text-primary-foreground disabled:opacity-50"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+              <svg
+                aria-hidden="true"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              >
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
             </button>
           )}
         </div>

@@ -12,11 +12,7 @@ export function openFileTab(tabs: DockTab[], path: string): { tabs: DockTab[]; a
   return { tabs: [...tabs, tab], activeTabId: path };
 }
 
-export function closeTab(
-  tabs: DockTab[],
-  activeTabId: string | null,
-  id: string,
-): { tabs: DockTab[]; activeTabId: string | null } {
+export function closeTab(tabs: DockTab[], activeTabId: string | null, id: string): { tabs: DockTab[]; activeTabId: string | null } {
   const idx = tabs.findIndex((t) => t.id === id);
   if (idx === -1) return { tabs, activeTabId };
   const next = tabs.filter((t) => t.id !== id);
@@ -66,8 +62,18 @@ export const useUi = create<UiState>((set, get) => ({
   rightPanelOpen: readBool(KEY.right, true),
   tabs: readTabs(),
   activeTabId: normalizeActive(typeof localStorage !== "undefined" ? localStorage.getItem(KEY.active) : null),
-  toggleLeft: () => set((s) => { const v = !s.leftPanelOpen; persist(KEY.left, v ? "1" : "0"); return { leftPanelOpen: v }; }),
-  toggleRight: () => set((s) => { const v = !s.rightPanelOpen; persist(KEY.right, v ? "1" : "0"); return { rightPanelOpen: v }; }),
+  toggleLeft: () =>
+    set((s) => {
+      const v = !s.leftPanelOpen;
+      persist(KEY.left, v ? "1" : "0");
+      return { leftPanelOpen: v };
+    }),
+  toggleRight: () =>
+    set((s) => {
+      const v = !s.rightPanelOpen;
+      persist(KEY.right, v ? "1" : "0");
+      return { rightPanelOpen: v };
+    }),
   openFile: (path) => {
     const r = openFileTab(get().tabs, path);
     persist(KEY.tabs, JSON.stringify(r.tabs));
@@ -84,5 +90,8 @@ export const useUi = create<UiState>((set, get) => ({
     }
     set(r);
   },
-  setActiveTab: (id) => { persist(KEY.active, id); set({ activeTabId: id }); },
+  setActiveTab: (id) => {
+    persist(KEY.active, id);
+    set({ activeTabId: id });
+  },
 }));

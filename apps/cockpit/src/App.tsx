@@ -28,23 +28,14 @@ export default function App() {
       {/* Explicit grid-column placement keeps `main`/right pinned to their tracks even when a
           panel is display:none (auto-placement would otherwise reflow them). The minmax(0,1fr)
           row + min-h-0 chain constrains height so inner panes scroll instead of overflowing. */}
-      <div
-        className="grid min-h-0 flex-1 overflow-hidden"
-        style={{ gridTemplateColumns: cols, gridTemplateRows: "minmax(0, 1fr)" }}
-      >
-        <aside
-          style={{ gridColumn: 1 }}
-          className={`min-h-0 overflow-hidden border-r border-border ${leftPanelOpen ? "" : "hidden"}`}
-        >
+      <div className="grid min-h-0 flex-1 overflow-hidden" style={{ gridTemplateColumns: cols, gridTemplateRows: "minmax(0, 1fr)" }}>
+        <aside style={{ gridColumn: 1 }} className={`min-h-0 overflow-hidden border-r border-border ${leftPanelOpen ? "" : "hidden"}`}>
           <ProjectsTree />
         </aside>
         <main style={{ gridColumn: 2 }} className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <SessionTranscript />
         </main>
-        <aside
-          style={{ gridColumn: 3 }}
-          className={`min-h-0 overflow-hidden border-l border-border ${rightPanelOpen ? "" : "hidden"}`}
-        >
+        <aside style={{ gridColumn: 3 }} className={`min-h-0 overflow-hidden border-l border-border ${rightPanelOpen ? "" : "hidden"}`}>
           <RightDock />
         </aside>
       </div>

@@ -11,7 +11,9 @@ export function FileViewer({ path }: { path: string }) {
       if (cancelled) return;
       setContent(res.status === "ok" ? res.data : `Error: ${res.error.message}`);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [path]);
   return (
     <div className="flex-1 overflow-auto">
