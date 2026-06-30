@@ -159,9 +159,7 @@ test("upgradeHint: install.sh path produces curl/install.sh hint", async () => {
     fetchImpl: fakeFetch("v0.3.0"),
   });
   await um.tick();
-  expect((t.emitted[0] as { text: string }).text).toContain(
-    "https://github.com/alfin-efendy/ryuzi/raw/main/install.sh",
-  );
+  expect((t.emitted[0] as { text: string }).text).toContain("https://github.com/alfin-efendy/ryuzi/raw/main/install.sh");
 });
 
 test("upgradeHint: unknown execPath produces GitHub release hint", async () => {

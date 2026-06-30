@@ -120,7 +120,10 @@ impl ControlPlane {
         });
 
         let cancel = CancellationToken::new();
-        self.running.lock().unwrap().insert(session_pk.clone(), cancel.clone());
+        self.running
+            .lock()
+            .unwrap()
+            .insert(session_pk.clone(), cancel.clone());
 
         // Non-blocking: stream the run in the background and return the in-memory
         // Running session immediately so the cockpit can drive multiple sessions
@@ -130,7 +133,8 @@ impl ControlPlane {
         let pk = session_pk.clone();
         let prompt_owned = prompt.to_string();
         tokio::spawn(async move {
-            me.run_harness(&project_for_run, &pk, &prompt_owned, None, cancel).await;
+            me.run_harness(&project_for_run, &pk, &prompt_owned, None, cancel)
+                .await;
         });
         Ok(session)
     }
@@ -155,7 +159,10 @@ impl ControlPlane {
             .await?;
 
         let cancel = CancellationToken::new();
-        self.running.lock().unwrap().insert(session_pk.to_string(), cancel.clone());
+        self.running
+            .lock()
+            .unwrap()
+            .insert(session_pk.to_string(), cancel.clone());
 
         // Non-blocking: resume in the background and return immediately.
         let me = std::sync::Arc::clone(self);
@@ -164,7 +171,8 @@ impl ControlPlane {
         let prompt_owned = prompt.to_string();
         let resume = session.agent_session_id.clone();
         tokio::spawn(async move {
-            me.run_harness(&project_for_run, &pk, &prompt_owned, resume, cancel).await;
+            me.run_harness(&project_for_run, &pk, &prompt_owned, resume, cancel)
+                .await;
         });
         Ok(())
     }
@@ -328,7 +336,13 @@ impl ApprovalDecider for ControlPlane {
                 Some(s) => s,
                 None => return false,
             };
-            let project = match self.store.get_project(&session.project_id).await.ok().flatten() {
+            let project = match self
+                .store
+                .get_project(&session.project_id)
+                .await
+                .ok()
+                .flatten()
+            {
                 Some(p) => p,
                 None => return false,
             };
@@ -393,7 +407,8 @@ mod tests {
         let sig = git2::Signature::now("t", "t@t").unwrap();
         let tree_id = repo.index().unwrap().write_tree().unwrap();
         let tree = repo.find_tree(tree_id).unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "init", &tree, &[]).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "init", &tree, &[])
+            .unwrap();
     }
 
     #[tokio::test]
@@ -454,7 +469,10 @@ mod tests {
         let project = cp.connect_project(repo.path(), "demo").await.unwrap();
 
         let mut rx = cp.subscribe();
-        let session = cp.start_session(&project.project_id, "do it").await.unwrap();
+        let session = cp
+            .start_session(&project.project_id, "do it")
+            .await
+            .unwrap();
 
         // Drain events until Result.
         let mut texts = Vec::new();

@@ -17,14 +17,9 @@ const skippedDirs = new Set([
   "target",
 ]);
 
-const skippedSubtrees = new Set([
-  "docs/superpowers",
-]);
+const skippedSubtrees = new Set(["docs/superpowers"]);
 
-const skippedFiles = new Set([
-  "apps/cli/CHANGELOG.md",
-  "scripts/test/brand-identity.test.ts",
-]);
+const skippedFiles = new Set(["apps/cli/CHANGELOG.md", "scripts/test/brand-identity.test.ts"]);
 
 const textExtensions = new Set([
   ".css",
@@ -44,11 +39,7 @@ const textExtensions = new Set([
   ".yml",
 ]);
 
-const textFilenames = new Set([
-  ".gitignore",
-  "Dockerfile",
-  "Makefile",
-]);
+const textFilenames = new Set([".gitignore", "Dockerfile", "Makefile"]);
 
 const oldBrand = "har" + "ness";
 const oldShort = "h" + "r";

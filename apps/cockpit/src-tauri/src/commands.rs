@@ -28,7 +28,9 @@ pub async fn connect_project(
     workdir: String,
     name: String,
 ) -> R<Project> {
-    Ok(cp.connect_project(std::path::Path::new(&workdir), &name).await?)
+    Ok(cp
+        .connect_project(std::path::Path::new(&workdir), &name)
+        .await?)
 }
 
 #[tauri::command]
@@ -67,11 +69,7 @@ pub async fn end_session(cp: State<'_, Arc<ControlPlane>>, session_pk: String) -
 
 #[tauri::command]
 #[specta::specta]
-pub fn resolve_approval(
-    cp: State<'_, Arc<ControlPlane>>,
-    request_id: String,
-    allow: bool,
-) -> bool {
+pub fn resolve_approval(cp: State<'_, Arc<ControlPlane>>, request_id: String, allow: bool) -> bool {
     cp.resolve_approval(&request_id, allow)
 }
 

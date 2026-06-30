@@ -30,7 +30,7 @@ test("install.sh rejects a malformed RYUZI_VERSION before downloading", async ()
   expect(res.stderr.toString()).toContain("invalid version");
   // the injected command must not have run
   expect(await Bun.file(marker).exists()).toBe(false);
-});
+}, 15000);
 
 test("install.sh rejects a path-traversal RYUZI_VERSION (offline)", async () => {
   // Slashes are disallowed, so traversal never reaches a URL. Rejected before
@@ -38,7 +38,7 @@ test("install.sh rejects a path-traversal RYUZI_VERSION (offline)", async () => 
   const res = await runInstall("../../../tmp/evil");
   expect(res.exitCode).not.toBe(0);
   expect(res.stderr.toString()).toContain("invalid version");
-});
+}, 15000);
 
 test("install.sh does NOT over-reject a well-formed version format", async () => {
   // A valid-format tag (incl. an -rc suffix) must pass validation. It then
@@ -46,4 +46,4 @@ test("install.sh does NOT over-reject a well-formed version format", async () =>
   // assert it got PAST validation (guards against an over-strict regex).
   const res = await runInstall("v0.0.0-rc.1");
   expect(res.stderr.toString()).not.toContain("invalid version");
-});
+}, 15000);

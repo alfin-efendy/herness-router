@@ -2,8 +2,8 @@ mod commands;
 mod error;
 mod events;
 
-use std::sync::Arc;
 use ryuzi_core::{ControlPlane, Store};
+use std::sync::Arc;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder};
 
@@ -69,7 +69,8 @@ pub fn run() {
                 let store = Store::open(&ryuzi_core::paths::db_path())
                     .await
                     .expect("open ryuzi db");
-                let cp = ControlPlane::new(store, Arc::new(ryuzi_core::runtime::ProcessRunner)).await;
+                let cp =
+                    ControlPlane::new(store, Arc::new(ryuzi_core::runtime::ProcessRunner)).await;
                 // Enable the approval side-channel; errors are non-fatal (no hook binary in CI).
                 cp.enable_approvals(hook_path).ok();
                 cp
@@ -81,8 +82,8 @@ pub fn run() {
             // Bridge: forward every CoreEvent from the broadcast channel to the webview.
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                use tokio::sync::broadcast::error::RecvError;
                 use tauri_specta::Event as _;
+                use tokio::sync::broadcast::error::RecvError;
                 loop {
                     match rx.recv().await {
                         Ok(ev) => {

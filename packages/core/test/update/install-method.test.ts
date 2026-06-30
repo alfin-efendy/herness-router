@@ -36,9 +36,7 @@ test("install.sh self-apply only matches the configured home directory", () => {
 test("homebrew / scoop / npm compiled installs are notify-only", () => {
   expect(detectInstallMethod({ execPath: "/opt/homebrew/bin/ryuzi", compiled: true }).method).toBe("brew");
   expect(detectInstallMethod({ execPath: "/usr/local/Cellar/ryuzi/0.2.0/bin/ryuzi", compiled: true }).method).toBe("brew");
-  expect(detectInstallMethod({ execPath: "C:\\Users\\me\\scoop\\apps\\ryuzi\\current\\ryuzi.exe", compiled: true }).method).toBe(
-    "scoop",
-  );
+  expect(detectInstallMethod({ execPath: "C:\\Users\\me\\scoop\\apps\\ryuzi\\current\\ryuzi.exe", compiled: true }).method).toBe("scoop");
   expect(detectInstallMethod({ execPath: "/home/me/.npm-global/lib/node_modules/ryuzi/bin/ryuzi", compiled: true }).method).toBe("npm");
   for (const p of ["/opt/homebrew/bin/ryuzi", "/usr/local/Cellar/x/bin/ryuzi", "C:\\scoop\\ryuzi.exe", "/x/node_modules/ryuzi/ryuzi"]) {
     expect(detectInstallMethod({ execPath: p, compiled: true }).selfApplicable).toBe(false);

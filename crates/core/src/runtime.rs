@@ -184,7 +184,11 @@ pub fn parse_line(line: &str) -> Vec<AgentEvent> {
     match v.get("type").and_then(|t| t.as_str()) {
         Some("system") => {
             if v.get("subtype").and_then(|s| s.as_str()) == Some("init") {
-                let sid = v.get("session_id").and_then(|s| s.as_str()).unwrap_or("").to_string();
+                let sid = v
+                    .get("session_id")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 vec![AgentEvent::Init { session_id: sid }]
             } else {
                 vec![]
@@ -201,13 +205,17 @@ pub fn parse_line(line: &str) -> Vec<AgentEvent> {
                     match b.get("type").and_then(|t| t.as_str()) {
                         Some("text") => {
                             if let Some(t) = b.get("text").and_then(|t| t.as_str()) {
-                                out.push(AgentEvent::Text { text: t.to_string() });
+                                out.push(AgentEvent::Text {
+                                    text: t.to_string(),
+                                });
                             }
                         }
                         Some("tool_use") => {
                             let name = b.get("name").and_then(|n| n.as_str()).unwrap_or("");
                             let input = b.get("input").cloned().unwrap_or(serde_json::Value::Null);
-                            out.push(AgentEvent::Status { text: tool_summary(name, &input) });
+                            out.push(AgentEvent::Status {
+                                text: tool_summary(name, &input),
+                            });
                         }
                         _ => {}
                     }
@@ -225,7 +233,10 @@ pub fn parse_line(line: &str) -> Vec<AgentEvent> {
                     .to_string();
                 vec![AgentEvent::Error { message: msg }]
             } else {
-                let sid = v.get("session_id").and_then(|s| s.as_str()).map(|s| s.to_string());
+                let sid = v
+                    .get("session_id")
+                    .and_then(|s| s.as_str())
+                    .map(|s| s.to_string());
                 vec![AgentEvent::Result { session_id: sid }]
             }
         }
@@ -254,7 +265,9 @@ mod tests {
     #[test]
     fn args_include_stream_json_and_session_id() {
         let a = build_claude_args(&base_input(), "sid-1");
-        assert!(a.windows(2).any(|w| w == ["--output-format", "stream-json"]));
+        assert!(a
+            .windows(2)
+            .any(|w| w == ["--output-format", "stream-json"]));
         assert!(a.windows(2).any(|w| w == ["--session-id", "sid-1"]));
         assert!(a.windows(2).any(|w| w == ["--model", "opus"]));
         assert!(a.windows(2).any(|w| w == ["--permission-mode", "default"]));
@@ -273,23 +286,39 @@ mod tests {
     fn parse_assistant_text_and_tool_use() {
         let line = r#"{"type":"assistant","message":{"content":[{"type":"text","text":"hello"},{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}"#;
         let evs = parse_line(line);
-        assert_eq!(evs[0], AgentEvent::Text { text: "hello".into() });
-        assert_eq!(evs[1], AgentEvent::Status { text: "Bash: ls".into() });
+        assert_eq!(
+            evs[0],
+            AgentEvent::Text {
+                text: "hello".into()
+            }
+        );
+        assert_eq!(
+            evs[1],
+            AgentEvent::Status {
+                text: "Bash: ls".into()
+            }
+        );
     }
 
     #[test]
     fn parse_system_init_and_result_and_error() {
         assert_eq!(
             parse_line(r#"{"type":"system","subtype":"init","session_id":"abc"}"#),
-            vec![AgentEvent::Init { session_id: "abc".into() }]
+            vec![AgentEvent::Init {
+                session_id: "abc".into()
+            }]
         );
         assert_eq!(
             parse_line(r#"{"type":"result","session_id":"abc"}"#),
-            vec![AgentEvent::Result { session_id: Some("abc".into()) }]
+            vec![AgentEvent::Result {
+                session_id: Some("abc".into())
+            }]
         );
         assert_eq!(
             parse_line(r#"{"type":"result","is_error":true,"result":"boom"}"#),
-            vec![AgentEvent::Error { message: "boom".into() }]
+            vec![AgentEvent::Error {
+                message: "boom".into()
+            }]
         );
         assert_eq!(parse_line("not json"), Vec::<AgentEvent>::new());
     }
@@ -324,13 +353,18 @@ mod tests {
     fn hook_settings_has_pretooluse_command() {
         let s = build_hook_settings("/path/to/ryuzi-hook");
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
-        assert_eq!(v["hooks"]["PreToolUse"][0]["hooks"][0]["command"], "/path/to/ryuzi-hook");
+        assert_eq!(
+            v["hooks"]["PreToolUse"][0]["hooks"][0]["command"],
+            "/path/to/ryuzi-hook"
+        );
         assert_eq!(v["hooks"]["PreToolUse"][0]["matcher"], "*");
     }
 
     #[tokio::test]
     async fn runner_trait_streams_lines() {
-        let runner = FakeRunner { lines: vec!["a".into(), "b".into()] };
+        let runner = FakeRunner {
+            lines: vec!["a".into(), "b".into()],
+        };
         let mut rx = runner.spawn(vec![], "/tmp".into(), vec![], CancellationToken::new());
         let mut got = Vec::new();
         while let Some(item) = rx.recv().await {

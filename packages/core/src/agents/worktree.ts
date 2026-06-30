@@ -7,7 +7,11 @@ export function worktreePathFor(workdirRoot: string, projectId: string, sessionP
 }
 
 function projectPathSegment(projectId: string): string {
-  const leaf = projectId.split(/[\\/]+/).filter(Boolean).pop() ?? basename(projectId);
+  const leaf =
+    projectId
+      .split(/[\\/]+/)
+      .filter(Boolean)
+      .pop() ?? basename(projectId);
   const name = leaf.replace(/[^A-Za-z0-9._-]/g, "_") || "project";
   const hash = createHash("sha256").update(projectId).digest("hex").slice(0, 12);
   return `${name}-${hash}`;

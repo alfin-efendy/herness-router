@@ -31,12 +31,16 @@ function projectSegment(projectId: string, name: string): string {
 
 test("worktreePathFor sanitizes a Windows project path segment", () => {
   const projectId = "C:\\Users\\me\\repo";
-  expect(worktreePathFor("C:\\work", projectId, "s1")).toBe(join("C:\\work", ".harness-worktrees", projectSegment(projectId, "repo"), "s1"));
+  expect(worktreePathFor("C:\\work", projectId, "s1")).toBe(
+    join("C:\\work", ".harness-worktrees", projectSegment(projectId, "repo"), "s1"),
+  );
 });
 
 test("worktreePathFor sanitizes a POSIX project path segment", () => {
   const projectId = "/repos/my-project";
-  expect(worktreePathFor("/root", projectId, "s1")).toBe(join("/root", ".harness-worktrees", projectSegment(projectId, "my-project"), "s1"));
+  expect(worktreePathFor("/root", projectId, "s1")).toBe(
+    join("/root", ".harness-worktrees", projectSegment(projectId, "my-project"), "s1"),
+  );
 });
 
 test("create then remove a worktree on a real repo", async () => {
