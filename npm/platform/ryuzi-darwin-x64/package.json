@@ -1,11 +1,11 @@
 {
-  "name": "harness-router-darwin-x64",
+  "name": "ryuzi-darwin-x64",
   "version": "0.0.0",
-  "description": "darwin-x64 binary for harness-router.",
+  "description": "darwin-x64 binary for ryuzi.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alfin-efendy/harness-router.git"
+    "url": "git+https://github.com/alfin-efendy/ryuzi.git"
   },
   "engines": {
     "node": ">=18"
@@ -18,6 +18,6 @@
   ],
   "preferUnplugged": true,
   "files": [
-    "hr"
+    "ryuzi"
   ]
 }

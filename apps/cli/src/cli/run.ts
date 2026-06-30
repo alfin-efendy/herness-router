@@ -1,5 +1,5 @@
-import { openDb, SettingsStore, SETTING_DEFS, missingRequiredSettings, catalog } from "@harness/core";
-import type { detectClaude, detectGit, Agent } from "@harness/core";
+import { openDb, SettingsStore, SETTING_DEFS, missingRequiredSettings, catalog } from "@ryuzi/core";
+import type { detectClaude, detectGit, Agent } from "@ryuzi/core";
 import { cmdRun } from "./run-command";
 import { launchUi } from "./ui/launch";
 import { helpText, version } from "./meta";

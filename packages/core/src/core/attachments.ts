@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { AttachmentRef } from "@harness/protocol";
+import type { AttachmentRef } from "@ryuzi/protocol";
 
 export type { AttachmentRef };
 

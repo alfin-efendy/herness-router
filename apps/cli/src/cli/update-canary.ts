@@ -1,4 +1,4 @@
-import { buildDaemon } from "@harness/core";
+import { buildDaemon } from "@ryuzi/core";
 import { dirname } from "node:path";
 import { readHandoff as realRead, writeHandoff as realWrite, type Handoff } from "./update-handoff";
 import { writeStatus } from "./daemon-status";

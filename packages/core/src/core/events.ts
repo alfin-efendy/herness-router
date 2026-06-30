@@ -1,4 +1,4 @@
-import type { CoreEvent, Unsubscribe } from "@harness/protocol";
+import type { CoreEvent, Unsubscribe } from "@ryuzi/protocol";
 
 export class EventBus {
   private handlers = new Set<(e: CoreEvent) => void>();

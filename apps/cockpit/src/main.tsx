@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { initTheme } from "@harness/ui";
+import { initTheme } from "@ryuzi/ui";
 import App from "./App";
 import "./index.css";
 

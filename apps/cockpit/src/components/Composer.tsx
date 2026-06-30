@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Textarea } from "@harness/ui";
+import { Textarea } from "@ryuzi/ui";
 import { composerMode } from "./composerMode";
 
 export function Composer({

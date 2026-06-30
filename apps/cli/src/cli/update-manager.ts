@@ -1,5 +1,5 @@
-import type { Session, CoreEvent } from "@harness/protocol";
-import { checkForUpdate, detectInstallMethod, type InstallInfo, type SettingsStore } from "@harness/core";
+import type { Session, CoreEvent } from "@ryuzi/protocol";
+import { checkForUpdate, detectInstallMethod, type InstallInfo, type SettingsStore } from "@ryuzi/core";
 
 /** The slice of ControlPlane the UpdateManager needs (ControlPlane satisfies it). */
 export interface NotifyTarget {

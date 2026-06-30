@@ -1,5 +1,5 @@
 import { useStore } from "@/store";
-import { Button, Appearance, Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator } from "@harness/ui";
+import { Button, Appearance, Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator } from "@ryuzi/ui";
 
 const DOT: Record<string, string> = {
   running: "bg-blue-500",

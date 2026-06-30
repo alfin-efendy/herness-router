@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useUi } from "@/store-ui";
 import { FileViewer } from "./FileViewer";
-import { Tabs, TabsList, TabsTab, Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator, Input } from "@harness/ui";
+import { Tabs, TabsList, TabsTab, Menu, MenuTrigger, MenuContent, MenuItem, MenuSeparator, Input } from "@ryuzi/ui";
 
 const SOON = [
   { key: "terminal", label: "Terminal" },

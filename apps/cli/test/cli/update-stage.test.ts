@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { sha256Hex, type Platform } from "@harness/core";
+import { sha256Hex, type Platform } from "@ryuzi/core";
 import { stageCanary, type StageDeps } from "../../src/cli/update-stage";
 
 const platform: Platform = { goos: "linux", goarch: "amd64", musl: false };

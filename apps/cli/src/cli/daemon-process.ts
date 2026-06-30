@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { renameSync, writeFileSync, chmodSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { buildDaemon, detectPlatform } from "@harness/core";
+import { buildDaemon, detectPlatform } from "@ryuzi/core";
 import { writeStatus, clearStatus } from "./daemon-status";
 import { UpdateManager } from "./update-manager";
 import { applyUpdate, handleApplyOutcome, type ApplierDeps, type ApplyOutcome } from "./update-applier";

@@ -1,4 +1,4 @@
-import type { PermMode } from "@harness/protocol";
+import type { PermMode } from "@ryuzi/protocol";
 
 export type ToolPermissionResult = { behavior: "allow"; updatedInput?: unknown } | { behavior: "deny"; message: string };
 

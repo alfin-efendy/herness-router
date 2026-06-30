@@ -1,4 +1,4 @@
-// @harness/core — public surface. Consumers import ONLY from here, never deep paths.
+// @ryuzi/core — public surface. Consumers import ONLY from here, never deep paths.
 export { buildDaemon } from "./daemon";
 export { ControlPlane } from "./core/control-plane";
 export { openDb } from "./store/db";

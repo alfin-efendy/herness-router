@@ -1,4 +1,4 @@
-import type { Surface, ApprovalRequest, ApprovalDecision } from "@harness/protocol";
+import type { Surface, ApprovalRequest, ApprovalDecision } from "@ryuzi/protocol";
 
 export interface MessageRef {
   surface: Surface;

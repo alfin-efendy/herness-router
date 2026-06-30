@@ -4,11 +4,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const launcher = `${import.meta.dir}/../../../../npm/harness-router/bin/hr.js`;
+const launcher = `${import.meta.dir}/../../../../npm/ryuzi/bin/ryuzi.js`;
 
 // Build fixture in a temp directory outside the repo so no artifacts remain after the run.
-const fixtureDir = mkdtempSync(join(tmpdir(), "hr-launcher-"));
-const fixtureBin = join(fixtureDir, "fixture-echo");
+const fixtureDir = mkdtempSync(join(tmpdir(), "ryuzi-launcher-"));
+const fixtureBin = join(fixtureDir, process.platform === "win32" ? "fixture-echo.exe" : "fixture-echo");
 const fixtureSrc = join(fixtureDir, "fixture-echo-src.ts");
 
 // bun build - --compile (stdin) is not supported in bun 1.3.x; write to a temp file first.
@@ -21,12 +21,12 @@ afterAll(() => {
   rmSync(fixtureDir, { recursive: true, force: true });
 });
 
-test("launcher execs the binary pointed to by HR_BINARY_PATH and forwards args + exit code", async () => {
+test("launcher execs the binary pointed to by RYUZI_BINARY_PATH and forwards args + exit code", async () => {
   let out = "";
   let code = 0;
   try {
     out = execFileSync("node", [launcher, "a", "b"], {
-      env: { ...process.env, HR_BINARY_PATH: fixtureBin },
+      env: { ...process.env, RYUZI_BINARY_PATH: fixtureBin },
       encoding: "utf8",
     });
   } catch (e: any) {
@@ -42,7 +42,7 @@ test("launcher errors clearly when no binary is found", () => {
   let code = 0;
   try {
     execFileSync("node", [launcher], {
-      env: { ...process.env, HR_BINARY_PATH: "/nonexistent/definitely-not-here" },
+      env: { ...process.env, RYUZI_BINARY_PATH: "/nonexistent/definitely-not-here" },
       encoding: "utf8",
     });
   } catch (e: any) {
@@ -52,5 +52,5 @@ test("launcher errors clearly when no binary is found", () => {
   // With a bogus override that doesn't exist, the launcher falls through to
   // package resolution, which fails (the platform package isn't installed in this repo).
   expect(code).toBe(1);
-  expect(stderr).toMatch(/harness-router/i);
+  expect(stderr).toMatch(/ryuzi/i);
 });

@@ -1,7 +1,7 @@
 // packages/core/test/router-dispatch.test.ts
 import { test, expect } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
-import type { AttachmentRef } from "@harness/protocol";
+import type { AttachmentRef } from "@ryuzi/protocol";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

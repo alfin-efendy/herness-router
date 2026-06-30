@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import type { AppController } from "../controller";
-import type { ConfigField } from "@harness/core";
+import type { ConfigField } from "@ryuzi/core";
 import { Panel } from "../components/panel";
 import { palette, symbols } from "../theme";
 

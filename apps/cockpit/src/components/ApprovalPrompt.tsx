@@ -1,5 +1,5 @@
 import { useStore } from "@/store";
-import { Button } from "@harness/ui";
+import { Button } from "@ryuzi/ui";
 
 export function ApprovalPrompt({ sessionPk }: { sessionPk: string }) {
   const { pendingApprovals, resolveApproval } = useStore();

@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
-import type { Session, CoreEvent } from "@harness/protocol";
-import { openDb, SettingsStore } from "@harness/core";
+import type { Session, CoreEvent } from "@ryuzi/protocol";
+import { openDb, SettingsStore } from "@ryuzi/core";
 import { UpdateManager, type NotifyTarget } from "../../src/cli/update-manager";
 
 function fakeFetch(tag: string | null): typeof fetch {

@@ -14,8 +14,8 @@ import {
   isConfigured as isConfiguredFn,
   requiredMissingFields,
   csv,
-} from "@harness/core";
-import type { detectClaude, detectGit, ToolInfo, ProviderCatalog, GatewayDescriptor, RuntimeDescriptor, ConfigField } from "@harness/core";
+} from "@ryuzi/core";
+import type { detectClaude, detectGit, ToolInfo, ProviderCatalog, GatewayDescriptor, RuntimeDescriptor, ConfigField } from "@ryuzi/core";
 import { readStatus, writeStatus, clearStatus, isAlive, deriveState, type DaemonState } from "../daemon-status";
 import { isCompiledExecutable, daemonRelaunchCmd } from "../daemon-spawn";
 

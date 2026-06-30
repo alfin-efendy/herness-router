@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { runCli, type CliDeps, type IO } from "../../src/cli/run";
-import { detectClaude, detectGit } from "@harness/core";
+import { detectClaude, detectGit } from "@ryuzi/core";
 
 const okRun = async (cmd: string[]) =>
   cmd[0] === "git" ? { exitCode: 0, stdout: "git version 2.45.0" } : { exitCode: 0, stdout: "2.1.89 (Claude Code)" };

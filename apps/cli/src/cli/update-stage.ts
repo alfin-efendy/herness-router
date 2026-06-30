@@ -1,5 +1,5 @@
 import { dirname, join } from "node:path";
-import { assetName, assetUrl, checksumsUrl, verifyChecksum, type Platform } from "@harness/core";
+import { assetName, assetUrl, checksumsUrl, verifyChecksum, type Platform } from "@ryuzi/core";
 
 export interface StageDeps {
   fetchImpl?: typeof fetch;
