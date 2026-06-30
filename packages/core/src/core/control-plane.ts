@@ -19,7 +19,7 @@ import type { Telemetry } from "../observability/types";
 import { NoopTelemetry } from "../observability/types";
 import { mkdirSync, rmSync } from "node:fs";
 import { basename, join } from "node:path";
-import { createWorktree, removeWorktree, worktreePathFor } from "../agents/worktree";
+import { createWorktree, removeWorktree, worktreePathFor, resolveFreshBase } from "../agents/worktree";
 import { expandHome } from "../config/paths";
 import { Registry } from "./registry";
 import { GatewayRegistry } from "./gateway-registry";
@@ -30,8 +30,9 @@ import type { AttachmentRef } from "@harness/protocol";
 
 export interface WorktreeOps {
   pathFor: (workdirRoot: string, projectId: string, sessionPk: string) => string;
-  create: (repoDir: string, worktreePath: string, branch: string) => Promise<void>;
+  create: (repoDir: string, worktreePath: string, branch: string, baseRef?: string) => Promise<void>;
   remove: (repoDir: string, worktreePath: string) => Promise<void>;
+  resolveBase?: (repoDir: string) => Promise<string | undefined>;
 }
 
 export interface ControlPlaneDeps {
@@ -58,7 +59,12 @@ export class ControlPlane implements ControlPlaneApi {
   private chains = new Map<string, Promise<unknown>>();
 
   constructor(private deps: ControlPlaneDeps) {
-    this.worktree = deps.worktree ?? { pathFor: worktreePathFor, create: createWorktree, remove: removeWorktree };
+    this.worktree = deps.worktree ?? {
+      pathFor: worktreePathFor,
+      create: createWorktree,
+      remove: removeWorktree,
+      resolveBase: resolveFreshBase,
+    };
     this.telemetry = deps.telemetry ?? new NoopTelemetry();
   }
 
@@ -95,7 +101,8 @@ export class ControlPlane implements ControlPlaneApi {
     const sessionPk = crypto.randomUUID();
     const branch = `harness/${sessionPk.slice(0, 8)}`;
     const worktreePath = this.worktree.pathFor(this.deps.workdirRoot, project.projectId, sessionPk);
-    await this.worktree.create(project.workdir, worktreePath, branch);
+    const baseRef = (await this.worktree.resolveBase?.(project.workdir)) ?? undefined;
+    await this.worktree.create(project.workdir, worktreePath, branch, baseRef);
     try {
       const now = Date.now();
       this.deps.sessions.insert({

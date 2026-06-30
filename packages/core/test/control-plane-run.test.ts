@@ -107,3 +107,52 @@ test("continueSession re-persists agentSessionId when result carries a rotated s
   await cp.continueSession({ sessionPk: "s2", prompt: "continue" });
   expect(sessions.get("s2")!.agentSessionId).toBe("rotated");
 });
+
+test("startSession resolves a fresh base and passes it to createWorktree", async () => {
+  const db = openDb(":memory:");
+  const projects = new ProjectsStore(db);
+  projects.insert({ projectId: "p1", name: "foo", workdir: "/repo/foo", harness: "claude-code", permMode: "default" });
+  const calls: Array<{ branch: string; baseRef?: string }> = [];
+  const cp = new ControlPlane({
+    projects,
+    sessions: new SessionsStore(db),
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
+    worktree: {
+      pathFor: (r, p, s) => `${r}/${p}/${s}`,
+      create: async (_repo, _path, branch, baseRef) => {
+        calls.push({ branch, baseRef });
+      },
+      remove: async () => {},
+      resolveBase: async () => "origin/main",
+    },
+  });
+  cp.harnesses.register("claude-code", () => new FakeHarness([{ type: "result", usage: {} }]));
+  await cp.startSession({ projectId: "p1", prompt: "do it", actor: "u1" });
+  expect(calls[0]!.baseRef).toBe("origin/main");
+  expect(calls[0]!.branch).toMatch(/^harness\//);
+});
+
+test("startSession falls back to an undefined base when resolveBase yields undefined", async () => {
+  const db = openDb(":memory:");
+  const projects = new ProjectsStore(db);
+  projects.insert({ projectId: "p1", name: "foo", workdir: "/repo/foo", harness: "claude-code", permMode: "default" });
+  const seen: Array<string | undefined> = [];
+  const cp = new ControlPlane({
+    projects,
+    sessions: new SessionsStore(db),
+    settings: new SettingsStore(db),
+    workdirRoot: "/root",
+    worktree: {
+      pathFor: (r, p, s) => `${r}/${p}/${s}`,
+      create: async (_repo, _path, _branch, baseRef) => {
+        seen.push(baseRef);
+      },
+      remove: async () => {},
+      resolveBase: async () => undefined,
+    },
+  });
+  cp.harnesses.register("claude-code", () => new FakeHarness([{ type: "result", usage: {} }]));
+  await cp.startSession({ projectId: "p1", prompt: "do it", actor: "u1" });
+  expect(seen[0]).toBeUndefined();
+});
