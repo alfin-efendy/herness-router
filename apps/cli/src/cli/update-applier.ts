@@ -78,3 +78,18 @@ export async function applyUpdate(deps: ApplierDeps): Promise<ApplyOutcome> {
   deps.clearHandoff();
   return "rolledback";
 }
+
+export function handleApplyOutcome(
+  outcome: ApplyOutcome,
+  deps: { spawnFreshDaemon: () => void; exit: (code: number) => void; log: (m: string) => void },
+): void {
+  if (outcome === "promoted") {
+    deps.log("update: handed over to the new daemon; exiting");
+    deps.exit(0);
+  } else if (outcome === "rolledback") {
+    deps.log("update: rolled back; respawning the previous daemon");
+    deps.spawnFreshDaemon();
+    deps.exit(0);
+  }
+  // "aborted" → old daemon keeps serving; do nothing.
+}

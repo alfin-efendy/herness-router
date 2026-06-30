@@ -60,6 +60,7 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
   const ipc = startApprovalServer(cp);
   cp.approvalUrl = ipc.url;
   cp.hookBinPath = `${import.meta.dir}/hook/pretooluse-bin.ts`;
+  let stopped = false;
   return {
     gateways,
     cp,
@@ -71,6 +72,8 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
         void cp.reconcile();
       }),
     stop: async () => {
+      if (stopped) return;
+      stopped = true;
       await Promise.all(gateways.map((g) => g.stop?.()));
       void telemetry.shutdown?.();
       ipc.stop();

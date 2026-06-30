@@ -1,10 +1,10 @@
 import { dirname, join } from "node:path";
-import { renameSync, writeFileSync, chmodSync, mkdtempSync } from "node:fs";
+import { renameSync, writeFileSync, chmodSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { buildDaemon, detectPlatform } from "@harness/core";
 import { writeStatus, clearStatus } from "./daemon-status";
 import { UpdateManager } from "./update-manager";
-import { applyUpdate, type ApplierDeps } from "./update-applier";
+import { applyUpdate, handleApplyOutcome, type ApplierDeps, type ApplyOutcome } from "./update-applier";
 import { stageCanary, defaultExtractHr } from "./update-stage";
 import { readHandoff, writeHandoff, clearHandoff } from "./update-handoff";
 import { daemonRelaunchCmd } from "./daemon-spawn";
@@ -60,7 +60,8 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
     platform !== null
       ? async (info: { repo: string; tag: string; version: string }) => {
           const installPath = process.execPath;
-          const applierDeps: ApplierDeps = {
+          const tmpDir = mkdtempSync(join(tmpdir(), "hr-up-"));
+          const makeApplierDeps = (): ApplierDeps => ({
             dir,
             installPath,
             repo: info.repo,
@@ -77,7 +78,7 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
                     chmodSync(p, m);
                   },
                   platform,
-                  tmpDir: mkdtempSync(join(tmpdir(), "hr-up-")),
+                  tmpDir,
                 },
               ),
             spawnCanary: (canaryPath: string) => {
@@ -110,8 +111,26 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
             sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
             canaryTimeoutMs: Number(daemon.settings.get("auto_update_canary_timeout_ms") ?? "60000"),
             log: (m) => console.log(m),
+          });
+          const spawnFreshDaemon = () => {
+            const cmd = daemonRelaunchCmd({ execPath: installPath, main: Bun.main, compiled: isCompiledExecutable() });
+            const proc = Bun.spawn(cmd, {
+              detached: true,
+              stdio: ["ignore", "ignore", "ignore"],
+            });
+            proc.unref();
           };
-          await applyUpdate(applierDeps);
+          let outcome: ApplyOutcome;
+          try {
+            outcome = await applyUpdate(makeApplierDeps());
+          } finally {
+            rmSync(tmpDir, { recursive: true, force: true });
+          }
+          handleApplyOutcome(outcome, {
+            spawnFreshDaemon,
+            exit: (c) => process.exit(c),
+            log: (m) => console.log(m),
+          });
         }
       : undefined;
 
