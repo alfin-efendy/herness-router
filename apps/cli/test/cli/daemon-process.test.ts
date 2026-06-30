@@ -2,7 +2,14 @@ import { test, expect } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { makeShutdown, startWithTimeout } from "../../src/cli/daemon-process";
+import { openDb, SettingsStore } from "@ryuzi/core";
+import {
+  createDaemonUpdateManager,
+  daemonUpdateManagerHome,
+  makeShutdown,
+  startWithTimeout,
+  type DaemonUpdateManagerDeps,
+} from "../../src/cli/daemon-process";
 import { writeStatus, readStatus } from "../../src/cli/daemon-status";
 
 function dir() {
@@ -39,4 +46,23 @@ test("startWithTimeout rejects when start hangs", async () => {
 
 test("startWithTimeout resolves when start resolves", async () => {
   await expect(startWithTimeout({ start: async () => {} }, 1000)).resolves.toBeUndefined();
+});
+
+test("daemon update manager constructor path includes the OS home directory", () => {
+  let captured: DaemonUpdateManagerDeps | undefined;
+  createDaemonUpdateManager({
+    cp: { listSessions: () => [], emit: () => {} },
+    settings: new SettingsStore(openDb(":memory:")),
+    version: "0.2.0",
+    execPath: `${daemonUpdateManagerHome()}/.local/bin/ryuzi`,
+    compiled: true,
+    home: daemonUpdateManagerHome(),
+    log: () => {},
+    applyUpdate: undefined,
+    makeUpdateManager: (deps) => {
+      captured = deps;
+      return { start: () => {}, stop: () => {} };
+    },
+  });
+  expect(captured?.home).toBe(daemonUpdateManagerHome());
 });

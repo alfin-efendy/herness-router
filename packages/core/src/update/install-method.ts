@@ -6,8 +6,8 @@ export interface InstallInfo {
 }
 
 /**
- * Classify how `hr` was installed from the running executable path. Only the
- * install.sh path (`~/.local/bin/hr`) is self-applicable — every other method is
+ * Classify how `ryuzi` was installed from the running executable path. Only the
+ * install.sh path (`${home}/.local/bin/ryuzi`) is self-applicable — every other method is
  * managed by a package manager (or is dev/docker) and must be notify-only so the
  * daemon never clobbers a package manager's binary.
  */
@@ -18,7 +18,7 @@ export function detectInstallMethod(opts: { execPath: string; compiled: boolean;
   const p = opts.execPath;
   const lower = p.toLowerCase();
 
-  if (p.endsWith("/.local/bin/hr")) {
+  if (opts.home && p === `${opts.home}/.local/bin/ryuzi`) {
     return { method: "installsh", selfApplicable: true };
   }
   if (lower.includes("/cellar/") || lower.startsWith("/opt/homebrew/") || lower.includes("/homebrew/")) {

@@ -1,17 +1,40 @@
 import { dirname, join } from "node:path";
 import { renameSync, writeFileSync, chmodSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { buildDaemon, detectPlatform } from "@ryuzi/core";
 import { writeStatus, clearStatus } from "./daemon-status";
-import { UpdateManager } from "./update-manager";
+import { UpdateManager, type UpdateManagerDeps } from "./update-manager";
 import { applyUpdate, handleApplyOutcome, type ApplierDeps, type ApplyOutcome } from "./update-applier";
-import { stageCanary, defaultExtractHr } from "./update-stage";
+import { stageCanary, defaultExtractRyuzi } from "./update-stage";
 import { readHandoff, writeHandoff, clearHandoff } from "./update-handoff";
 import { daemonRelaunchCmd } from "./daemon-spawn";
 import { version } from "./meta";
 import { isCompiledExecutable } from "./daemon-spawn";
 
 const CONNECT_TIMEOUT_MS = 30000;
+
+export function daemonUpdateManagerHome(): string {
+  return homedir();
+}
+
+export type DaemonUpdateManagerDeps = Omit<UpdateManagerDeps, "home"> & { home: string };
+
+export function buildUpdateManagerDeps(deps: DaemonUpdateManagerDeps): UpdateManagerDeps {
+  return deps;
+}
+
+type DaemonUpdateManager = Pick<UpdateManager, "start" | "stop">;
+
+export function createDaemonUpdateManager(
+  deps: DaemonUpdateManagerDeps & {
+    makeUpdateManager?: (deps: DaemonUpdateManagerDeps) => DaemonUpdateManager;
+  },
+): DaemonUpdateManager {
+  const { makeUpdateManager, ...managerDeps } = deps;
+  const managerDepsWithHome = managerDeps as DaemonUpdateManagerDeps;
+  const factory = makeUpdateManager ?? ((d: DaemonUpdateManagerDeps) => new UpdateManager(buildUpdateManagerDeps(d)));
+  return factory(managerDepsWithHome);
+}
 
 export function startWithTimeout(daemon: { start(): Promise<void> }, ms: number): Promise<void> {
   return new Promise<void>((resolve, reject) => {
@@ -60,7 +83,7 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
     platform !== null
       ? async (info: { repo: string; tag: string; version: string }) => {
           const installPath = process.execPath;
-          const tmpDir = mkdtempSync(join(tmpdir(), "hr-up-"));
+          const tmpDir = mkdtempSync(join(tmpdir(), "ryuzi-up-"));
           const makeApplierDeps = (): ApplierDeps => ({
             dir,
             installPath,
@@ -72,7 +95,7 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
                 { repo: info.repo, tag: info.tag, version: info.version, installPath },
                 {
                   fetchImpl: fetch,
-                  extractHr: defaultExtractHr,
+                  extractRyuzi: defaultExtractRyuzi,
                   writeFile: (p, b, m) => {
                     writeFileSync(p, b);
                     chmodSync(p, m);
@@ -86,7 +109,7 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
               const proc = Bun.spawn(cmd, {
                 detached: true,
                 stdio: ["ignore", "ignore", "ignore"],
-                env: { ...process.env, HARNESS_CANARY_TARGET: info.version },
+                env: { ...process.env, RYUZI_CANARY_TARGET: info.version },
               });
               proc.unref();
               return { pid: proc.pid };
@@ -97,10 +120,10 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
             drain: (ms) => daemon.cp.drain(ms),
             drainTimeoutMs: Number(daemon.settings.get("auto_update_drain_timeout_ms") ?? "300000"),
             backup: () => renameSync(installPath, `${installPath}.bak`),
-            // The canary process was already spawned from `.hr.canary` and is healthy by now;
+            // The canary process was already spawned from `.ryuzi.canary` and is healthy by now;
             // on Linux/macOS it holds the executable by inode, so renaming the file does not
             // disturb the running canary. SPAWN MUST PRECEDE SWAP — never reorder.
-            swap: () => renameSync(join(dirname(installPath), ".hr.canary"), installPath),
+            swap: () => renameSync(join(dirname(installPath), ".ryuzi.canary"), installPath),
             restore: () => renameSync(`${installPath}.bak`, installPath),
             killCanary: (pid: number) => {
               try {
@@ -137,12 +160,13 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
         }
       : undefined;
 
-  const updater = new UpdateManager({
+  const updater = createDaemonUpdateManager({
     cp: daemon.cp,
     settings: daemon.settings,
     version: version(),
     execPath: process.execPath,
     compiled: isCompiledExecutable(),
+    home: daemonUpdateManagerHome(),
     log: (m) => console.log(m),
     applyUpdate: productionApplyUpdate,
   });

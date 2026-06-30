@@ -93,8 +93,8 @@ export const GLOBAL_FIELDS: ConfigField[] = [
   {
     key: "auto_update_repo",
     label: "Auto-update repo",
-    default: "alfin-efendy/harness-router",
-    help: "GitHub owner/repo to check for releases",
+    default: "alfin-efendy/ryuzi",
+    help: "blank = harness default",
   },
   { key: "last_notified_version", label: "Last notified version", control: true, help: "(internal) last update version already announced" },
   { key: "enabled_gateways", label: "Enabled gateways", control: true, help: "(managed by the Providers picker)" },

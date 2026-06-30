@@ -35,6 +35,23 @@ function mgr(over: Partial<ConstructorParameters<typeof UpdateManager>[0]> = {})
   return { um, settings, ...t };
 }
 
+test("blank auto_update_repo falls back to the ryuzi default repo", async () => {
+  let seenUrl = "";
+  const { um, settings } = mgr({
+    fetchImpl: (async (url: string) => {
+      seenUrl = url;
+      return new Response(JSON.stringify({ tag_name: "v0.3.0" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as unknown as typeof fetch,
+    applyUpdate: async () => {},
+  });
+  settings.set("auto_update_repo", "");
+  await um.tick();
+  expect(seenUrl).toBe("https://api.github.com/repos/alfin-efendy/ryuzi/releases/latest");
+});
+
 test("tick broadcasts a notice to non-ended sessions and records last_notified_version", async () => {
   const { um, settings, emitted } = mgr();
   await um.tick();

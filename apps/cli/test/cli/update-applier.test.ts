@@ -9,7 +9,7 @@ function base(over: Partial<ApplierDeps>, script: (Handoff | null)[]): { deps: A
   // Default stage implementation — can be overridden via over.stage.
   // We wrap the override so the "stage" call is always tracked in calls[].
   const defaultStage: ApplierDeps["stage"] = async () => {
-    return { ok: true, canaryPath: "/home/me/.local/bin/.hr.canary" };
+    return { ok: true, canaryPath: "/home/me/.local/bin/.ryuzi.canary" };
   };
   const stageImpl = over.stage ?? defaultStage;
   const trackedStage: ApplierDeps["stage"] = async () => {
@@ -21,7 +21,7 @@ function base(over: Partial<ApplierDeps>, script: (Handoff | null)[]): { deps: A
 
   const deps: ApplierDeps = {
     dir: "/d",
-    installPath: "/home/me/.local/bin/hr",
+    installPath: "/home/me/.local/bin/ryuzi",
     repo: "o/r",
     tag: "v0.3.0",
     version: "0.3.0",

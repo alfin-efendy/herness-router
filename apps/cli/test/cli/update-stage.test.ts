@@ -19,7 +19,7 @@ function deps(over: Partial<StageDeps> = {}): { deps: StageDeps; writes: Array<{
     writes,
     deps: {
       fetchImpl: fetchFor(new TextEncoder().encode("tarball"), checksums),
-      extractHr: async () => RYUZI,
+      extractRyuzi: async () => RYUZI,
       writeFile: (path, _bytes, mode) => writes.push({ path, mode }),
       platform,
       tmpDir: "/tmp/ryuzi-stage",

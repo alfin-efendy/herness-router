@@ -21,6 +21,14 @@ export function probe(deps: ProbeDeps): { healthy: boolean; detail?: string } {
   return { healthy: true };
 }
 
+export function canaryTargetVersion(currentVersion: string, env: Record<string, string | undefined> = process.env): string {
+  return env.RYUZI_CANARY_TARGET ?? currentVersion;
+}
+
+export function canaryTimeoutMs(env: Record<string, string | undefined> = process.env): number {
+  return Number(env.RYUZI_CANARY_TIMEOUT_MS ?? "60000");
+}
+
 export interface CanaryDeps {
   dir: string;
   dbPath: string;
@@ -64,7 +72,7 @@ export async function runCanaryWith(deps: CanaryDeps): Promise<"promoted" | "fai
 export async function runCanary(deps: { dbPath: string }): Promise<void> {
   const dir = dirname(deps.dbPath);
   const { version } = await import("./meta");
-  const target = process.env.HARNESS_CANARY_TARGET ?? version();
+  const target = canaryTargetVersion(version());
   let daemon: ReturnType<typeof buildDaemon> | undefined;
   const result = await runCanaryWith({
     dir,
@@ -83,7 +91,7 @@ export async function runCanary(deps: { dbPath: string }): Promise<void> {
     readHandoff: () => realRead(dir),
     now: () => Date.now(),
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-    timeoutMs: Number(process.env.HARNESS_CANARY_TIMEOUT_MS ?? "60000"),
+    timeoutMs: canaryTimeoutMs(),
   });
   if (result === "failed") {
     process.exit(1);

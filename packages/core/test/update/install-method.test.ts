@@ -22,6 +22,17 @@ test("install.sh path (~/.local/bin/ryuzi) is the only self-applicable method", 
   });
 });
 
+test("install.sh self-apply only matches the configured home directory", () => {
+  expect(detectInstallMethod({ execPath: "/other/.local/bin/ryuzi", compiled: true, home: "/home/me" })).toEqual({
+    method: "unknown",
+    selfApplicable: false,
+  });
+  expect(detectInstallMethod({ execPath: "/home/me/.local/bin/ryuzi", compiled: true })).toEqual({
+    method: "unknown",
+    selfApplicable: false,
+  });
+});
+
 test("homebrew / scoop / npm compiled installs are notify-only", () => {
   expect(detectInstallMethod({ execPath: "/opt/homebrew/bin/ryuzi", compiled: true }).method).toBe("brew");
   expect(detectInstallMethod({ execPath: "/usr/local/Cellar/ryuzi/0.2.0/bin/ryuzi", compiled: true }).method).toBe("brew");
