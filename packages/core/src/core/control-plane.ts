@@ -19,7 +19,7 @@ import type { Telemetry } from "../observability/types";
 import { NoopTelemetry } from "../observability/types";
 import { mkdirSync, rmSync } from "node:fs";
 import { basename, join } from "node:path";
-import { createWorktree, removeWorktree, worktreePathFor } from "../agents/worktree";
+import { createWorktree, removeWorktree, worktreePathFor, resolveFreshBase } from "../agents/worktree";
 import { expandHome } from "../config/paths";
 import { Registry } from "./registry";
 import { GatewayRegistry } from "./gateway-registry";
@@ -30,8 +30,9 @@ import type { AttachmentRef } from "@harness/protocol";
 
 export interface WorktreeOps {
   pathFor: (workdirRoot: string, projectId: string, sessionPk: string) => string;
-  create: (repoDir: string, worktreePath: string, branch: string) => Promise<void>;
+  create: (repoDir: string, worktreePath: string, branch: string, baseRef?: string) => Promise<void>;
   remove: (repoDir: string, worktreePath: string) => Promise<void>;
+  resolveBase?: (repoDir: string) => Promise<string | undefined>;
 }
 
 export interface ControlPlaneDeps {
@@ -46,6 +47,21 @@ export interface ControlPlaneDeps {
 
 const allowAll = async () => ({ behavior: "allow" as const });
 
+const RESUME_NUDGE =
+  "Your previous turn was interrupted by a daemon restart or update. Continue the task " +
+  "from where you left off. If it was already complete, briefly summarize what you did.";
+
+function branchRenameInstruction(branch: string): string {
+  return [
+    `You are running in a fresh harness session. Your git working branch is currently`,
+    `a throwaway placeholder named "${branch}". As your very first action, before anything`,
+    `else, rename it to a short name that summarizes this task:`,
+    `    git branch -m harness/<short-kebab-slug>`,
+    `Keep the "harness/" prefix, use lowercase kebab-case, and at most ~6 words`,
+    `(for example: harness/fix-login-redirect-loop). Then continue with the task.`,
+  ].join("\n");
+}
+
 export class ControlPlane implements ControlPlaneApi {
   readonly harnesses = new Registry<Agent>();
   readonly gateways = new GatewayRegistry();
@@ -56,9 +72,15 @@ export class ControlPlane implements ControlPlaneApi {
   private telemetry: Telemetry;
   private running = new Map<string, AbortController>();
   private chains = new Map<string, Promise<unknown>>();
+  private draining = false;
 
   constructor(private deps: ControlPlaneDeps) {
-    this.worktree = deps.worktree ?? { pathFor: worktreePathFor, create: createWorktree, remove: removeWorktree };
+    this.worktree = deps.worktree ?? {
+      pathFor: worktreePathFor,
+      create: createWorktree,
+      remove: removeWorktree,
+      resolveBase: resolveFreshBase,
+    };
     this.telemetry = deps.telemetry ?? new NoopTelemetry();
   }
 
@@ -90,12 +112,14 @@ export class ControlPlane implements ControlPlaneApi {
   }
 
   async startSession(req: StartSessionRequest): Promise<Session> {
+    if (this.draining) throw new Error("daemon is draining for an update; try again shortly");
     const project = this.deps.projects.get(req.projectId);
     if (!project) throw new Error(`unknown project: ${req.projectId}`);
     const sessionPk = crypto.randomUUID();
     const branch = `harness/${sessionPk.slice(0, 8)}`;
     const worktreePath = this.worktree.pathFor(this.deps.workdirRoot, project.projectId, sessionPk);
-    await this.worktree.create(project.workdir, worktreePath, branch);
+    const baseRef = (await this.worktree.resolveBase?.(project.workdir)) ?? undefined;
+    await this.worktree.create(project.workdir, worktreePath, branch, baseRef);
     try {
       const now = Date.now();
       this.deps.sessions.insert({
@@ -123,6 +147,7 @@ export class ControlPlane implements ControlPlaneApi {
   }
 
   async continueSession(req: ContinueSessionRequest): Promise<void> {
+    if (this.draining) throw new Error("daemon is draining for an update; try again shortly");
     const session = this.deps.sessions.get(req.sessionPk);
     if (!session) throw new Error(`unknown session: ${req.sessionPk}`);
     const project = this.deps.projects.get(session.projectId);
@@ -133,6 +158,50 @@ export class ControlPlane implements ControlPlaneApi {
       const finalPrompt = await this.withAttachments(req.sessionPk, req.prompt, req.attachments);
       return this.runHarness(project, req.sessionPk, finalPrompt, fresh?.agentSessionId);
     });
+  }
+
+  /**
+   * Re-run an interrupted turn after a restart. Uses the persisted agentSessionId to
+   * `claude --resume`, guarded by a resume_attempts cap so a session that reliably
+   * crashes the daemon cannot loop forever. Called by reconcile() on boot.
+   */
+  async resumeSession(sessionPk: string, reason: string): Promise<void> {
+    const session = this.deps.sessions.get(sessionPk);
+    if (!session) return;
+    const project = this.deps.projects.get(session.projectId);
+    if (!project) return;
+    if (!session.agentSessionId) {
+      this.deps.sessions.update(sessionPk, { status: "idle" });
+      this.events.emit({
+        kind: "status",
+        sessionPk,
+        text: "⚠️ Interrupted by a restart and could not be auto-resumed — send a message to continue.",
+      });
+      return;
+    }
+    const attempts = session.resumeAttempts ?? 0;
+    if (attempts >= 3) {
+      this.deps.sessions.update(sessionPk, { status: "idle" });
+      this.events.emit({
+        kind: "status",
+        sessionPk,
+        text: "⚠️ Auto-resume gave up after 3 attempts — send a message to continue.",
+      });
+      return;
+    }
+    this.deps.sessions.update(sessionPk, { status: "running", resumeAttempts: attempts + 1 });
+    this.events.emit({ kind: "status", sessionPk, text: `🔄 Resumed after ${reason}.` });
+    await this.serial(sessionPk, () => this.runHarness(project, sessionPk, RESUME_NUDGE, session.agentSessionId));
+  }
+
+  /**
+   * On daemon boot: resume every session left in `running` by a dead daemon
+   * (crash or update). Each resume is isolated so one bad session can't block
+   * the rest. Safe to call when there is nothing to do (no-op).
+   */
+  async reconcile(): Promise<void> {
+    const stuck = this.deps.sessions.listByStatus("running");
+    await Promise.all(stuck.map((s) => this.resumeSession(s.sessionPk, "restart").catch(() => {})));
   }
 
   private validateProjectName(name: string): void {
@@ -209,6 +278,25 @@ export class ControlPlane implements ControlPlaneApi {
   async stopSession(sessionPk: string): Promise<void> {
     this.running.get(sessionPk)?.abort();
     if (this.deps.sessions.get(sessionPk)) this.deps.sessions.update(sessionPk, { status: "idle" });
+  }
+
+  runningCount(): number {
+    return this.running.size;
+  }
+
+  /**
+   * Stop accepting new turns and wait for in-flight turns to finish, up to
+   * `timeoutMs`. A one-way latch: once drained, this ControlPlane never takes new
+   * work again (the process is expected to exit/restart afterwards). Turns still
+   * running at the deadline are left as-is — they are killed by the daemon exit and
+   * resumed by the next daemon's reconcile().
+   */
+  async drain(timeoutMs: number): Promise<void> {
+    this.draining = true;
+    const deadline = Date.now() + timeoutMs;
+    while (this.running.size > 0 && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
   }
 
   async endSession(sessionPk: string, _opts?: { keepBranch?: boolean }): Promise<void> {
@@ -313,12 +401,15 @@ export class ControlPlane implements ControlPlaneApi {
     const harness = this.harnesses.create(project.harness);
     const controller = new AbortController();
     this.running.set(sessionPk, controller);
+    const session = this.deps.sessions.get(sessionPk);
+    const workdir = session?.worktreePath ?? project.workdir;
+    const isFirstRun = resume === undefined;
     const approval =
       project.permMode === "default" && this.approvalUrl && this.hookBinPath
         ? { url: this.approvalUrl, sessionPk, hookBinPath: this.hookBinPath }
         : undefined;
     const input: AgentRunInput = {
-      workdir: this.deps.sessions.get(sessionPk)?.worktreePath ?? project.workdir,
+      workdir,
       resume,
       prompt,
       model: project.model,
@@ -327,6 +418,7 @@ export class ControlPlane implements ControlPlaneApi {
       signal: controller.signal,
       approve: allowAll,
       approval,
+      systemPromptAppend: isFirstRun && session?.branch ? branchRenameInstruction(session.branch) : undefined,
     };
     this.telemetry.count("session.run");
     const span = this.telemetry.startSpan("harness.run", {
@@ -352,7 +444,22 @@ export class ControlPlane implements ControlPlaneApi {
       span.end();
       this.running.delete(sessionPk);
       const cur = this.deps.sessions.get(sessionPk);
-      if (cur?.status === "running") this.deps.sessions.update(sessionPk, { status: "idle", lastActive: Date.now() });
+      if (cur?.status === "running") this.deps.sessions.update(sessionPk, { status: "idle", lastActive: Date.now(), resumeAttempts: 0 });
+      if (isFirstRun) await this.syncBranchName(sessionPk, workdir, session?.branch);
+    }
+  }
+
+  private async syncBranchName(sessionPk: string, workdir: string, priorBranch?: string): Promise<void> {
+    try {
+      const out = await Bun.$`git -C ${workdir} rev-parse --abbrev-ref HEAD`.quiet().nothrow();
+      if (out.exitCode !== 0) return;
+      const actual = out.stdout.toString().trim();
+      if (actual && actual !== "HEAD" && actual !== priorBranch) {
+        this.deps.sessions.update(sessionPk, { branch: actual });
+        this.events.emit({ kind: "session.branch", sessionPk, branch: actual });
+      }
+    } catch {
+      // Best-effort: keep the stored branch on any failure.
     }
   }
 }

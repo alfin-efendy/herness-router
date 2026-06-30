@@ -4,6 +4,7 @@ import { cmdRun } from "./run-command";
 import { launchUi } from "./ui/launch";
 import { helpText, version } from "./meta";
 import { runDaemon } from "./daemon-process";
+import { runCanary } from "./update-canary";
 import { paint } from "./ui/theme";
 
 export interface IO {
@@ -109,7 +110,8 @@ export async function runCli(args: string[], deps: CliDeps): Promise<number> {
       deps.io.out(helpText());
       return 0;
     case "__daemon":
-      await runDaemon({ dbPath: deps.dbPath });
+      if (rest.includes("--canary")) await runCanary({ dbPath: deps.dbPath });
+      else await runDaemon({ dbPath: deps.dbPath });
       return 0;
     case undefined:
       return launchUi(deps);
