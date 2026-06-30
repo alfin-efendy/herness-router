@@ -10,4 +10,5 @@ export * from "./components/ui/separator";
 export * from "./components/ui/sonner";
 export * from "./components/ui/textarea";
 export * from "./components/ui/tooltip";
+export * from "./components/ui/menu";
 export { Appearance } from "./components/Appearance";
