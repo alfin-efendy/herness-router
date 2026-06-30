@@ -47,6 +47,10 @@ export interface ControlPlaneDeps {
 
 const allowAll = async () => ({ behavior: "allow" as const });
 
+const RESUME_NUDGE =
+  "Your previous turn was interrupted by a daemon restart or update. Continue the task " +
+  "from where you left off. If it was already complete, briefly summarize what you did.";
+
 function branchRenameInstruction(branch: string): string {
   return [
     `You are running in a fresh harness session. Your git working branch is currently`,
@@ -68,6 +72,7 @@ export class ControlPlane implements ControlPlaneApi {
   private telemetry: Telemetry;
   private running = new Map<string, AbortController>();
   private chains = new Map<string, Promise<unknown>>();
+  private draining = false;
 
   constructor(private deps: ControlPlaneDeps) {
     this.worktree = deps.worktree ?? {
@@ -107,6 +112,7 @@ export class ControlPlane implements ControlPlaneApi {
   }
 
   async startSession(req: StartSessionRequest): Promise<Session> {
+    if (this.draining) throw new Error("daemon is draining for an update; try again shortly");
     const project = this.deps.projects.get(req.projectId);
     if (!project) throw new Error(`unknown project: ${req.projectId}`);
     const sessionPk = crypto.randomUUID();
@@ -141,6 +147,7 @@ export class ControlPlane implements ControlPlaneApi {
   }
 
   async continueSession(req: ContinueSessionRequest): Promise<void> {
+    if (this.draining) throw new Error("daemon is draining for an update; try again shortly");
     const session = this.deps.sessions.get(req.sessionPk);
     if (!session) throw new Error(`unknown session: ${req.sessionPk}`);
     const project = this.deps.projects.get(session.projectId);
@@ -151,6 +158,50 @@ export class ControlPlane implements ControlPlaneApi {
       const finalPrompt = await this.withAttachments(req.sessionPk, req.prompt, req.attachments);
       return this.runHarness(project, req.sessionPk, finalPrompt, fresh?.agentSessionId);
     });
+  }
+
+  /**
+   * Re-run an interrupted turn after a restart. Uses the persisted agentSessionId to
+   * `claude --resume`, guarded by a resume_attempts cap so a session that reliably
+   * crashes the daemon cannot loop forever. Called by reconcile() on boot.
+   */
+  async resumeSession(sessionPk: string, reason: string): Promise<void> {
+    const session = this.deps.sessions.get(sessionPk);
+    if (!session) return;
+    const project = this.deps.projects.get(session.projectId);
+    if (!project) return;
+    if (!session.agentSessionId) {
+      this.deps.sessions.update(sessionPk, { status: "idle" });
+      this.events.emit({
+        kind: "status",
+        sessionPk,
+        text: "⚠️ Interrupted by a restart and could not be auto-resumed — send a message to continue.",
+      });
+      return;
+    }
+    const attempts = session.resumeAttempts ?? 0;
+    if (attempts >= 3) {
+      this.deps.sessions.update(sessionPk, { status: "idle" });
+      this.events.emit({
+        kind: "status",
+        sessionPk,
+        text: "⚠️ Auto-resume gave up after 3 attempts — send a message to continue.",
+      });
+      return;
+    }
+    this.deps.sessions.update(sessionPk, { status: "running", resumeAttempts: attempts + 1 });
+    this.events.emit({ kind: "status", sessionPk, text: `🔄 Resumed after ${reason}.` });
+    await this.serial(sessionPk, () => this.runHarness(project, sessionPk, RESUME_NUDGE, session.agentSessionId));
+  }
+
+  /**
+   * On daemon boot: resume every session left in `running` by a dead daemon
+   * (crash or update). Each resume is isolated so one bad session can't block
+   * the rest. Safe to call when there is nothing to do (no-op).
+   */
+  async reconcile(): Promise<void> {
+    const stuck = this.deps.sessions.listByStatus("running");
+    await Promise.all(stuck.map((s) => this.resumeSession(s.sessionPk, "restart").catch(() => {})));
   }
 
   private validateProjectName(name: string): void {
@@ -227,6 +278,25 @@ export class ControlPlane implements ControlPlaneApi {
   async stopSession(sessionPk: string): Promise<void> {
     this.running.get(sessionPk)?.abort();
     if (this.deps.sessions.get(sessionPk)) this.deps.sessions.update(sessionPk, { status: "idle" });
+  }
+
+  runningCount(): number {
+    return this.running.size;
+  }
+
+  /**
+   * Stop accepting new turns and wait for in-flight turns to finish, up to
+   * `timeoutMs`. A one-way latch: once drained, this ControlPlane never takes new
+   * work again (the process is expected to exit/restart afterwards). Turns still
+   * running at the deadline are left as-is — they are killed by the daemon exit and
+   * resumed by the next daemon's reconcile().
+   */
+  async drain(timeoutMs: number): Promise<void> {
+    this.draining = true;
+    const deadline = Date.now() + timeoutMs;
+    while (this.running.size > 0 && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
   }
 
   async endSession(sessionPk: string, _opts?: { keepBranch?: boolean }): Promise<void> {
@@ -374,7 +444,7 @@ export class ControlPlane implements ControlPlaneApi {
       span.end();
       this.running.delete(sessionPk);
       const cur = this.deps.sessions.get(sessionPk);
-      if (cur?.status === "running") this.deps.sessions.update(sessionPk, { status: "idle", lastActive: Date.now() });
+      if (cur?.status === "running") this.deps.sessions.update(sessionPk, { status: "idle", lastActive: Date.now(), resumeAttempts: 0 });
       if (isFirstRun) await this.syncBranchName(sessionPk, workdir, session?.branch);
     }
   }

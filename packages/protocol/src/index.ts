@@ -31,6 +31,7 @@ export interface Session {
   startedBy?: string;
   createdAt?: number;
   lastActive?: number;
+  resumeAttempts?: number;
 }
 
 export interface Surface {
@@ -73,6 +74,7 @@ export type CoreEvent =
   | { kind: "approval.requested"; sessionPk: string; requestId: string; tool: string; summary: string }
   | { kind: "error"; sessionPk: string; message: string }
   | { kind: "session.branch"; sessionPk: string; branch: string }
+  | { kind: "notice"; sessionPk: string; text: string }
   | { kind: "session.ended"; sessionPk: string };
 
 export interface StartSessionRequest {

@@ -30,3 +30,9 @@ test("deriveState maps status to UI state", () => {
   expect(deriveState({ pid: 9, state: "running", startedAt: 5 }, alive)).toEqual({ running: false }); // dead pid
   expect(deriveState({ pid: 9, state: "error", startedAt: 5, lastError: "boom" }, alive)).toEqual({ running: false, lastError: "boom" });
 });
+
+test("status file round-trips an optional version stamp", () => {
+  const d = mkdtempSync(join(tmpdir(), "hr-status-ver-"));
+  writeStatus(d, { pid: 7, state: "running", startedAt: 1, version: "0.3.0" });
+  expect(readStatus(d)?.version).toBe("0.3.0");
+});

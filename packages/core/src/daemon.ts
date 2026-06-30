@@ -19,6 +19,7 @@ import { csv } from "./config/required";
 export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: Telemetry; catalog?: ProviderCatalog }): {
   gateways: Gateway[];
   cp: ControlPlane;
+  settings: SettingsStore;
   start(): Promise<void>;
   stop(): Promise<void>;
 } {
@@ -59,11 +60,20 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
   const ipc = startApprovalServer(cp);
   cp.approvalUrl = ipc.url;
   cp.hookBinPath = `${import.meta.dir}/hook/pretooluse-bin.ts`;
+  let stopped = false;
   return {
     gateways,
     cp,
-    start: () => Promise.all(gateways.map((g) => g.start())).then(() => {}),
+    settings,
+    start: () =>
+      Promise.all(gateways.map((g) => g.start())).then(() => {
+        // Resume sessions left running by a previous daemon (crash or update).
+        // Fire-and-forget so a long resumed turn never blocks startup.
+        void cp.reconcile();
+      }),
     stop: async () => {
+      if (stopped) return;
+      stopped = true;
       await Promise.all(gateways.map((g) => g.stop?.()));
       void telemetry.shutdown?.();
       ipc.stop();

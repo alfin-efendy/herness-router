@@ -6,6 +6,7 @@ export interface DaemonStatusFile {
   state: "connecting" | "running" | "error";
   startedAt: number;
   lastError?: string;
+  version?: string;
 }
 
 export interface DaemonState {
