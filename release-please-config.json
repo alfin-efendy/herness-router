@@ -3,7 +3,7 @@
   "packages": {
     "apps/cli": {
       "release-type": "node",
-      "package-name": "harness-router",
+      "package-name": "ryuzi",
       "component": "cli",
       "changelog-path": "CHANGELOG.md",
       "include-component-in-tag": false,

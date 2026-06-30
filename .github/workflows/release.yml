@@ -115,12 +115,12 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish main package last
         run: |
-          name=$(node -p "require('./npm/harness-router/package.json').name")
-          ver=$(node -p "require('./npm/harness-router/package.json').version")
+          name=$(node -p "require('./npm/ryuzi/package.json').name")
+          ver=$(node -p "require('./npm/ryuzi/package.json').version")
           if npm view "${name}@${ver}" version >/dev/null 2>&1; then
             echo "skip ${name}@${ver} (already published)"
           else
-            npm publish ./npm/harness-router --access public --provenance
+            npm publish ./npm/ryuzi --access public --provenance
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
