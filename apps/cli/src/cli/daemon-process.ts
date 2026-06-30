@@ -51,7 +51,7 @@ export function makeShutdown(
 export async function runDaemon(deps: { dbPath: string }): Promise<void> {
   const dir = dirname(deps.dbPath);
   const startedAt = Date.now();
-  writeStatus(dir, { pid: process.pid, state: "connecting", startedAt });
+  writeStatus(dir, { pid: process.pid, state: "connecting", startedAt, version: version() });
   const daemon = buildDaemon({ dbPath: deps.dbPath });
 
   // Build the real applyUpdate if this platform supports self-apply.
@@ -97,6 +97,9 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
             drain: (ms) => daemon.cp.drain(ms),
             drainTimeoutMs: Number(daemon.settings.get("auto_update_drain_timeout_ms") ?? "300000"),
             backup: () => renameSync(installPath, `${installPath}.bak`),
+            // The canary process was already spawned from `.hr.canary` and is healthy by now;
+            // on Linux/macOS it holds the executable by inode, so renaming the file does not
+            // disturb the running canary. SPAWN MUST PRECEDE SWAP — never reorder.
             swap: () => renameSync(join(dirname(installPath), ".hr.canary"), installPath),
             restore: () => renameSync(`${installPath}.bak`, installPath),
             killCanary: (pid: number) => {
@@ -153,11 +156,11 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
   process.on("SIGINT", () => void shutdown());
   try {
     await startWithTimeout(daemon, CONNECT_TIMEOUT_MS);
-    writeStatus(dir, { pid: process.pid, state: "running", startedAt });
+    writeStatus(dir, { pid: process.pid, state: "running", startedAt, version: version() });
     console.log("daemon: running");
     updater.start();
   } catch (e) {
-    writeStatus(dir, { pid: process.pid, state: "error", startedAt, lastError: (e as Error).message });
+    writeStatus(dir, { pid: process.pid, state: "error", startedAt, lastError: (e as Error).message, version: version() });
     console.error("daemon: failed to start:", (e as Error).message);
     process.exit(1);
   }
