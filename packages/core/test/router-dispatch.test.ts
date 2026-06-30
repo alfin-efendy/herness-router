@@ -22,7 +22,7 @@ class OneShot implements Agent {
 }
 
 function wire() {
-  const root = mkdtempSync(join(tmpdir(), "harness-disp-"));
+  const root = mkdtempSync(join(tmpdir(), "ryuzi-disp-"));
   const db = openDb(":memory:");
   const settings = new SettingsStore(db);
   settings.set("workdir_root", root);

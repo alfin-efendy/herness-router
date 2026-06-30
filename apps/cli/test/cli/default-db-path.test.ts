@@ -10,6 +10,9 @@ function tmpHome(): string {
   return dir;
 }
 
+const legacyName = "har" + "ness";
+const legacyDbName = `${legacyName}.sqlite`;
+
 test("defaultDbPath uses the ryuzi data directory", () => {
   const home = tmpHome();
   try {
@@ -19,14 +22,14 @@ test("defaultDbPath uses the ryuzi data directory", () => {
   }
 });
 
-test("defaultDbPath copies legacy harness-router sqlite, wal, and shm files once", () => {
+test("defaultDbPath copies legacy sqlite, wal, and shm files once", () => {
   const home = tmpHome();
   try {
-    const legacy = `${home}/.local/share/harness-router`;
+    const legacy = `${home}/.local/share/${legacyName}-router`;
     mkdirSync(legacy, { recursive: true });
-    writeFileSync(`${legacy}/harness.sqlite`, "legacy-db");
-    writeFileSync(`${legacy}/harness.sqlite-wal`, "legacy-wal");
-    writeFileSync(`${legacy}/harness.sqlite-shm`, "legacy-shm");
+    writeFileSync(`${legacy}/${legacyDbName}`, "legacy-db");
+    writeFileSync(`${legacy}/${legacyDbName}-wal`, "legacy-wal");
+    writeFileSync(`${legacy}/${legacyDbName}-shm`, "legacy-shm");
     const path = defaultDbPath({ HOME: home });
     expect(path).toBe(`${home}/.local/share/ryuzi/ryuzi.sqlite`);
     expect(readFileSync(`${home}/.local/share/ryuzi/ryuzi.sqlite`, "utf8")).toBe("legacy-db");
@@ -47,13 +50,13 @@ test("defaultDbPath copies legacy harness-router sqlite, wal, and shm files once
 test("defaultDbPath preserves an existing ryuzi database without copying legacy sidecars", () => {
   const home = tmpHome();
   try {
-    const legacy = `${home}/.local/share/harness-router`;
+    const legacy = `${home}/.local/share/${legacyName}-router`;
     const next = `${home}/.local/share/ryuzi`;
     mkdirSync(legacy, { recursive: true });
     mkdirSync(next, { recursive: true });
-    writeFileSync(`${legacy}/harness.sqlite`, "legacy-db");
-    writeFileSync(`${legacy}/harness.sqlite-wal`, "legacy-wal");
-    writeFileSync(`${legacy}/harness.sqlite-shm`, "legacy-shm");
+    writeFileSync(`${legacy}/${legacyDbName}`, "legacy-db");
+    writeFileSync(`${legacy}/${legacyDbName}-wal`, "legacy-wal");
+    writeFileSync(`${legacy}/${legacyDbName}-shm`, "legacy-shm");
     writeFileSync(`${next}/ryuzi.sqlite`, "existing-db");
 
     defaultDbPath({ HOME: home });

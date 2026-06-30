@@ -9,7 +9,7 @@ import { SettingsStore } from "../src/config/store";
 import { ControlPlane } from "../src/core/control-plane";
 
 function setup() {
-  const root = mkdtempSync(join(tmpdir(), "harness-connect-"));
+  const root = mkdtempSync(join(tmpdir(), "ryuzi-connect-"));
   const db = openDb(":memory:");
   const settings = new SettingsStore(db);
   settings.set("workdir_root", root);
@@ -54,7 +54,7 @@ test("connectProject falls back to claude-code when default_runtime unset", asyn
 test("connectProject by gitUrl clones a local repo", async () => {
   const { cp, root } = setup();
   // make a local source repo to clone from (avoids network)
-  const src = mkdtempSync(join(tmpdir(), "harness-src-"));
+  const src = mkdtempSync(join(tmpdir(), "ryuzi-src-"));
   await Bun.$`git -C ${src} init -q`;
   await Bun.$`git -C ${src} config user.email x@x.x`;
   await Bun.$`git -C ${src} config user.name x`;

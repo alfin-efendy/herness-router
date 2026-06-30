@@ -31,7 +31,7 @@ test("doctor fails when claude not found", async () => {
 });
 
 test("doctor passes when tools present and required settings set", async () => {
-  const dbPath = `/tmp/harness-doctor-${Bun.hash(Math.random().toString())}.sqlite`;
+  const dbPath = `/tmp/ryuzi-doctor-${Bun.hash(Math.random().toString())}.sqlite`;
   const seed = depsWith(okRun, dbPath);
   for (const [k, v] of [
     ["discord.token", "t"],

@@ -9,13 +9,13 @@ const okFetch = (decision: "allow" | "deny"): typeof fetch =>
     })) as unknown as typeof fetch;
 
 test("allow when the IPC allows", async () => {
-  const r = await runHook({ input: PRE, env: { HARNESS_APPROVAL_URL: "http://x", HARNESS_SESSION_PK: "s1" }, fetchFn: okFetch("allow") });
+  const r = await runHook({ input: PRE, env: { RYUZI_APPROVAL_URL: "http://x", RYUZI_SESSION_PK: "s1" }, fetchFn: okFetch("allow") });
   expect(JSON.parse(r.stdout)).toEqual({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow" } });
   expect(r.exitCode).toBe(0);
 });
 
 test("deny when the IPC denies", async () => {
-  const r = await runHook({ input: PRE, env: { HARNESS_APPROVAL_URL: "http://x", HARNESS_SESSION_PK: "s1" }, fetchFn: okFetch("deny") });
+  const r = await runHook({ input: PRE, env: { RYUZI_APPROVAL_URL: "http://x", RYUZI_SESSION_PK: "s1" }, fetchFn: okFetch("deny") });
   expect(JSON.parse(r.stdout).hookSpecificOutput.permissionDecision).toBe("deny");
 });
 
@@ -28,7 +28,7 @@ test("fail-closed: fetch throws → deny", async () => {
   const boom = (async () => {
     throw new Error("unreachable");
   }) as unknown as typeof fetch;
-  const r = await runHook({ input: PRE, env: { HARNESS_APPROVAL_URL: "http://x", HARNESS_SESSION_PK: "s1" }, fetchFn: boom });
+  const r = await runHook({ input: PRE, env: { RYUZI_APPROVAL_URL: "http://x", RYUZI_SESSION_PK: "s1" }, fetchFn: boom });
   expect(JSON.parse(r.stdout).hookSpecificOutput.permissionDecision).toBe("deny");
 });
 
@@ -39,6 +39,6 @@ test("deny output has the exact documented shape", async () => {
 
 test("fail-closed: non-JSON response → deny", async () => {
   const badJson = (async () => new Response("not json")) as unknown as typeof fetch;
-  const r = await runHook({ input: PRE, env: { HARNESS_APPROVAL_URL: "http://x", HARNESS_SESSION_PK: "s1" }, fetchFn: badJson });
+  const r = await runHook({ input: PRE, env: { RYUZI_APPROVAL_URL: "http://x", RYUZI_SESSION_PK: "s1" }, fetchFn: badJson });
   expect(JSON.parse(r.stdout).hookSpecificOutput.permissionDecision).toBe("deny");
 });

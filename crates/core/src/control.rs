@@ -241,8 +241,8 @@ impl ControlPlane {
 
         let mut env: Vec<(String, String)> = Vec::new();
         if let Some(a) = &approval {
-            env.push(("HARNESS_APPROVAL_URL".into(), a.url.clone()));
-            env.push(("HARNESS_SESSION_PK".into(), a.session_pk.clone()));
+            env.push(("RYUZI_APPROVAL_URL".into(), a.url.clone()));
+            env.push(("RYUZI_SESSION_PK".into(), a.session_pk.clone()));
         }
 
         let input = RunInput {

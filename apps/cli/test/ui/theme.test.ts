@@ -8,14 +8,14 @@ test("palette exposes hex tokens", () => {
   expect(palette.ok).toBe("#36f9c3");
 });
 
-test("symbols default to unicode, ascii only under HR_ASCII", () => {
-  delete process.env.HR_ASCII;
+test("symbols default to unicode, ascii only under RYUZI_ASCII", () => {
+  delete process.env.RYUZI_ASCII;
   expect(symbols().dot).toBe("●");
   expect(borderStyle()).toBe("round");
-  process.env.HR_ASCII = "1";
+  process.env.RYUZI_ASCII = "1";
   expect(symbols().dot).toBe("*");
   expect(borderStyle()).toBe("single");
-  delete process.env.HR_ASCII;
+  delete process.env.RYUZI_ASCII;
 });
 
 test("paint is plain when color disabled (non-TTY test env)", () => {

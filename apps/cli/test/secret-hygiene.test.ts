@@ -6,10 +6,11 @@ import { openDb, SettingsStore } from "@ryuzi/core";
 import { runCli, type CliDeps } from "../src/cli/run";
 
 test("openDb tightens the DB parent directory to 0700", () => {
-  const dir = mkdtempSync(join(tmpdir(), "hr-perm-"));
+  const dir = mkdtempSync(join(tmpdir(), "ryuzi-perm-"));
   chmodSync(dir, 0o755); // simulate a umask-default (world-traversable) dir
-  const db = openDb(join(dir, "harness.sqlite"));
+  const db = openDb(join(dir, "ryuzi.sqlite"));
   db.close();
+  if (process.platform === "win32") return;
   expect(statSync(dir).mode & 0o777).toBe(0o700);
 });
 
@@ -24,9 +25,9 @@ function cliDeps(dbPath: string, out: string[]): CliDeps {
   };
 }
 
-test("hr config get masks a secret by default and reveals with --reveal", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "hr-cfg-"));
-  const dbPath = join(dir, "harness.sqlite");
+test("ryuzi config get masks a secret by default and reveals with --reveal", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "ryuzi-cfg-"));
+  const dbPath = join(dir, "ryuzi.sqlite");
   new SettingsStore(openDb(dbPath)).set("discord.token", "supersecret");
 
   const masked: string[] = [];

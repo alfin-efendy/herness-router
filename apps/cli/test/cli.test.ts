@@ -3,7 +3,7 @@ import { runCli, type CliDeps, type IO } from "../src/cli/run";
 import { detectClaude, detectGit } from "@ryuzi/core";
 
 function tmpDb(): string {
-  return `/tmp/harness-cli-${Bun.hash(Math.random().toString())}.sqlite`;
+  return `/tmp/ryuzi-cli-${Bun.hash(Math.random().toString())}.sqlite`;
 }
 function depsFor(dbPath: string) {
   const lines: string[] = [];

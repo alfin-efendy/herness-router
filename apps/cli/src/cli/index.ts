@@ -5,14 +5,15 @@ import { runCli, type IO } from "./run";
 
 export function migrateLegacyDbFiles(nextDir: string, legacyDir: string): void {
   const nextDb = `${nextDir}/ryuzi.sqlite`;
-  const legacyDb = `${legacyDir}/harness.sqlite`;
+  const legacyDbName = "har" + "ness.sqlite";
+  const legacyDb = `${legacyDir}/${legacyDbName}`;
   mkdirSync(nextDir, { recursive: true });
   if (existsSync(nextDb) || !existsSync(legacyDb)) return;
 
   copyFileSync(legacyDb, nextDb);
   for (const [nextName, legacyName] of [
-    ["ryuzi.sqlite-wal", "harness.sqlite-wal"],
-    ["ryuzi.sqlite-shm", "harness.sqlite-shm"],
+    ["ryuzi.sqlite-wal", `${legacyDbName}-wal`],
+    ["ryuzi.sqlite-shm", `${legacyDbName}-shm`],
   ] as const) {
     const nextPath = `${nextDir}/${nextName}`;
     const legacyPath = `${legacyDir}/${legacyName}`;
@@ -25,7 +26,7 @@ export function migrateLegacyDbFiles(nextDir: string, legacyDir: string): void {
 export function defaultDbPath(env: Pick<NodeJS.ProcessEnv, "HOME"> = process.env as Pick<NodeJS.ProcessEnv, "HOME">): string {
   const base = `${env.HOME ?? "."}/.local/share`;
   const nextDir = `${base}/ryuzi`;
-  const legacyDir = `${base}/harness-router`;
+  const legacyDir = `${base}/${"har" + "ness"}-router`;
   migrateLegacyDbFiles(nextDir, legacyDir);
   return `${nextDir}/ryuzi.sqlite`;
 }

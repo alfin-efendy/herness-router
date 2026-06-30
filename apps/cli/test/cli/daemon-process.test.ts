@@ -13,7 +13,7 @@ import {
 import { writeStatus, readStatus } from "../../src/cli/daemon-status";
 
 function dir() {
-  return mkdtempSync(join(tmpdir(), "hr-dproc-"));
+  return mkdtempSync(join(tmpdir(), "ryuzi-dproc-"));
 }
 
 test("makeShutdown stops the daemon, clears status, exits once", async () => {

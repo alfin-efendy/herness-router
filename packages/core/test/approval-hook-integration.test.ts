@@ -7,7 +7,7 @@ test("runHook approves through the real tokenized approval server", async () => 
   try {
     const res = await runHook({
       input: JSON.stringify({ tool_name: "Bash", tool_input: { command: "echo hi" } }),
-      env: { HARNESS_APPROVAL_URL: server.url, HARNESS_SESSION_PK: "s1" },
+      env: { RYUZI_APPROVAL_URL: server.url, RYUZI_SESSION_PK: "s1" },
       fetchFn: fetch,
     });
     expect(JSON.parse(res.stdout).hookSpecificOutput.permissionDecision).toBe("allow");
@@ -21,7 +21,7 @@ test("runHook denies through the real server when denied", async () => {
   try {
     const res = await runHook({
       input: JSON.stringify({ tool_name: "Bash", tool_input: {} }),
-      env: { HARNESS_APPROVAL_URL: server.url, HARNESS_SESSION_PK: "s1" },
+      env: { RYUZI_APPROVAL_URL: server.url, RYUZI_SESSION_PK: "s1" },
       fetchFn: fetch,
     });
     expect(JSON.parse(res.stdout).hookSpecificOutput.permissionDecision).toBe("deny");

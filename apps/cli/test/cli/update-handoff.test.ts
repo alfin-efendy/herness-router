@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { readHandoff, writeHandoff, clearHandoff } from "../../src/cli/update-handoff";
 
 function dir() {
-  return mkdtempSync(join(tmpdir(), "hr-handoff-"));
+  return mkdtempSync(join(tmpdir(), "ryuzi-handoff-"));
 }
 
 test("read returns null when absent; write then read round-trips; clear removes", () => {

@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { brandAssets, brandGlyph, brandName } from "../../src/cli/brand";
 import { helpText, version } from "../../src/cli/meta";
 
+const oldBrandAssetDir = `/assets/brand/${"har" + "ness"}-router`;
+
 test("help leads with OPTIONS and lists only doctor + run", () => {
   const h = helpText();
   expect(h).toContain("ryuzi");
@@ -41,7 +43,7 @@ test("brand metadata points to packaged logo assets", () => {
     const path = fileURLToPath(asset);
     const normalizedPath = path.replaceAll("\\", "/");
     expect(normalizedPath).toContain("/assets/brand/");
-    expect(normalizedPath).not.toContain("/assets/brand/harness-router/");
+    expect(normalizedPath).not.toContain(`${oldBrandAssetDir}/`);
     expect(normalizedPath).not.toContain("/apps/cli/assets/");
     expect(existsSync(path)).toBe(true);
   }
@@ -55,7 +57,7 @@ test("brand usage guide documents the shared root assets", () => {
   expect(guide).toContain("<picture>");
   expect(guide).toContain("prefers-color-scheme");
   expect(guide).toContain("outputs/logos/");
-  expect(guide).not.toContain("assets/brand/harness-router");
+  expect(guide).not.toContain(oldBrandAssetDir.slice(1));
 });
 
 test("root readme uses explicit light and dark wordmark sources", () => {

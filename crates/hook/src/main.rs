@@ -5,11 +5,11 @@ fn decide() -> &'static str {
     if std::io::stdin().read_to_string(&mut input).is_err() {
         return "deny";
     }
-    let url = match std::env::var("HARNESS_APPROVAL_URL") {
+    let url = match std::env::var("RYUZI_APPROVAL_URL") {
         Ok(u) => u,
         Err(_) => return "deny",
     };
-    let session_pk = match std::env::var("HARNESS_SESSION_PK") {
+    let session_pk = match std::env::var("RYUZI_SESSION_PK") {
         Ok(s) => s,
         Err(_) => return "deny",
     };

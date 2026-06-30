@@ -50,19 +50,32 @@ const textFilenames = new Set([
   "Makefile",
 ]);
 
+const oldBrand = "har" + "ness";
+const oldShort = "h" + "r";
 const oldIdentityPatterns: Array<[string, RegExp]> = [
-  ["Harness Router", /Harness Router/],
-  ["harness-router", /harness-router/],
-  ["harness-monorepo", /harness-monorepo/],
-  ["harness CLI", /\bharness CLI\b/i],
-  ["@harness scope", /@harness\//],
-  ["hrctl package", /hrctl/],
-  ["homebrew-harness tap", /homebrew-harness/],
-  ["scoop-harness bucket", /scoop-harness/],
-  ["HR installer env", /\bHR_[A-Z0-9_]+\b/],
-  ["hr command token", /(?:`hr(?:\.exe)?`|\bhr(?:\.exe)?\s+(?:doctor|run|config|--help|--version)|(?:^|[\s"'=:])hr(?:\.exe)?(?:[\s"',)]|$))/],
-  ["old hr binary path", /(?:^|[\s"'=:])(?:[A-Za-z]:[\\/]+|\.{1,2}[\\/]+|[\\/]+|[A-Za-z0-9_$.*-]+[\\/]+)(?:[A-Za-z0-9_$.*-]+[\\/]+)*hr(?:\.exe)?(?=$|[\s"',)\\])/],
-  [".hr canary", /\.hr\.canary/],
+  ["old title", new RegExp(`${oldBrand[0]!.toUpperCase()}${oldBrand.slice(1)} Router`)],
+  ["old router slug", new RegExp(`${oldBrand}-router`)],
+  ["old monorepo slug", new RegExp(`${oldBrand}-monorepo`)],
+  ["old CLI wording", new RegExp(`\\b${oldBrand} CLI\\b`, "i")],
+  ["old package scope", new RegExp(`@${oldBrand}/`)],
+  ["old ctl package", new RegExp(`${oldShort}ctl`)],
+  ["old homebrew tap", new RegExp(`homebrew-${oldBrand}`)],
+  ["old scoop bucket", new RegExp(`scoop-${oldBrand}`)],
+  ["old brand env", new RegExp(`\\b${oldBrand.toUpperCase()}_[A-Z0-9_]+\\b`)],
+  ["old installer env", new RegExp(`\\b${oldShort.toUpperCase()}_[A-Z0-9_]+\\b`)],
+  [
+    "old short command token",
+    new RegExp(
+      `(?:\`${oldShort}(?:\\.exe)?\`|\\b${oldShort}(?:\\.exe)?\\s+(?:doctor|run|config|--help|--version)|(?:^|[\\s"'=:])${oldShort}(?:\\.exe)?(?:[\\s"',)]|$))`,
+    ),
+  ],
+  [
+    "old short binary path",
+    new RegExp(
+      `(?:^|[\\s"'=:])(?:[A-Za-z]:[\\\\/]+|\\.{1,2}[\\\\/]+|[\\\\/]+|[A-Za-z0-9_$.*-]+[\\\\/]+)(?:[A-Za-z0-9_$.*-]+[\\\\/]+)*${oldShort}(?:\\.exe)?(?=$|[\\s"',)\\\\]])`,
+    ),
+  ],
+  ["old canary file", new RegExp(`\\.${oldShort}\\.canary`)],
 ];
 
 function shouldSkipRel(rel: string): boolean {

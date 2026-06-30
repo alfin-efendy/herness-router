@@ -1,7 +1,7 @@
 import { symbolsUnicode, symbolsAscii } from "./tokens";
 
 export function unicodeEnabled(): boolean {
-  return !process.env.HR_ASCII;
+  return !process.env.RYUZI_ASCII;
 }
 export function symbols() {
   return unicodeEnabled() ? symbolsUnicode : symbolsAscii;

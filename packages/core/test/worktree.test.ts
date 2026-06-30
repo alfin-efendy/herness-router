@@ -17,7 +17,7 @@ afterAll(() => {
 });
 
 async function tempRepo(): Promise<string> {
-  const dir = mkTmp("harness-wt-");
+  const dir = mkTmp("ryuzi-wt-");
   await Bun.$`git -C ${dir} init -q`;
   await Bun.$`git -C ${dir} config user.email x@x.x`;
   await Bun.$`git -C ${dir} config user.name x`;
@@ -52,22 +52,22 @@ test("create then remove a worktree on a real repo", async () => {
 
 // A bare "remote" on `main` plus a fresh clone (clone sets origin + origin/HEAD).
 async function tempClone(): Promise<{ remote: string; clone: string }> {
-  const remote = mkTmp("harness-remote-");
+  const remote = mkTmp("ryuzi-remote-");
   await Bun.$`git -C ${remote} init -q --bare -b main`.quiet();
-  const seed = mkTmp("harness-seed-");
+  const seed = mkTmp("ryuzi-seed-");
   await Bun.$`git -C ${seed} init -q -b main`.quiet();
   await Bun.$`git -C ${seed} config user.email x@x.x`.quiet();
   await Bun.$`git -C ${seed} config user.name x`.quiet();
   await Bun.$`git -C ${seed} commit -q --allow-empty -m init`.quiet();
   await Bun.$`git -C ${seed} remote add origin ${remote}`.quiet();
   await Bun.$`git -C ${seed} push -q origin main`.quiet();
-  const clone = mkTmp("harness-clone-");
+  const clone = mkTmp("ryuzi-clone-");
   await Bun.$`git clone -q ${remote} ${clone}`.quiet();
   return { remote, clone };
 }
 
 async function pushEmptyCommit(remote: string, msg: string): Promise<string> {
-  const work = mkTmp("harness-push-");
+  const work = mkTmp("ryuzi-push-");
   await Bun.$`git clone -q ${remote} ${work}`.quiet();
   await Bun.$`git -C ${work} config user.email x@x.x`.quiet();
   await Bun.$`git -C ${work} config user.name x`.quiet();

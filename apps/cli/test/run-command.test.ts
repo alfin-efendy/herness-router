@@ -8,7 +8,7 @@ import { detectClaude, detectGit } from "@ryuzi/core";
 import type { Agent, AgentEvent, AgentRunInput } from "@ryuzi/core";
 
 async function tempRepo(): Promise<string> {
-  const dir = mkdtempSync(join(tmpdir(), "harness-run-"));
+  const dir = mkdtempSync(join(tmpdir(), "ryuzi-run-"));
   await Bun.$`git -C ${dir} init -q`;
   await Bun.$`git -C ${dir} config user.email x@x.x`;
   await Bun.$`git -C ${dir} config user.name x`;
