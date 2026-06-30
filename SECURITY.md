@@ -2,8 +2,8 @@
 
 ## Supported versions
 
-harness-router is pre-1.0 and ships from a single line of development. Security
-fixes are applied to the latest released version on npm (`hrctl`) and the latest
+ryuzi is pre-1.0 and ships from a single line of development. Security
+fixes are applied to the latest released version on npm (`ryuzi`) and the latest
 GitHub Release. Please upgrade to the latest version before reporting.
 
 ## Reporting a vulnerability
@@ -12,12 +12,12 @@ GitHub Release. Please upgrade to the latest version before reporting.
 
 Report privately via GitHub's "Report a vulnerability" form
 (Security → Advisories → Report a vulnerability) on
-https://github.com/alfin-efendy/harness-router/security/advisories/new
+https://github.com/alfin-efendy/ryuzi/security/advisories/new
 
 If you cannot use that form, contact the maintainer directly and we will open a
 private advisory on your behalf.
 
-Please include: affected version (`hr --version`), platform, a description of the
+Please include: affected version (`ryuzi --version`), platform, a description of the
 issue, and reproduction steps or a proof of concept if you have one.
 
 ## What to expect
@@ -29,7 +29,7 @@ issue, and reproduction steps or a proof of concept if you have one.
 
 ## Scope
 
-harness-router runs an agent that executes code inside git repositories and can
+ryuzi runs an agent that executes code inside git repositories and can
 be driven from chat clients. Reports we are especially interested in:
 
 - Compromise of the release/distribution path (npm, Docker/GHCR, installer, CI).
