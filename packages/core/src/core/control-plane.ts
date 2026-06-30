@@ -68,6 +68,7 @@ export class ControlPlane implements ControlPlaneApi {
   private telemetry: Telemetry;
   private running = new Map<string, AbortController>();
   private chains = new Map<string, Promise<unknown>>();
+  private draining = false;
 
   constructor(private deps: ControlPlaneDeps) {
     this.worktree = deps.worktree ?? {
@@ -107,6 +108,7 @@ export class ControlPlane implements ControlPlaneApi {
   }
 
   async startSession(req: StartSessionRequest): Promise<Session> {
+    if (this.draining) throw new Error("daemon is draining for an update; try again shortly");
     const project = this.deps.projects.get(req.projectId);
     if (!project) throw new Error(`unknown project: ${req.projectId}`);
     const sessionPk = crypto.randomUUID();
@@ -141,6 +143,7 @@ export class ControlPlane implements ControlPlaneApi {
   }
 
   async continueSession(req: ContinueSessionRequest): Promise<void> {
+    if (this.draining) throw new Error("daemon is draining for an update; try again shortly");
     const session = this.deps.sessions.get(req.sessionPk);
     if (!session) throw new Error(`unknown session: ${req.sessionPk}`);
     const project = this.deps.projects.get(session.projectId);
@@ -227,6 +230,25 @@ export class ControlPlane implements ControlPlaneApi {
   async stopSession(sessionPk: string): Promise<void> {
     this.running.get(sessionPk)?.abort();
     if (this.deps.sessions.get(sessionPk)) this.deps.sessions.update(sessionPk, { status: "idle" });
+  }
+
+  runningCount(): number {
+    return this.running.size;
+  }
+
+  /**
+   * Stop accepting new turns and wait for in-flight turns to finish, up to
+   * `timeoutMs`. A one-way latch: once drained, this ControlPlane never takes new
+   * work again (the process is expected to exit/restart afterwards). Turns still
+   * running at the deadline are left as-is — they are killed by the daemon exit and
+   * resumed by the next daemon's reconcile().
+   */
+  async drain(timeoutMs: number): Promise<void> {
+    this.draining = true;
+    const deadline = Date.now() + timeoutMs;
+    while (this.running.size > 0 && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
   }
 
   async endSession(sessionPk: string, _opts?: { keepBranch?: boolean }): Promise<void> {
