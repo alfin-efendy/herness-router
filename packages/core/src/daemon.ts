@@ -19,6 +19,7 @@ import { csv } from "./config/required";
 export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: Telemetry; catalog?: ProviderCatalog }): {
   gateways: Gateway[];
   cp: ControlPlane;
+  settings: SettingsStore;
   start(): Promise<void>;
   stop(): Promise<void>;
 } {
@@ -62,6 +63,7 @@ export function buildDaemon(deps: { dbPath: string; db?: Database; telemetry?: T
   return {
     gateways,
     cp,
+    settings,
     start: () =>
       Promise.all(gateways.map((g) => g.start())).then(() => {
         // Resume sessions left running by a previous daemon (crash or update).

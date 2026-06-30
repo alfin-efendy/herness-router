@@ -1,6 +1,9 @@
 import { dirname } from "node:path";
 import { buildDaemon } from "@harness/core";
 import { writeStatus, clearStatus } from "./daemon-status";
+import { UpdateManager } from "./update-manager";
+import { version } from "./meta";
+import { isCompiledExecutable } from "./daemon-spawn";
 
 const CONNECT_TIMEOUT_MS = 30000;
 
@@ -44,13 +47,27 @@ export async function runDaemon(deps: { dbPath: string }): Promise<void> {
   const startedAt = Date.now();
   writeStatus(dir, { pid: process.pid, state: "connecting", startedAt });
   const daemon = buildDaemon({ dbPath: deps.dbPath });
-  const shutdown = makeShutdown(dir, daemon);
+  const updater = new UpdateManager({
+    cp: daemon.cp,
+    settings: daemon.settings,
+    version: version(),
+    execPath: process.execPath,
+    compiled: isCompiledExecutable(),
+    log: (m) => console.log(m),
+  });
+  const shutdown = makeShutdown(dir, {
+    stop: async () => {
+      updater.stop();
+      await daemon.stop();
+    },
+  });
   process.on("SIGTERM", () => void shutdown());
   process.on("SIGINT", () => void shutdown());
   try {
     await startWithTimeout(daemon, CONNECT_TIMEOUT_MS);
     writeStatus(dir, { pid: process.pid, state: "running", startedAt });
     console.log("daemon: running");
+    updater.start();
   } catch (e) {
     writeStatus(dir, { pid: process.pid, state: "error", startedAt, lastError: (e as Error).message });
     console.error("daemon: failed to start:", (e as Error).message);
