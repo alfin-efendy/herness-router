@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { Session, SessionStatus, Surface } from "@harness/protocol";
+import type { Session, SessionStatus, Surface } from "@ryuzi/protocol";
 
 interface Row {
   session_pk: string;

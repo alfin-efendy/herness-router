@@ -1,5 +1,5 @@
-import { openDb, SettingsStore, SETTING_DEFS, missingRequiredSettings, catalog } from "@harness/core";
-import type { detectClaude, detectGit, Agent } from "@harness/core";
+import { openDb, SettingsStore, SETTING_DEFS, missingRequiredSettings, catalog } from "@ryuzi/core";
+import type { detectClaude, detectGit, Agent } from "@ryuzi/core";
 import { cmdRun } from "./run-command";
 import { launchUi } from "./ui/launch";
 import { helpText, version } from "./meta";
@@ -32,7 +32,7 @@ async function cmdConfig(args: string[], deps: CliDeps): Promise<number> {
     const reveal = rest.includes("--reveal");
     const key = rest.find((a) => a !== "--reveal");
     if (!key) {
-      deps.io.err("usage: hr config get <key> [--reveal]");
+      deps.io.err("usage: ryuzi config get <key> [--reveal]");
       return 1;
     }
     const value = settings.get(key) ?? "";
@@ -42,7 +42,7 @@ async function cmdConfig(args: string[], deps: CliDeps): Promise<number> {
   if (sub === "set") {
     const [, key, value] = args;
     if (!key || value === undefined) {
-      deps.io.err("usage: hr config set <key> <value>");
+      deps.io.err("usage: ryuzi config set <key> <value>");
       return 1;
     }
     try {
@@ -71,7 +71,7 @@ async function cmdConfig(args: string[], deps: CliDeps): Promise<number> {
     }
     return 0;
   }
-  deps.io.err("usage: hr config <get|set|list> ...");
+  deps.io.err("usage: ryuzi config <get|set|list> ...");
   return 1;
 }
 
@@ -116,7 +116,7 @@ export async function runCli(args: string[], deps: CliDeps): Promise<number> {
     case undefined:
       return launchUi(deps);
     default:
-      deps.io.err(`unknown command: ${cmd} — run \`hr --help\``);
+      deps.io.err(`unknown command: ${cmd} - run \`ryuzi --help\``);
       return 1;
   }
 }

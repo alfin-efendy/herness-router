@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { readStatus, writeStatus, clearStatus, isAlive, deriveState } from "../../src/cli/daemon-status";
 
 function dir() {
-  return mkdtempSync(join(tmpdir(), "hr-status-"));
+  return mkdtempSync(join(tmpdir(), "ryuzi-status-"));
 }
 
 test("write/read/clear round-trip", () => {
@@ -32,7 +32,7 @@ test("deriveState maps status to UI state", () => {
 });
 
 test("status file round-trips an optional version stamp", () => {
-  const d = mkdtempSync(join(tmpdir(), "hr-status-ver-"));
+  const d = mkdtempSync(join(tmpdir(), "ryuzi-status-ver-"));
   writeStatus(d, { pid: 7, state: "running", startedAt: 1, version: "0.3.0" });
   expect(readStatus(d)?.version).toBe("0.3.0");
 });

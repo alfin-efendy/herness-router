@@ -1,8 +1,20 @@
 import { mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { createHash } from "node:crypto";
+import { basename, dirname, join } from "node:path";
 
 export function worktreePathFor(workdirRoot: string, projectId: string, sessionPk: string): string {
-  return join(workdirRoot, ".harness-worktrees", projectId, sessionPk);
+  return join(workdirRoot, ".harness-worktrees", projectPathSegment(projectId), sessionPk);
+}
+
+function projectPathSegment(projectId: string): string {
+  const leaf =
+    projectId
+      .split(/[\\/]+/)
+      .filter(Boolean)
+      .pop() ?? basename(projectId);
+  const name = leaf.replace(/[^A-Za-z0-9._-]/g, "_") || "project";
+  const hash = createHash("sha256").update(projectId).digest("hex").slice(0, 12);
+  return `${name}-${hash}`;
 }
 
 // Resolve the freshest base ref to branch a new worktree off of: fetch origin and

@@ -1,6 +1,6 @@
 // packages/core/test/approval-coordinator.test.ts
 import { test, expect } from "bun:test";
-import type { ApprovalDecision } from "@harness/protocol";
+import type { ApprovalDecision } from "@ryuzi/protocol";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";

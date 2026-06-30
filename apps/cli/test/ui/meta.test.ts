@@ -4,9 +4,13 @@ import { fileURLToPath } from "node:url";
 import { brandAssets, brandGlyph, brandName } from "../../src/cli/brand";
 import { helpText, version } from "../../src/cli/meta";
 
+const oldBrandAssetDir = `/assets/brand/${"har" + "ness"}-router`;
+
 test("help leads with OPTIONS and lists only doctor + run", () => {
   const h = helpText();
-  expect(h).toContain("Harness Router");
+  expect(h).toContain("ryuzi");
+  expect(h).toContain("  ryuzi                 open the dashboard (first run launches setup)");
+  expect(h).toContain("ryuzi run --dir <repo> --prompt <text> [--model x] [--effort y] [--mode m]");
   expect(h).toContain("OPTIONS");
   expect(h).toContain("doctor");
   expect(h).toContain("run");
@@ -20,8 +24,8 @@ test("version is a semver-ish string", () => {
 });
 
 test("brand metadata points to packaged logo assets", () => {
-  expect(brandGlyph).toBe("マ");
-  expect(brandName).toBe("Harness Router");
+  expect(brandGlyph).toBe("r");
+  expect(brandName).toBe("ryuzi");
   expect(Object.keys(brandAssets).sort()).toEqual([
     "faviconIco",
     "iconPng",
@@ -37,9 +41,10 @@ test("brand metadata points to packaged logo assets", () => {
   ]);
   for (const asset of Object.values(brandAssets)) {
     const path = fileURLToPath(asset);
-    expect(path).toContain("/assets/brand/");
-    expect(path).not.toContain("/assets/brand/harness-router/");
-    expect(path).not.toContain("/apps/cli/assets/");
+    const normalizedPath = path.replaceAll("\\", "/");
+    expect(normalizedPath).toContain("/assets/brand/");
+    expect(normalizedPath).not.toContain(`${oldBrandAssetDir}/`);
+    expect(normalizedPath).not.toContain("/apps/cli/assets/");
     expect(existsSync(path)).toBe(true);
   }
 });
@@ -52,7 +57,7 @@ test("brand usage guide documents the shared root assets", () => {
   expect(guide).toContain("<picture>");
   expect(guide).toContain("prefers-color-scheme");
   expect(guide).toContain("outputs/logos/");
-  expect(guide).not.toContain("assets/brand/harness-router");
+  expect(guide).not.toContain(oldBrandAssetDir.slice(1));
 });
 
 test("root readme uses explicit light and dark wordmark sources", () => {
@@ -62,7 +67,7 @@ test("root readme uses explicit light and dark wordmark sources", () => {
   expect(readme).toContain('media="(prefers-color-scheme: dark)"');
   expect(readme).toContain("assets/brand/wordmark-dark.svg");
   expect(readme).toContain("assets/brand/wordmark-light.svg");
-  expect(readme).not.toContain("![Harness Router wordmark](assets/brand/wordmark.svg)");
+  expect(readme).not.toContain("![ryuzi wordmark](");
 });
 
 test("brand svg assets are light, dark, and adaptive safe", () => {

@@ -1,6 +1,8 @@
 import { test, expect } from "bun:test";
-import { probe, runCanaryWith, type CanaryDeps } from "../../src/cli/update-canary";
+import { canaryTargetVersion, canaryTimeoutMs, probe, runCanaryWith, type CanaryDeps } from "../../src/cli/update-canary";
 import type { Handoff } from "../../src/cli/update-handoff";
+
+const legacyBrandEnv = "HAR" + "NESS";
 
 test("probe is healthy when version matches and db opens", () => {
   expect(probe({ openDb: () => ({}), version: "0.3.0", targetVersion: "0.3.0" })).toEqual({ healthy: true });
@@ -22,6 +24,17 @@ test("probe fails when db cannot open", () => {
   });
   expect(r.healthy).toBe(false);
   expect(r.detail).toMatch(/db|locked/i);
+});
+
+test("canary target version reads RYUZI_CANARY_TARGET", () => {
+  expect(canaryTargetVersion("0.2.0", { RYUZI_CANARY_TARGET: "0.3.0", [`${legacyBrandEnv}_CANARY_TARGET`]: "0.4.0" })).toBe("0.3.0");
+  expect(canaryTargetVersion("0.2.0", {})).toBe("0.2.0");
+});
+
+test("canary timeout reads RYUZI_CANARY_TIMEOUT_MS and ignores legacy env", () => {
+  expect(canaryTimeoutMs({ RYUZI_CANARY_TIMEOUT_MS: "1234", [`${legacyBrandEnv}_CANARY_TIMEOUT_MS`]: "9999" })).toBe(1234);
+  expect(canaryTimeoutMs({ [`${legacyBrandEnv}_CANARY_TIMEOUT_MS`]: "9999" })).toBe(60000);
+  expect(canaryTimeoutMs({})).toBe(60000);
 });
 
 function canaryDeps(

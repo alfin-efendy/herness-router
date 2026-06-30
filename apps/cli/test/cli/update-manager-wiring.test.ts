@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildDaemon, openDb, SettingsStore } from "@harness/core";
+import { buildDaemon, openDb, SettingsStore } from "@ryuzi/core";
 
 test("buildDaemon exposes the settings store so the daemon can read auto_update_*", () => {
   const db = openDb(":memory:");

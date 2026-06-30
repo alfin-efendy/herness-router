@@ -10,7 +10,9 @@ pub struct ApprovalHub {
 
 impl ApprovalHub {
     pub fn new() -> ApprovalHub {
-        ApprovalHub { pending: Mutex::new(HashMap::new()) }
+        ApprovalHub {
+            pending: Mutex::new(HashMap::new()),
+        }
     }
 
     pub fn register(&self, request_id: String) -> oneshot::Receiver<bool> {
@@ -93,13 +95,19 @@ impl ApprovalServer {
                 })
                 .to_string();
                 let resp = tiny_http::Response::from_string(payload).with_header(
-                    "Content-Type: application/json".parse::<tiny_http::Header>().unwrap(),
+                    "Content-Type: application/json"
+                        .parse::<tiny_http::Header>()
+                        .unwrap(),
                 );
                 let _ = request.respond(resp);
             }
         });
 
-        Ok(ApprovalServer { url, shutdown: Some(join), server })
+        Ok(ApprovalServer {
+            url,
+            shutdown: Some(join),
+            server,
+        })
     }
 
     pub fn url(&self) -> &str {

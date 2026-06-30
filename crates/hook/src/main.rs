@@ -5,11 +5,11 @@ fn decide() -> &'static str {
     if std::io::stdin().read_to_string(&mut input).is_err() {
         return "deny";
     }
-    let url = match std::env::var("HARNESS_APPROVAL_URL") {
+    let url = match std::env::var("RYUZI_APPROVAL_URL") {
         Ok(u) => u,
         Err(_) => return "deny",
     };
-    let session_pk = match std::env::var("HARNESS_SESSION_PK") {
+    let session_pk = match std::env::var("RYUZI_SESSION_PK") {
         Ok(s) => s,
         Err(_) => return "deny",
     };
@@ -24,7 +24,9 @@ fn decide() -> &'static str {
     });
     match ureq::post(&url).send_json(body) {
         Ok(resp) => match resp.into_json::<serde_json::Value>() {
-            Ok(v) if v.get("permissionDecision").and_then(|d| d.as_str()) == Some("allow") => "allow",
+            Ok(v) if v.get("permissionDecision").and_then(|d| d.as_str()) == Some("allow") => {
+                "allow"
+            }
             _ => "deny",
         },
         Err(_) => "deny",

@@ -3,11 +3,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AppController } from "../../src/cli/ui/controller";
-import { detectClaude, detectGit } from "@harness/core";
+import { detectClaude, detectGit } from "@ryuzi/core";
 import { writeStatus } from "../../src/cli/daemon-status";
 
 function configured() {
-  const root = mkdtempSync(join(tmpdir(), "hr-ctl-"));
+  const root = mkdtempSync(join(tmpdir(), "ryuzi-ctl-"));
   const spawns: string[][] = [];
   const kills: Array<[number, string | number]> = [];
   const c = new AppController({
@@ -53,7 +53,7 @@ test("daemon() reflects the status file the daemon writes", async () => {
 });
 
 test("startDaemon records an error (no spawn) when required settings missing", async () => {
-  const root = mkdtempSync(join(tmpdir(), "hr-ctl2-"));
+  const root = mkdtempSync(join(tmpdir(), "ryuzi-ctl2-"));
   const spawns: string[][] = [];
   const c = new AppController({
     dbPath: join(root, "db.sqlite"),

@@ -112,8 +112,9 @@ impl Store {
         let conn = self.pool.get().await?;
         let rows = conn
             .interact(|c| -> rusqlite::Result<Vec<Project>> {
-                let mut stmt =
-                    c.prepare(&format!("SELECT {PROJECT_COLS} FROM projects ORDER BY created_at"))?;
+                let mut stmt = c.prepare(&format!(
+                    "SELECT {PROJECT_COLS} FROM projects ORDER BY created_at"
+                ))?;
                 let items = stmt
                     .query_map([], row_to_project)?
                     .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -214,7 +215,12 @@ impl Store {
         conn.interact(move |c| {
             c.execute(
                 "UPDATE sessions SET status=?2, last_active=?3 WHERE session_pk=?1 AND status=?4",
-                params![pk, SessionStatus::Idle.as_str(), last_active, SessionStatus::Running.as_str()],
+                params![
+                    pk,
+                    SessionStatus::Idle.as_str(),
+                    last_active,
+                    SessionStatus::Running.as_str()
+                ],
             )
         })
         .await
@@ -222,7 +228,11 @@ impl Store {
         Ok(())
     }
 
-    pub async fn update_agent_session_id(&self, pk: &str, agent_session_id: &str) -> anyhow::Result<()> {
+    pub async fn update_agent_session_id(
+        &self,
+        pk: &str,
+        agent_session_id: &str,
+    ) -> anyhow::Result<()> {
         let pk = pk.to_string();
         let agent = agent_session_id.to_string();
         let conn = self.pool.get().await?;
@@ -315,8 +325,14 @@ mod tests {
         let got = store.get_session("s1").await.unwrap().unwrap();
         assert_eq!(got.status, SessionStatus::Running);
 
-        store.update_agent_session_id("s1", "agent-xyz").await.unwrap();
-        store.update_status("s1", SessionStatus::Idle, Some(99)).await.unwrap();
+        store
+            .update_agent_session_id("s1", "agent-xyz")
+            .await
+            .unwrap();
+        store
+            .update_status("s1", SessionStatus::Idle, Some(99))
+            .await
+            .unwrap();
 
         let got = store.get_session("s1").await.unwrap().unwrap();
         assert_eq!(got.agent_session_id.as_deref(), Some("agent-xyz"));

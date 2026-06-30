@@ -1,5 +1,5 @@
 import type { Gateway, MessageRef } from "../src/gateways/types";
-import type { Surface, ApprovalRequest, ApprovalDecision } from "@harness/protocol";
+import type { Surface, ApprovalRequest, ApprovalDecision } from "@ryuzi/protocol";
 
 export class FakeGateway implements Gateway {
   readonly id: string;

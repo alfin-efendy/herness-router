@@ -8,13 +8,13 @@ if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
 }
 
 const platformNames = [
-  "harness-router-linux-x64",
-  "harness-router-linux-arm64",
-  "harness-router-linux-x64-musl",
-  "harness-router-linux-arm64-musl",
-  "harness-router-darwin-x64",
-  "harness-router-darwin-arm64",
-  "harness-router-win32-x64",
+  "ryuzi-linux-x64",
+  "ryuzi-linux-arm64",
+  "ryuzi-linux-x64-musl",
+  "ryuzi-linux-arm64-musl",
+  "ryuzi-darwin-x64",
+  "ryuzi-darwin-arm64",
+  "ryuzi-win32-x64",
 ];
 
 for (const name of platformNames) {
@@ -24,7 +24,7 @@ for (const name of platformNames) {
   await Bun.write(path, JSON.stringify(pkg, null, 2) + "\n");
 }
 
-const mainPath = "npm/harness-router/package.json";
+const mainPath = "npm/ryuzi/package.json";
 const main = await Bun.file(mainPath).json();
 main.version = version;
 main.optionalDependencies = Object.fromEntries(platformNames.map((n) => [n, version]));

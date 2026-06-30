@@ -1,7 +1,7 @@
 // packages/core/test/control-plane-run.test.ts
 import { test, expect, afterAll } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
-import type { CoreEvent } from "@harness/protocol";
+import type { CoreEvent } from "@ryuzi/protocol";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";
@@ -183,7 +183,7 @@ class RenamingHarness implements Agent {
 }
 
 test("first run: the agent's branch rename is read back into session.branch and emitted", async () => {
-  const repo = mkTmp("harness-cp-");
+  const repo = mkTmp("ryuzi-cp-");
   await Bun.$`git -C ${repo} init -q -b main`.quiet();
   await Bun.$`git -C ${repo} config user.email x@x.x`.quiet();
   await Bun.$`git -C ${repo} config user.name x`.quiet();
@@ -193,7 +193,7 @@ test("first run: the agent's branch rename is read back into session.branch and 
   const projects = new ProjectsStore(db);
   projects.insert({ projectId: "p1", name: "foo", workdir: repo, harness: "claude-code", permMode: "default" });
   const sessions = new SessionsStore(db);
-  const root = mkTmp("harness-root-");
+  const root = mkTmp("ryuzi-root-");
   const cp = new ControlPlane({
     projects,
     sessions,

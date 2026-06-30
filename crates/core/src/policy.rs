@@ -54,8 +54,14 @@ mod tests {
 
     #[test]
     fn tool_summary_formats_bash_and_paths() {
-        assert_eq!(tool_summary("Bash", &json!({"command": "ls -la"})), "Bash: ls -la");
-        assert_eq!(tool_summary("Read", &json!({"file_path": "/a/b.rs"})), "Read: /a/b.rs");
+        assert_eq!(
+            tool_summary("Bash", &json!({"command": "ls -la"})),
+            "Bash: ls -la"
+        );
+        assert_eq!(
+            tool_summary("Read", &json!({"file_path": "/a/b.rs"})),
+            "Read: /a/b.rs"
+        );
         assert_eq!(tool_summary("Weird", &json!({})), "Weird");
     }
 }

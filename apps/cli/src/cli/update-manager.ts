@@ -1,5 +1,5 @@
-import type { Session, CoreEvent } from "@harness/protocol";
-import { checkForUpdate, detectInstallMethod, type InstallInfo, type SettingsStore } from "@harness/core";
+import type { Session, CoreEvent } from "@ryuzi/protocol";
+import { checkForUpdate, detectInstallMethod, type InstallInfo, type SettingsStore } from "@ryuzi/core";
 
 /** The slice of ControlPlane the UpdateManager needs (ControlPlane satisfies it). */
 export interface NotifyTarget {
@@ -53,7 +53,7 @@ export class UpdateManager {
 
   async tick(): Promise<void> {
     if (this.mode() === "off") return;
-    const repo = this.deps.settings.get("auto_update_repo") ?? "alfin-efendy/harness-router";
+    const repo = this.deps.settings.get("auto_update_repo")?.trim() || "alfin-efendy/ryuzi";
     const res = await checkForUpdate({ currentVersion: this.deps.version, repo, fetchImpl: this.deps.fetchImpl });
     if (!res.updateAvailable || !res.latestVersion) return;
     const install = detectInstallMethod({
@@ -72,7 +72,7 @@ export class UpdateManager {
   private notify(version: string, install: InstallInfo): void {
     if (this.deps.settings.get("last_notified_version") === version) return; // dedupe
     this.deps.settings.set("last_notified_version", version);
-    const text = `⬆️ harness-router ${version} is available — ${upgradeHint(install)}`;
+    const text = `⬆️ ryuzi ${version} is available - ${upgradeHint(install)}`;
     this.deps.log?.(text);
     for (const s of this.deps.cp.listSessions()) {
       if (s.status !== "idle" && s.status !== "running") continue;
@@ -84,13 +84,13 @@ export class UpdateManager {
 function upgradeHint(install: InstallInfo): string {
   switch (install.method) {
     case "brew":
-      return "run `brew upgrade harness-router` to update.";
+      return "run `brew upgrade ryuzi` to update.";
     case "npm":
-      return "run `npm i -g hrctl@latest` to update.";
+      return "run `npm i -g ryuzi@latest` to update.";
     case "scoop":
-      return "run `scoop update harness-router` to update.";
+      return "run `scoop update ryuzi` to update.";
     case "installsh":
-      return "run `curl -fsSL https://github.com/alfin-efendy/harness-router/raw/main/install.sh | sh` to update.";
+      return "run `curl -fsSL https://github.com/alfin-efendy/ryuzi/raw/main/install.sh | sh` to update.";
     default:
       return "see the GitHub release to update.";
   }

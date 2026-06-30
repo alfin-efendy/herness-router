@@ -11,12 +11,16 @@ pub struct CmdError {
 
 impl From<anyhow::Error> for CmdError {
     fn from(e: anyhow::Error) -> Self {
-        CmdError { message: e.to_string() }
+        CmdError {
+            message: e.to_string(),
+        }
     }
 }
 
 impl From<std::io::Error> for CmdError {
     fn from(e: std::io::Error) -> Self {
-        CmdError { message: e.to_string() }
+        CmdError {
+            message: e.to_string(),
+        }
     }
 }

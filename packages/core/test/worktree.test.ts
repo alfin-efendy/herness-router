@@ -1,4 +1,5 @@
 import { test, expect, afterAll } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,7 +17,7 @@ afterAll(() => {
 });
 
 async function tempRepo(): Promise<string> {
-  const dir = mkTmp("harness-wt-");
+  const dir = mkTmp("ryuzi-wt-");
   await Bun.$`git -C ${dir} init -q`;
   await Bun.$`git -C ${dir} config user.email x@x.x`;
   await Bun.$`git -C ${dir} config user.name x`;
@@ -24,8 +25,22 @@ async function tempRepo(): Promise<string> {
   return dir;
 }
 
-test("worktreePathFor composes the expected path", () => {
-  expect(worktreePathFor("/root", "p1", "s1")).toBe("/root/.harness-worktrees/p1/s1");
+function projectSegment(projectId: string, name: string): string {
+  return `${name}-${createHash("sha256").update(projectId).digest("hex").slice(0, 12)}`;
+}
+
+test("worktreePathFor sanitizes a Windows project path segment", () => {
+  const projectId = "C:\\Users\\me\\repo";
+  expect(worktreePathFor("C:\\work", projectId, "s1")).toBe(
+    join("C:\\work", ".harness-worktrees", projectSegment(projectId, "repo"), "s1"),
+  );
+});
+
+test("worktreePathFor sanitizes a POSIX project path segment", () => {
+  const projectId = "/repos/my-project";
+  expect(worktreePathFor("/root", projectId, "s1")).toBe(
+    join("/root", ".harness-worktrees", projectSegment(projectId, "my-project"), "s1"),
+  );
 });
 
 test("create then remove a worktree on a real repo", async () => {
@@ -41,22 +56,22 @@ test("create then remove a worktree on a real repo", async () => {
 
 // A bare "remote" on `main` plus a fresh clone (clone sets origin + origin/HEAD).
 async function tempClone(): Promise<{ remote: string; clone: string }> {
-  const remote = mkTmp("harness-remote-");
+  const remote = mkTmp("ryuzi-remote-");
   await Bun.$`git -C ${remote} init -q --bare -b main`.quiet();
-  const seed = mkTmp("harness-seed-");
+  const seed = mkTmp("ryuzi-seed-");
   await Bun.$`git -C ${seed} init -q -b main`.quiet();
   await Bun.$`git -C ${seed} config user.email x@x.x`.quiet();
   await Bun.$`git -C ${seed} config user.name x`.quiet();
   await Bun.$`git -C ${seed} commit -q --allow-empty -m init`.quiet();
   await Bun.$`git -C ${seed} remote add origin ${remote}`.quiet();
   await Bun.$`git -C ${seed} push -q origin main`.quiet();
-  const clone = mkTmp("harness-clone-");
+  const clone = mkTmp("ryuzi-clone-");
   await Bun.$`git clone -q ${remote} ${clone}`.quiet();
   return { remote, clone };
 }
 
 async function pushEmptyCommit(remote: string, msg: string): Promise<string> {
-  const work = mkTmp("harness-push-");
+  const work = mkTmp("ryuzi-push-");
   await Bun.$`git clone -q ${remote} ${work}`.quiet();
   await Bun.$`git -C ${work} config user.email x@x.x`.quiet();
   await Bun.$`git -C ${work} config user.name x`.quiet();

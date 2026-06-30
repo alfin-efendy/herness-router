@@ -7,7 +7,7 @@ export interface Platform {
 }
 
 export function assetName(version: string, p: Platform): string {
-  return `harness-router_${version}_${p.goos}_${p.goarch}${p.musl ? "_musl" : ""}.tar.gz`;
+  return `ryuzi_${version}_${p.goos}_${p.goarch}${p.musl ? "_musl" : ""}.tar.gz`;
 }
 
 export function assetUrl(repo: string, tag: string, name: string): string {

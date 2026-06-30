@@ -6,7 +6,7 @@ import { SessionTranscript } from "./components/SessionTranscript";
 import { RightDock } from "./components/RightDock";
 import { TitleBar } from "./components/shell/TitleBar";
 import { useDisableContextMenu } from "./lib/contextMenu";
-import { Badge, Toaster } from "@harness/ui";
+import { Badge, Toaster } from "@ryuzi/ui";
 
 export default function App() {
   const init = useStore((s) => s.init);

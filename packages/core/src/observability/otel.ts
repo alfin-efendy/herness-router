@@ -14,7 +14,7 @@ import type { Telemetry, Span, Attrs } from "./types";
 
 export function createOtelTelemetry(opts: { endpoint: string; serviceName?: string }): Telemetry {
   const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: opts.serviceName ?? "harness-router",
+    [ATTR_SERVICE_NAME]: opts.serviceName ?? "ryuzi",
   });
 
   const tracerProvider = new BasicTracerProvider({
@@ -31,8 +31,8 @@ export function createOtelTelemetry(opts: { endpoint: string; serviceName?: stri
     ],
   });
 
-  const tracer = tracerProvider.getTracer("harness-router");
-  const meter = meterProvider.getMeter("harness-router");
+  const tracer = tracerProvider.getTracer("ryuzi");
+  const meter = meterProvider.getMeter("ryuzi");
 
   // Lazy instrument caches — noUncheckedIndexedAccess: we always check before use via Map.get
   const counters = new Map<string, Counter>();

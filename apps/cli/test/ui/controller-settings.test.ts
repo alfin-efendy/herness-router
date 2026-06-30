@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { AppController } from "../../src/cli/ui/controller";
-import { detectClaude, detectGit } from "@harness/core";
+import { detectClaude, detectGit } from "@ryuzi/core";
 
 function make() {
   return new AppController({ dbPath: ":memory:", detect: { claude: detectClaude, git: detectGit } });

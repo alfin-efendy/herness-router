@@ -1,11 +1,11 @@
 {
-  "name": "harness-router-linux-arm64-musl",
-  "version": "0.0.0",
-  "description": "linux-arm64 (musl) binary for harness-router.",
+  "name": "ryuzi-linux-arm64",
+  "version": "0.2.0",
+  "description": "linux-arm64 (glibc) binary for ryuzi.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alfin-efendy/harness-router.git"
+    "url": "git+https://github.com/alfin-efendy/ryuzi.git"
   },
   "engines": {
     "node": ">=18"
@@ -17,10 +17,10 @@
     "arm64"
   ],
   "libc": [
-    "musl"
+    "glibc"
   ],
   "preferUnplugged": true,
   "files": [
-    "hr"
+    "ryuzi"
   ]
 }

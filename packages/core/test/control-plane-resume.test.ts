@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import type { Agent, AgentEvent, AgentRunInput } from "../src/agents/types";
-import type { CoreEvent } from "@harness/protocol";
+import type { CoreEvent } from "@ryuzi/protocol";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 import { SessionsStore } from "../src/store/sessions";

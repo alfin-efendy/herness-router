@@ -37,7 +37,7 @@ class FakeGateway implements Gateway {
 }
 
 test("buildDaemon builds + starts only enabled gateways and exposes cp", async () => {
-  const root = mkdtempSync(join(tmpdir(), "hr-daemon-"));
+  const root = mkdtempSync(join(tmpdir(), "ryuzi-daemon-"));
   const dbPath = join(root, "db.sqlite");
   const s = new SettingsStore(openDb(dbPath));
   s.set("workdir_root", root);
@@ -68,7 +68,7 @@ test("buildDaemon builds + starts only enabled gateways and exposes cp", async (
 });
 
 test("buildDaemon stop() tears down gateways", async () => {
-  const root = mkdtempSync(join(tmpdir(), "hr-daemon-stop-"));
+  const root = mkdtempSync(join(tmpdir(), "ryuzi-daemon-stop-"));
   const dbPath = join(root, "db.sqlite");
   const s = new SettingsStore(openDb(dbPath));
   s.set("workdir_root", root);
@@ -94,7 +94,7 @@ test("buildDaemon stop() tears down gateways", async () => {
 });
 
 test("buildDaemon accepts injected telemetry and builds/starts", async () => {
-  const root = mkdtempSync(join(tmpdir(), "hr-daemon-tel-"));
+  const root = mkdtempSync(join(tmpdir(), "ryuzi-daemon-tel-"));
   const dbPath = join(root, "db.sqlite");
   const s = new SettingsStore(openDb(dbPath));
   s.set("workdir_root", root);

@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 set -eu
 
-REPO="alfin-efendy/harness-router"
-INSTALL_DIR="${HR_INSTALL_DIR:-$HOME/.local/bin}"
-VERSION="${HR_VERSION:-latest}"
+REPO="alfin-efendy/ryuzi"
+INSTALL_DIR="${RYUZI_INSTALL_DIR:-$HOME/.local/bin}"
+VERSION="${RYUZI_VERSION:-latest}"
 
 err() { echo "install: $*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || err "required tool not found: $1"; }
@@ -46,7 +46,7 @@ case "$tag" in
 esac
 
 ver="${tag#v}"
-asset="harness-router_${ver}_${goos}_${goarch}${suffix}.tar.gz"
+asset="ryuzi_${ver}_${goos}_${goarch}${suffix}.tar.gz"
 base="https://github.com/$REPO/releases/download/$tag"
 
 tmp=$(mktemp -d)
@@ -67,11 +67,11 @@ fi
 
 tar -xzf "$tmp/$asset" -C "$tmp"
 mkdir -p "$INSTALL_DIR"
-install -m 0755 "$tmp/hr" "$INSTALL_DIR/hr"
+install -m 0755 "$tmp/ryuzi" "$INSTALL_DIR/ryuzi"
 
-echo "install: hr installed to $INSTALL_DIR/hr"
+echo "install: ryuzi installed to $INSTALL_DIR/ryuzi"
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) ;;
   *) echo "install: add $INSTALL_DIR to your PATH" ;;
 esac
-"$INSTALL_DIR/hr" --version
+"$INSTALL_DIR/ryuzi" --version

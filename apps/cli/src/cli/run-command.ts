@@ -1,10 +1,10 @@
 // apps/cli/src/cli/run-command.ts
 import { parseArgs } from "node:util";
 import { dirname, resolve } from "node:path";
-import type { CoreEvent } from "@harness/protocol";
-import { PERM_MODES, type PermMode } from "@harness/protocol";
+import type { CoreEvent } from "@ryuzi/protocol";
+import { PERM_MODES, type PermMode } from "@ryuzi/protocol";
 import type { CliDeps } from "./run";
-import { openDb, ProjectsStore, SessionsStore, SettingsStore, ControlPlane, expandHome, catalog, csv } from "@harness/core";
+import { openDb, ProjectsStore, SessionsStore, SettingsStore, ControlPlane, expandHome, catalog, csv } from "@ryuzi/core";
 
 export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
   let dir: string | undefined, prompt: string | undefined, model: string | undefined, effort: string | undefined, mode: string | undefined;
@@ -26,7 +26,7 @@ export async function cmdRun(args: string[], deps: CliDeps): Promise<number> {
     return 1;
   }
   if (!dir || !prompt) {
-    deps.io.err("usage: hr run --dir <git-repo> --prompt <text> [--model x] [--effort y] [--mode m]");
+    deps.io.err("usage: ryuzi run --dir <git-repo> --prompt <text> [--model x] [--effort y] [--mode m]");
     return 1;
   }
   if (mode && !(PERM_MODES as readonly string[]).includes(mode)) {

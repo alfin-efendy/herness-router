@@ -48,7 +48,8 @@ mod tests {
             idx.write_tree().unwrap()
         };
         let tree = repo.find_tree(tree_id).unwrap();
-        repo.commit(Some("HEAD"), &sig, &sig, "init", &tree, &[]).unwrap();
+        repo.commit(Some("HEAD"), &sig, &sig, "init", &tree, &[])
+            .unwrap();
     }
 
     #[test]
@@ -63,7 +64,9 @@ mod tests {
         assert!(wt_path.join(".git").exists());
 
         let repo = git2::Repository::open(repo_dir.path()).unwrap();
-        assert!(repo.find_branch("harness/abcdef01", git2::BranchType::Local).is_ok());
+        assert!(repo
+            .find_branch("harness/abcdef01", git2::BranchType::Local)
+            .is_ok());
 
         remove(repo_dir.path(), "abcdef01", &wt_path).unwrap();
         assert!(!wt_path.exists());

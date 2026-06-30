@@ -21,9 +21,13 @@ test("settings round-trips a value", () => {
 });
 
 test("openDb sets file permissions to owner-only (no group/other read)", () => {
-  const path = `/tmp/harness-perm-${Bun.hash(Math.random().toString())}.sqlite`;
+  const path = `/tmp/ryuzi-perm-${Bun.hash(Math.random().toString())}.sqlite`;
   const db = openDb(path);
   db.close();
+  if (process.platform === "win32") {
+    unlinkSync(path);
+    return;
+  }
   const mode = statSync(path).mode & 0o777;
   // Assert no group or other bits are set (chmod 600 or stricter).
   // We test (mode & 0o077) === 0 rather than exact 0o600 equality because

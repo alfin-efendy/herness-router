@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import type { Project } from "@harness/protocol";
+import type { Project } from "@ryuzi/protocol";
 import { openDb } from "../src/store/db";
 import { ProjectsStore } from "../src/store/projects";
 

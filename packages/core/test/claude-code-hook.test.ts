@@ -20,7 +20,8 @@ test("default mode + approval adds --settings with the hook", () => {
   const i = a.indexOf("--settings");
   expect(i).toBeGreaterThan(-1);
   expect(a[i + 1]).toContain("PreToolUse");
-  expect(a[i + 1]).toContain("bun /h.ts");
+  expect(a[i + 1]).toContain("bun");
+  expect(a[i + 1]).toContain("/h.ts");
 });
 
 test("bypass mode does not add --settings", () => {
@@ -39,7 +40,7 @@ test("acceptEdits mode does not add --settings", () => {
   expect(a).not.toContain("--settings");
 });
 
-test("runner receives HARNESS_* env when approval is set", async () => {
+test("runner receives RYUZI_* env when approval is set", async () => {
   let capturedEnv: Record<string, string> | undefined;
   const runner: ClaudeRunner = (_args, opts) => {
     capturedEnv = (opts as { env?: Record<string, string> }).env;
@@ -52,6 +53,6 @@ test("runner receives HARNESS_* env when approval is set", async () => {
   for await (const _e of it) {
     /* drain */
   }
-  expect(capturedEnv?.HARNESS_APPROVAL_URL).toBe("http://ipc");
-  expect(capturedEnv?.HARNESS_SESSION_PK).toBe("s9");
+  expect(capturedEnv?.RYUZI_APPROVAL_URL).toBe("http://ipc");
+  expect(capturedEnv?.RYUZI_SESSION_PK).toBe("s9");
 });

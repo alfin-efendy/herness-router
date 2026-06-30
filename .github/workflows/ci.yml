@@ -36,8 +36,8 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Configure git identity (some tests create real commits)
         run: |
-          git config --global user.email "ci@harness-router.dev"
-          git config --global user.name "harness-router CI"
+          git config --global user.email "ci@ryuzi.dev"
+          git config --global user.name "ryuzi CI"
       - run: bun run typecheck
       - run: bun test
 
@@ -49,6 +49,6 @@ jobs:
         with:
           bun-version: 1.3.14
       - run: bun install --frozen-lockfile
-      - run: bun build apps/cli/src/cli/index.ts --compile --target=bun-linux-x64 --outfile dist/hr
-      - run: ./dist/hr --version
-      - run: ./dist/hr --help
+      - run: bun build apps/cli/src/cli/index.ts --compile --target=bun-linux-x64 --outfile dist/ryuzi
+      - run: ./dist/ryuzi --version
+      - run: ./dist/ryuzi --help

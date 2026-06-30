@@ -1,5 +1,5 @@
 {
-  "name": "@harness/core",
+  "name": "@ryuzi/core",
   "version": "0.2.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@harness/protocol": "workspace:*",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.219.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
@@ -17,6 +16,7 @@
     "@opentelemetry/sdk-metrics": "^2.8.0",
     "@opentelemetry/sdk-trace-base": "^2.8.0",
     "@opentelemetry/semantic-conventions": "^1.41.1",
-    "discord.js": "^14.26.4"
+    "discord.js": "^14.26.4",
+    "@ryuzi/protocol": "workspace:*"
   }
 }

@@ -96,13 +96,34 @@ pub enum AgentEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum CoreEvent {
-    SessionCreated { session_pk: String, project_id: String },
-    Status { session_pk: String, text: String },
-    Text { session_pk: String, text: String },
-    Result { session_pk: String },
-    ApprovalRequested { session_pk: String, request_id: String, tool: String, summary: String },
-    Error { session_pk: String, message: String },
-    SessionEnded { session_pk: String },
+    SessionCreated {
+        session_pk: String,
+        project_id: String,
+    },
+    Status {
+        session_pk: String,
+        text: String,
+    },
+    Text {
+        session_pk: String,
+        text: String,
+    },
+    Result {
+        session_pk: String,
+    },
+    ApprovalRequested {
+        session_pk: String,
+        request_id: String,
+        tool: String,
+        summary: String,
+    },
+    Error {
+        session_pk: String,
+        message: String,
+    },
+    SessionEnded {
+        session_pk: String,
+    },
 }
 
 #[cfg(test)]
@@ -111,7 +132,11 @@ mod tests {
 
     #[test]
     fn perm_mode_roundtrips_through_db_string() {
-        for m in [PermMode::Default, PermMode::AcceptEdits, PermMode::BypassPermissions] {
+        for m in [
+            PermMode::Default,
+            PermMode::AcceptEdits,
+            PermMode::BypassPermissions,
+        ] {
             assert_eq!(PermMode::from_db(m.as_str()), m);
         }
         assert_eq!(PermMode::from_db("nonsense"), PermMode::Default);
@@ -119,7 +144,12 @@ mod tests {
 
     #[test]
     fn session_status_roundtrips_through_db_string() {
-        for s in [SessionStatus::Idle, SessionStatus::Running, SessionStatus::Interrupted, SessionStatus::Ended] {
+        for s in [
+            SessionStatus::Idle,
+            SessionStatus::Running,
+            SessionStatus::Interrupted,
+            SessionStatus::Ended,
+        ] {
             assert_eq!(SessionStatus::from_db(s.as_str()), s);
         }
         assert_eq!(SessionStatus::from_db("nonsense"), SessionStatus::Idle);
@@ -127,7 +157,10 @@ mod tests {
 
     #[test]
     fn core_event_serializes_with_camel_tag_and_snake_fields() {
-        let e = CoreEvent::SessionCreated { session_pk: "s1".into(), project_id: "p1".into() };
+        let e = CoreEvent::SessionCreated {
+            session_pk: "s1".into(),
+            project_id: "p1".into(),
+        };
         let j = serde_json::to_value(&e).unwrap();
         assert_eq!(j["kind"], "sessionCreated");
         assert_eq!(j["session_pk"], "s1");

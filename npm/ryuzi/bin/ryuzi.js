@@ -3,16 +3,16 @@
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 
-const BINARY_NAME = process.platform === "win32" ? "hr.exe" : "hr";
+const BINARY_NAME = process.platform === "win32" ? "ryuzi.exe" : "ryuzi";
 
 const PLATFORM_PACKAGES = {
-  "linux x64 glibc": "harness-router-linux-x64",
-  "linux x64 musl": "harness-router-linux-x64-musl",
-  "linux arm64 glibc": "harness-router-linux-arm64",
-  "linux arm64 musl": "harness-router-linux-arm64-musl",
-  "darwin x64": "harness-router-darwin-x64",
-  "darwin arm64": "harness-router-darwin-arm64",
-  "win32 x64": "harness-router-win32-x64",
+  "linux x64 glibc": "ryuzi-linux-x64",
+  "linux x64 musl": "ryuzi-linux-x64-musl",
+  "linux arm64 glibc": "ryuzi-linux-arm64",
+  "linux arm64 musl": "ryuzi-linux-arm64-musl",
+  "darwin x64": "ryuzi-darwin-x64",
+  "darwin arm64": "ryuzi-darwin-arm64",
+  "win32 x64": "ryuzi-win32-x64",
 };
 
 function isMusl() {
@@ -44,15 +44,15 @@ function platformKey() {
 }
 
 function fail(msg) {
-  console.error(`\n[harness-router] ${msg}\n`);
+  console.error(`\n[ryuzi] ${msg}\n`);
   process.exit(1);
 }
 
 function resolveBinaryPath() {
-  const override = process.env.HR_BINARY_PATH;
+  const override = process.env.RYUZI_BINARY_PATH;
   if (override) {
     if (fs.existsSync(override)) return override;
-    console.warn(`[harness-router] HR_BINARY_PATH is set to "${override}" but that path does not exist — ignoring it.`);
+    console.warn(`[ryuzi] RYUZI_BINARY_PATH is set to "${override}" but that path does not exist; ignoring it.`);
   }
 
   const key = platformKey();
@@ -69,7 +69,7 @@ function resolveBinaryPath() {
         `  - install ran with --no-optional / --omit=optional\n` +
         `  - node_modules was built on a different OS/arch and copied here\n` +
         `  - the optional dependency failed to download\n\n` +
-        `Fix: reinstall on this machine: npm install -g harness-router`,
+        `Fix: reinstall on this machine: npm install -g ryuzi`,
     );
   }
 }

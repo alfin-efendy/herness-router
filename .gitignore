@@ -44,8 +44,8 @@ docs/superpowers/
 .superpowers/
 
 # npm wrapper binaries are copied in at release time, never committed
-npm/platform/*/hr
-npm/platform/*/hr.exe
+npm/platform/*/ryuzi
+npm/platform/*/ryuzi.exe
 
 /target
 /.cargo

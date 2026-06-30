@@ -17,7 +17,7 @@ export async function checkForUpdate(opts: { currentVersion: string; repo: strin
   const fetchImpl = opts.fetchImpl ?? fetch;
   const url = `https://api.github.com/repos/${opts.repo}/releases/latest`;
   try {
-    const res = await fetchImpl(url, { headers: { Accept: "application/vnd.github+json", "User-Agent": "harness-router" } });
+    const res = await fetchImpl(url, { headers: { Accept: "application/vnd.github+json", "User-Agent": "ryuzi" } });
     if (!res.ok) return none;
     const body = (await res.json()) as { tag_name?: string };
     const tag = body.tag_name ?? null;

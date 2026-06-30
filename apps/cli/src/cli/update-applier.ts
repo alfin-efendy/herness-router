@@ -59,7 +59,7 @@ export async function applyUpdate(deps: ApplierDeps): Promise<ApplyOutcome> {
   // Green: finish in-flight turns, swap the binary, hand over.
   await deps.drain(deps.drainTimeoutMs);
   deps.backup();
-  deps.swap(); // atomic rename .hr.canary → hr
+  deps.swap(); // atomic rename .ryuzi.canary → ryuzi
   deps.writeHandoff({ phase: "promote", pid, version: deps.version });
   await deps.stopGateways();
 
@@ -74,7 +74,7 @@ export async function applyUpdate(deps: ApplierDeps): Promise<ApplyOutcome> {
   // Canary failed to promote → roll back to the backed-up binary.
   deps.log(`update: canary failed to promote, rolling back to previous binary`);
   deps.killCanary(pid);
-  deps.restore(); // rename hr.bak → hr
+  deps.restore(); // rename ryuzi.bak → ryuzi
   deps.clearHandoff();
   return "rolledback";
 }

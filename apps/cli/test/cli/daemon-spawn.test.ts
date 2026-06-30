@@ -2,14 +2,14 @@ import { test, expect } from "bun:test";
 import { isCompiledExecutable, daemonRelaunchCmd } from "../../src/cli/daemon-spawn";
 
 test("isCompiledExecutable detects the Bun standalone virtual paths", () => {
-  expect(isCompiledExecutable("/$bunfs/root/hr")).toBe(true);
-  expect(isCompiledExecutable("B:\\~BUN\\root\\hr")).toBe(true);
+  expect(isCompiledExecutable("/$bunfs/root/ryuzi")).toBe(true);
+  expect(isCompiledExecutable("B:\\~BUN\\root\\ryuzi")).toBe(true);
   expect(isCompiledExecutable("/home/me/app/src/cli/index.ts")).toBe(false);
 });
 
 test("daemonRelaunchCmd drops the script path when compiled", () => {
-  expect(daemonRelaunchCmd({ execPath: "/usr/local/bin/hr", main: "/$bunfs/root/hr", compiled: true })).toEqual([
-    "/usr/local/bin/hr",
+  expect(daemonRelaunchCmd({ execPath: "/usr/local/bin/ryuzi", main: "/$bunfs/root/ryuzi", compiled: true })).toEqual([
+    "/usr/local/bin/ryuzi",
     "__daemon",
   ]);
 });

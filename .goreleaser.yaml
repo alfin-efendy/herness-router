@@ -1,10 +1,10 @@
 version: 2
-project_name: harness-router
+project_name: ryuzi
 
 builds:
-  - id: harness-router-gnu-other
+  - id: ryuzi-gnu-other
     builder: bun
-    binary: hr
+    binary: ryuzi
     main: apps/cli/src/cli/index.ts
     targets:
       - linux-x64
@@ -16,9 +16,9 @@ builds:
       - --compile
       - --minify
 
-  - id: harness-router-musl
+  - id: ryuzi-musl
     builder: bun
-    binary: hr
+    binary: ryuzi
     main: apps/cli/src/cli/index.ts
     targets:
       - linux-x64-musl
@@ -29,7 +29,7 @@ builds:
 
 archives:
   - id: default
-    ids: [harness-router-gnu-other]
+    ids: [ryuzi-gnu-other]
     formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
@@ -38,7 +38,7 @@ archives:
     files: [README*]
 
   - id: musl
-    ids: [harness-router-musl]
+    ids: [ryuzi-musl]
     formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}_musl"
     files: [README*]
@@ -48,77 +48,77 @@ checksum:
   algorithm: sha256
 
 homebrew_casks:
-  - name: harness-router
+  - name: ryuzi
     ids: [default]
-    binaries: [hr]
+    binaries: [ryuzi]
     repository:
       owner: alfin-efendy
-      name: homebrew-harness
+      name: homebrew-ryuzi
       branch: main
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     directory: Casks
-    homepage: "https://github.com/alfin-efendy/harness-router"
-    description: "Gateway-agnostic control plane for agent harnesses (hr CLI)"
+    homepage: "https://github.com/alfin-efendy/ryuzi"
+    description: "Gateway-agnostic control plane for agent harnesses (ryuzi CLI)"
     commit_author:
       name: goreleaserbot
-      email: bot@harness-router.dev
+      email: bot@ryuzi.dev
 
 scoops:
-  - name: harness-router
+  - name: ryuzi
     repository:
       owner: alfin-efendy
-      name: scoop-harness
+      name: scoop-ryuzi
       branch: main
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-    homepage: "https://github.com/alfin-efendy/harness-router"
-    description: "Gateway-agnostic control plane for agent harnesses (hr CLI)"
+    homepage: "https://github.com/alfin-efendy/ryuzi"
+    description: "Gateway-agnostic control plane for agent harnesses (ryuzi CLI)"
     license: MIT
     commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
 
 dockers:
   - id: amd64
-    ids: [harness-router-musl]
+    ids: [ryuzi-musl]
     goos: linux
     goarch: amd64
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - "ghcr.io/alfin-efendy/harness-router:{{ .Version }}-amd64"
+      - "ghcr.io/alfin-efendy/ryuzi:{{ .Version }}-amd64"
     build_flag_templates:
       - "--pull"
       - "--platform=linux/amd64"
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.source=https://github.com/alfin-efendy/harness-router"
+      - "--label=org.opencontainers.image.source=https://github.com/alfin-efendy/ryuzi"
 
   - id: arm64
-    ids: [harness-router-musl]
+    ids: [ryuzi-musl]
     goos: linux
     goarch: arm64
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - "ghcr.io/alfin-efendy/harness-router:{{ .Version }}-arm64"
+      - "ghcr.io/alfin-efendy/ryuzi:{{ .Version }}-arm64"
     build_flag_templates:
       - "--pull"
       - "--platform=linux/arm64"
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.source=https://github.com/alfin-efendy/harness-router"
+      - "--label=org.opencontainers.image.source=https://github.com/alfin-efendy/ryuzi"
 
 docker_manifests:
-  - name_template: "ghcr.io/alfin-efendy/harness-router:{{ .Version }}"
+  - name_template: "ghcr.io/alfin-efendy/ryuzi:{{ .Version }}"
     image_templates:
-      - "ghcr.io/alfin-efendy/harness-router:{{ .Version }}-amd64"
-      - "ghcr.io/alfin-efendy/harness-router:{{ .Version }}-arm64"
-  - name_template: "ghcr.io/alfin-efendy/harness-router:latest"
+      - "ghcr.io/alfin-efendy/ryuzi:{{ .Version }}-amd64"
+      - "ghcr.io/alfin-efendy/ryuzi:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/alfin-efendy/ryuzi:latest"
     image_templates:
-      - "ghcr.io/alfin-efendy/harness-router:{{ .Version }}-amd64"
-      - "ghcr.io/alfin-efendy/harness-router:{{ .Version }}-arm64"
+      - "ghcr.io/alfin-efendy/ryuzi:{{ .Version }}-amd64"
+      - "ghcr.io/alfin-efendy/ryuzi:{{ .Version }}-arm64"
 
 release:
   github:
     owner: alfin-efendy
-    name: harness-router
+    name: ryuzi
   mode: append
   replace_existing_artifacts: true

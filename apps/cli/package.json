@@ -1,19 +1,19 @@
 {
-  "name": "@harness/cli",
+  "name": "@ryuzi/cli",
   "version": "0.2.0",
   "private": true,
   "type": "module",
   "module": "src/cli/index.ts",
   "bin": {
-    "hr": "./src/cli/index.ts"
+    "ryuzi": "./src/cli/index.ts"
   },
   "dependencies": {
-    "@harness/core": "workspace:*",
-    "@harness/protocol": "workspace:*",
     "ink": "^7.1.0",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
-    "react": "^19.2.7"
+    "react": "^19.2.7",
+    "@ryuzi/core": "workspace:*",
+    "@ryuzi/protocol": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

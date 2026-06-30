@@ -1,16 +1,16 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/brand/wordmark-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="assets/brand/wordmark-light.svg">
-  <img src="assets/brand/wordmark-light.svg" alt="Harness Router" width="560">
+  <img src="assets/brand/wordmark-light.svg" alt="ryuzi" width="560">
 </picture>
 
-# harness-router
+# ryuzi
 
-[![npm version](https://img.shields.io/npm/v/hrctl.svg)](https://www.npmjs.com/package/hrctl)
-[![CI](https://github.com/alfin-efendy/harness-router/actions/workflows/ci.yml/badge.svg)](https://github.com/alfin-efendy/harness-router/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/ryuzi.svg)](https://www.npmjs.com/package/ryuzi)
+[![CI](https://github.com/alfin-efendy/ryuzi/actions/workflows/ci.yml/badge.svg)](https://github.com/alfin-efendy/ryuzi/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Gateway-agnostic **control plane** for running agent harnesses (starting with Claude Code) and driving them from many clients (starting with Discord). The CLI is `hr` — *drive Claude Code from chat and terminal*.
+Gateway-agnostic **control plane** for running agent harnesses (starting with Claude Code) and driving them from many clients (starting with Discord). The CLI is `ryuzi` — *drive Claude Code from chat and terminal*.
 
 > Long-term: a **mission control** web app, an **IDE** desktop app, and a **mobile** app — all in this monorepo, all sharing one API/contract with the router.
 
@@ -20,25 +20,25 @@ Gateway-agnostic **control plane** for running agent harnesses (starting with Cl
 | --- | --- |
 | [`git`](https://git-scm.com/) | Sessions run inside git repositories. |
 | [`claude` CLI](https://docs.claude.com/en/docs/claude-code) | The Claude Code runtime. **Log in once on the host** — the runtime uses your host login. |
-| [Bun](https://bun.sh) | Only for running **from source** (development). The installed `hr` binary needs nothing else. |
+| [Bun](https://bun.sh) | Only for running **from source** (development). The installed `ryuzi` binary needs nothing else. |
 | A Discord server | Only if you want to drive sessions from Discord (you must be able to add a bot to it). |
 
-Check your environment any time with `hr doctor`.
+Check your environment any time with `ryuzi doctor`.
 
 ## Quick start
 
-Install the CLI (the binary is `hr`):
+Install the CLI:
 
 ```bash
-npm i -g hrctl       # global install
+npm i -g ryuzi       # global install
 # or try it without installing:
-bunx hrctl --help
+bunx ryuzi --help
 ```
 
 Verify your environment:
 
 ```bash
-hr doctor
+ryuzi doctor
 # git:    OK 2.43.0
 # claude: OK 2.1.191
 # auth:   unknown (relies on host login)
@@ -51,7 +51,7 @@ hr doctor
 Then launch the dashboard. **The first run starts an interactive setup wizard** — pick a gateway (Discord) and a runtime (Claude Code), then fill the required fields (at minimum `workdir_root`, the parent folder where your repos live):
 
 ```bash
-hr
+ryuzi
 ```
 
 ## Smoke test in the terminal (no Discord)
@@ -59,7 +59,7 @@ hr
 The fastest way to confirm everything works — a one-shot session, no gateway required. Point it at any git repo and give it a prompt:
 
 ```bash
-hr run --dir ~/code/my-repo --prompt "List the files in this repo and summarize what it does"
+ryuzi run --dir ~/code/my-repo --prompt "List the files in this repo and summarize what it does"
 ```
 
 | Flag | Meaning |
@@ -86,16 +86,16 @@ Driving sessions from Discord needs a bot you create in the Discord Developer Po
 5. **Copy the Application ID.** Open **General Information** → copy **Application ID**. This is your **`discord.app_id`**.
 6. **Copy your Server ID.** In Discord, enable **Settings → Advanced → Developer Mode**, then right-click your server icon → **Copy Server ID**. This is your **`discord.guild_id`**.
 7. **Invite the bot to your server.** Open **OAuth2 → URL Generator**, select the scopes **`bot`** and **`applications.commands`**, then under **Bot Permissions** check the permissions from step 3. Open the generated URL and add the bot to your server.
-8. **Enter the values.** Run `hr`; the setup wizard prompts for `discord.token`, `discord.app_id`, and `discord.guild_id`. For headless automation you can use `hr config set discord.token <value>` instead.
+8. **Enter the values.** Run `ryuzi`; the setup wizard prompts for `discord.token`, `discord.app_id`, and `discord.guild_id`. For headless automation you can use `ryuzi config set discord.token <value>` instead.
 9. **(Optional) Restrict access.** Set `admin_role_ids` and/or `approver_role_ids` to comma-separated Discord role IDs to control who may administer the bot and who may approve tool use.
 
-Run `hr` again — the Discord gateway connects and you can drive sessions from your server.
+Run `ryuzi` again — the Discord gateway connects and you can drive sessions from your server.
 
 </details>
 
 ## Configuration
 
-Settings live in a local SQLite database at `~/.local/share/harness-router/harness.sqlite`. Most people set them through the `hr` setup wizard, but `hr config <get|set|list>` is available for headless automation.
+Settings live in a local SQLite database at `~/.local/share/ryuzi/ryuzi.sqlite`. Most people set them through the `ryuzi` setup wizard, but `ryuzi config <get|set|list>` is available for headless automation.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
@@ -116,11 +116,11 @@ Settings live in a local SQLite database at `~/.local/share/harness-router/harne
 
 | Command | What it does |
 | --- | --- |
-| `hr` | Open the dashboard; the first run launches the setup wizard. |
-| `hr doctor` | Check your environment (git, claude, settings). |
-| `hr run --dir <repo> --prompt <text> [--model x] [--effort y] [--mode m]` | One-shot session in a repo. |
-| `hr --help` (or `-h`) | Show help. |
-| `hr --version` (or `-v`) | Print the version. |
+| `ryuzi` | Open the dashboard; the first run launches the setup wizard. |
+| `ryuzi doctor` | Check your environment (git, claude, settings). |
+| `ryuzi run --dir <repo> --prompt <text> [--model x] [--effort y] [--mode m]` | One-shot session in a repo. |
+| `ryuzi --help` (or `-h`) | Show help. |
+| `ryuzi --version` (or `-v`) | Print the version. |
 
 ## Development (from source)
 
@@ -130,7 +130,7 @@ This is a Bun workspaces monorepo. From the repo root:
 
 ```bash
 bun install          # link workspaces
-bun run hr ...       # run the hr CLI from source
+bun run ryuzi ...    # run the ryuzi CLI from source
 bun test             # run all package tests
 bun run typecheck    # tsc --noEmit across the repo
 bun run lint         # biome ci .
@@ -141,13 +141,13 @@ bun run format       # biome check --write .
 
 ```
 apps/
-  cli/               # @harness/cli — the hr CLI + ink TUI (thin app over @harness/core)
-  mission-control/   # @harness/mission-control — web app (planned)
-  ide/               # @harness/ide — desktop app (planned)
-  mobile/            # @harness/mobile — mobile app (planned)
+  cli/               # @ryuzi/cli — the ryuzi CLI + ink TUI (thin app over @ryuzi/core)
+  mission-control/   # @ryuzi/mission-control — web app (planned)
+  ide/               # @ryuzi/ide — desktop app (planned)
+  mobile/            # @ryuzi/mobile — mobile app (planned)
 packages/
-  core/              # @harness/core — engine: control plane, store, providers, agents, gateways, observability
-  protocol/          # @harness/protocol — shared contracts: domain models, events, ControlPlane API
+  core/              # @ryuzi/core — engine: control plane, store, providers, agents, gateways, observability
+  protocol/          # @ryuzi/protocol — shared contracts: domain models, events, ControlPlane API
 docs/superpowers/    # specs & implementation plans
 ```
 
@@ -155,7 +155,7 @@ See `docs/superpowers/specs/` for designs and `docs/superpowers/plans/` for mile
 
 ## Roadmap
 
-Phase 1 ships the router: the `hr` CLI, the Discord gateway, and the Claude Code harness. Next come the **mission control** web app, the **IDE** desktop app, and the **mobile** app — all in this monorepo, all sharing one API/contract with the router.
+Phase 1 ships the router: the `ryuzi` CLI, the Discord gateway, and the Claude Code harness. Next come the **mission control** web app, the **IDE** desktop app, and the **mobile** app — all in this monorepo, all sharing one API/contract with the router.
 
 ## License
 

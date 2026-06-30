@@ -9,7 +9,7 @@ export type ClaudeRunner = (
 ) => AsyncIterable<string>;
 
 // Resolve the absolute `claude` binary so spawning does not depend on the daemon's PATH
-// (e.g. a `harness start` shell that lacks ~/.local/bin). Falls back to known install dirs.
+// (e.g. a `ryuzi start` shell that lacks ~/.local/bin). Falls back to known install dirs.
 export function resolveClaudeBinary(): string {
   const fromPath = Bun.which("claude");
   if (fromPath) return fromPath;
@@ -58,7 +58,7 @@ export class ClaudeCodeHarness implements Agent {
     const args = buildClaudeArgs(input, sessionId);
     const env: Record<string, string> =
       input.permissionMode === "default" && input.approval
-        ? { HARNESS_APPROVAL_URL: input.approval.url, HARNESS_SESSION_PK: input.approval.sessionPk }
+        ? { RYUZI_APPROVAL_URL: input.approval.url, RYUZI_SESSION_PK: input.approval.sessionPk }
         : {};
     try {
       for await (const line of this.runner(args, { cwd: input.workdir, signal: input.signal, env })) {

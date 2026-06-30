@@ -1,6 +1,6 @@
 // packages/core/src/gateways/discord/index.ts
 import type { Gateway, MessageRef } from "../types";
-import type { Surface, ApprovalRequest, ApprovalDecision, PermMode, ProjectSettings, AttachmentRef } from "@harness/protocol";
+import type { Surface, ApprovalRequest, ApprovalDecision, PermMode, ProjectSettings, AttachmentRef } from "@ryuzi/protocol";
 
 export interface InboundMessage {
   channelId: string;

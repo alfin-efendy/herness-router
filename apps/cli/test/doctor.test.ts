@@ -1,7 +1,7 @@
 import { test, expect } from "bun:test";
 import { runCli, type CliDeps, type IO } from "../src/cli/run";
-import type { Runner } from "@harness/core";
-import { detectClaude, detectGit } from "@harness/core";
+import type { Runner } from "@ryuzi/core";
+import { detectClaude, detectGit } from "@ryuzi/core";
 
 function depsWith(run: Runner, dbPath = ":memory:") {
   const lines: string[] = [];
@@ -31,7 +31,7 @@ test("doctor fails when claude not found", async () => {
 });
 
 test("doctor passes when tools present and required settings set", async () => {
-  const dbPath = `/tmp/harness-doctor-${Bun.hash(Math.random().toString())}.sqlite`;
+  const dbPath = `/tmp/ryuzi-doctor-${Bun.hash(Math.random().toString())}.sqlite`;
   const seed = depsWith(okRun, dbPath);
   for (const [k, v] of [
     ["discord.token", "t"],

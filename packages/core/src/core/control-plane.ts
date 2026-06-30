@@ -9,7 +9,7 @@ import type {
   ContinueSessionRequest,
   ConnectProjectRequest,
   PermMode,
-} from "@harness/protocol";
+} from "@ryuzi/protocol";
 import type { ProjectsStore } from "../store/projects";
 import type { SessionsStore } from "../store/sessions";
 import type { SettingsStore } from "../config/store";
@@ -26,7 +26,7 @@ import { GatewayRegistry } from "./gateway-registry";
 import { EventBus } from "./events";
 import { resolveToolPolicy, summarizeTool, isAdmin, gatePermMode, parseRoleIds } from "./permissions";
 import { materializeAttachments, buildManifest, parseAllowedExt, parseAllowedHosts, type MaterializeResult } from "./attachments";
-import type { AttachmentRef } from "@harness/protocol";
+import type { AttachmentRef } from "@ryuzi/protocol";
 
 export interface WorktreeOps {
   pathFor: (workdirRoot: string, projectId: string, sessionPk: string) => string;

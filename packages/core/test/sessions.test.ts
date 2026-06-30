@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import type { Session } from "@harness/protocol";
+import type { Session } from "@ryuzi/protocol";
 import { openDb } from "../src/store/db";
 import { SessionsStore } from "../src/store/sessions";
 

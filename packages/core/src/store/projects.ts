@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { Project, PermMode } from "@harness/protocol";
+import type { Project, PermMode } from "@ryuzi/protocol";
 
 interface Row {
   project_id: string;

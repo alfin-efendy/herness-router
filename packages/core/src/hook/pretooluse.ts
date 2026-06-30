@@ -5,8 +5,8 @@ export async function runHook(deps: {
 }): Promise<{ stdout: string; exitCode: number }> {
   let decision: "allow" | "deny" = "deny"; // fail-closed default
   try {
-    const url = deps.env.HARNESS_APPROVAL_URL;
-    const sessionPk = deps.env.HARNESS_SESSION_PK;
+    const url = deps.env.RYUZI_APPROVAL_URL;
+    const sessionPk = deps.env.RYUZI_SESSION_PK;
     const parsed = JSON.parse(deps.input) as { tool_name?: string; tool_input?: unknown };
     if (url && sessionPk) {
       // POST to the tokenized URL as-is — the token is the full path (see approval-server.ts)

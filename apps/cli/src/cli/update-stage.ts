@@ -1,9 +1,9 @@
-import { dirname, join } from "node:path";
-import { assetName, assetUrl, checksumsUrl, verifyChecksum, type Platform } from "@harness/core";
+import { dirname, join } from "node:path/posix";
+import { assetName, assetUrl, checksumsUrl, verifyChecksum, type Platform } from "@ryuzi/core";
 
 export interface StageDeps {
   fetchImpl?: typeof fetch;
-  extractHr: (tarPath: string, destDir: string) => Promise<Uint8Array>;
+  extractRyuzi: (tarPath: string, destDir: string) => Promise<Uint8Array>;
   writeFile: (path: string, bytes: Uint8Array, mode: number) => void;
   platform: Platform;
   tmpDir: string;
@@ -34,20 +34,20 @@ export async function stageCanary(
 
     const tarPath = join(deps.tmpDir, name);
     deps.writeFile(tarPath, assetBytes, 0o600);
-    const hrBytes = await deps.extractHr(tarPath, deps.tmpDir);
+    const ryuziBytes = await deps.extractRyuzi(tarPath, deps.tmpDir);
 
-    const canaryPath = join(dirname(opts.installPath), ".hr.canary");
-    deps.writeFile(canaryPath, hrBytes, 0o755);
+    const canaryPath = join(dirname(opts.installPath), ".ryuzi.canary");
+    deps.writeFile(canaryPath, ryuziBytes, 0o755);
     return { ok: true, canaryPath };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-export async function defaultExtractHr(tarPath: string, destDir: string): Promise<Uint8Array> {
+export async function defaultExtractRyuzi(tarPath: string, destDir: string): Promise<Uint8Array> {
   const proc = Bun.spawn(["tar", "-xzf", tarPath, "-C", destDir], { stdout: "ignore", stderr: "pipe" });
   const code = await proc.exited;
   if (code !== 0) throw new Error(`tar failed: ${(await new Response(proc.stderr).text()).slice(0, 200)}`);
-  const hr = Bun.file(join(destDir, "hr"));
-  return new Uint8Array(await hr.arrayBuffer());
+  const ryuzi = Bun.file(join(destDir, "ryuzi"));
+  return new Uint8Array(await ryuzi.arrayBuffer());
 }
