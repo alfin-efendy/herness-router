@@ -21,7 +21,7 @@ export default function App() {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <TitleBar />
       {pending > 0 && (
-        <div className="bg-amber-100 px-4 py-1 text-xs dark:bg-amber-950/40">
+        <div className="flex items-center gap-2 border-b border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-700 dark:text-amber-300">
           <Badge variant="secondary">{pending}</Badge> session(s) need approval
         </div>
       )}
