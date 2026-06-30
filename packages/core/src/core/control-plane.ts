@@ -194,6 +194,16 @@ export class ControlPlane implements ControlPlaneApi {
     await this.serial(sessionPk, () => this.runHarness(project, sessionPk, RESUME_NUDGE, session.agentSessionId));
   }
 
+  /**
+   * On daemon boot: resume every session left in `running` by a dead daemon
+   * (crash or update). Each resume is isolated so one bad session can't block
+   * the rest. Safe to call when there is nothing to do (no-op).
+   */
+  async reconcile(): Promise<void> {
+    const stuck = this.deps.sessions.listByStatus("running");
+    await Promise.all(stuck.map((s) => this.resumeSession(s.sessionPk, "restart").catch(() => {})));
+  }
+
   private validateProjectName(name: string): void {
     if (name === "." || name === ".." || name.startsWith(".") || !/^[A-Za-z0-9._-]+$/.test(name)) {
       throw new Error(`invalid project name: ${name}`);
