@@ -21,9 +21,12 @@ export function Composer({
     const t = text.trim();
     if (!t) return;
     setSending(true);
-    await onSubmit(t);
-    setSending(false);
-    setText("");
+    try {
+      await onSubmit(t);
+      setText("");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
