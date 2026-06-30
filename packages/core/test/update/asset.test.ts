@@ -2,9 +2,9 @@ import { test, expect } from "bun:test";
 import { assetName, assetUrl, checksumsUrl, sha256Hex, verifyChecksum, detectPlatform } from "../../src/update/asset";
 
 test("assetName matches the goreleaser/install.sh layout", () => {
-  expect(assetName("0.3.0", { goos: "linux", goarch: "amd64", musl: false })).toBe("harness-router_0.3.0_linux_amd64.tar.gz");
-  expect(assetName("0.3.0", { goos: "linux", goarch: "arm64", musl: true })).toBe("harness-router_0.3.0_linux_arm64_musl.tar.gz");
-  expect(assetName("1.2.0", { goos: "darwin", goarch: "arm64", musl: false })).toBe("harness-router_1.2.0_darwin_arm64.tar.gz");
+  expect(assetName("0.3.0", { goos: "linux", goarch: "amd64", musl: false })).toBe("ryuzi_0.3.0_linux_amd64.tar.gz");
+  expect(assetName("0.3.0", { goos: "linux", goarch: "arm64", musl: true })).toBe("ryuzi_0.3.0_linux_arm64_musl.tar.gz");
+  expect(assetName("1.2.0", { goos: "darwin", goarch: "arm64", musl: false })).toBe("ryuzi_1.2.0_darwin_arm64.tar.gz");
 });
 
 test("URLs point at the GitHub release download path", () => {
@@ -16,8 +16,8 @@ test("sha256Hex + verifyChecksum accept a matching entry and reject a mismatch",
   const bytes = new TextEncoder().encode("hello");
   const hex = sha256Hex(bytes);
   expect(hex).toBe("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
-  const checksums = `${hex}  harness-router_0.3.0_linux_amd64.tar.gz\ndead  other.tar.gz\n`;
-  expect(verifyChecksum(bytes, "harness-router_0.3.0_linux_amd64.tar.gz", checksums)).toBe(true);
+  const checksums = `${hex}  ryuzi_0.3.0_linux_amd64.tar.gz\ndead  other.tar.gz\n`;
+  expect(verifyChecksum(bytes, "ryuzi_0.3.0_linux_amd64.tar.gz", checksums)).toBe(true);
   expect(verifyChecksum(bytes, "other.tar.gz", checksums)).toBe(false); // wrong hash for this name
   expect(verifyChecksum(bytes, "missing.tar.gz", checksums)).toBe(false); // not listed
 });

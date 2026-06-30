@@ -26,7 +26,7 @@ function mgr(over: Partial<ConstructorParameters<typeof UpdateManager>[0]> = {})
     cp: t.cp,
     settings,
     version: "0.2.0",
-    execPath: "/home/me/.local/bin/hr",
+    execPath: "/home/me/.local/bin/ryuzi",
     compiled: true,
     home: "/home/me",
     fetchImpl: fakeFetch("v0.3.0"),
@@ -40,6 +40,7 @@ test("tick broadcasts a notice to non-ended sessions and records last_notified_v
   await um.tick();
   expect(emitted).toHaveLength(1); // only s1 (s2 is ended)
   expect(emitted[0]).toMatchObject({ kind: "notice", sessionPk: "s1" });
+  expect((emitted[0] as { text: string }).text).toContain("ryuzi 0.3.0 is available");
   expect((emitted[0] as { text: string }).text).toMatch(/0\.3\.0/);
   expect(settings.get("last_notified_version")).toBe("0.3.0");
 });
@@ -73,9 +74,9 @@ test("mode off: tick is a no-op and start() arms no timer", async () => {
 });
 
 test("notify message names the install method's upgrade command", async () => {
-  const { um, emitted } = mgr({ execPath: "/opt/homebrew/bin/hr" }); // brew
+  const { um, emitted } = mgr({ execPath: "/opt/homebrew/bin/ryuzi" }); // brew
   await um.tick();
-  expect((emitted[0] as { text: string }).text).toMatch(/brew upgrade/);
+  expect((emitted[0] as { text: string }).text).toContain("brew upgrade ryuzi");
 });
 
 test("start() arms a timer via the injected makeTimer and stop() stops it", () => {
@@ -105,12 +106,12 @@ test("upgradeHint: npm-style execPath produces npm install hint", async () => {
     cp: t.cp,
     settings,
     version: "0.2.0",
-    execPath: "/usr/local/lib/node_modules/hrctl/bin/hr",
+    execPath: "/usr/local/lib/node_modules/ryuzi/bin/ryuzi",
     compiled: true,
     fetchImpl: fakeFetch("v0.3.0"),
   });
   await um.tick();
-  expect((t.emitted[0] as { text: string }).text).toMatch(/npm i -g/);
+  expect((t.emitted[0] as { text: string }).text).toContain("npm i -g ryuzi@latest");
 });
 
 test("upgradeHint: scoop-style execPath produces scoop update hint", async () => {
@@ -120,12 +121,12 @@ test("upgradeHint: scoop-style execPath produces scoop update hint", async () =>
     cp: t.cp,
     settings,
     version: "0.2.0",
-    execPath: "C:\\Users\\me\\scoop\\apps\\harness-router\\current\\hr.exe",
+    execPath: "C:\\Users\\me\\scoop\\apps\\ryuzi\\current\\ryuzi.exe",
     compiled: true,
     fetchImpl: fakeFetch("v0.3.0"),
   });
   await um.tick();
-  expect((t.emitted[0] as { text: string }).text).toMatch(/scoop update/);
+  expect((t.emitted[0] as { text: string }).text).toContain("scoop update ryuzi");
 });
 
 test("upgradeHint: install.sh path produces curl/install.sh hint", async () => {
@@ -135,13 +136,15 @@ test("upgradeHint: install.sh path produces curl/install.sh hint", async () => {
     cp: t.cp,
     settings,
     version: "0.2.0",
-    execPath: "/home/me/.local/bin/hr",
+    execPath: "/home/me/.local/bin/ryuzi",
     compiled: true,
     home: "/home/me",
     fetchImpl: fakeFetch("v0.3.0"),
   });
   await um.tick();
-  expect((t.emitted[0] as { text: string }).text).toMatch(/install\.sh|curl/);
+  expect((t.emitted[0] as { text: string }).text).toContain(
+    "https://github.com/alfin-efendy/ryuzi/raw/main/install.sh",
+  );
 });
 
 test("upgradeHint: unknown execPath produces GitHub release hint", async () => {
@@ -151,7 +154,7 @@ test("upgradeHint: unknown execPath produces GitHub release hint", async () => {
     cp: t.cp,
     settings,
     version: "0.2.0",
-    execPath: "/some/unknown/path/hr",
+    execPath: "/some/unknown/path/ryuzi",
     compiled: true,
     fetchImpl: fakeFetch("v0.3.0"),
   });
@@ -162,7 +165,7 @@ test("upgradeHint: unknown execPath produces GitHub release hint", async () => {
 test("auto mode on a self-applicable install triggers applyUpdate, not a notice", async () => {
   let applied: { tag: string } | undefined;
   const { um, emitted } = mgr({
-    execPath: "/home/me/.local/bin/hr", // installsh → selfApplicable
+    execPath: "/home/me/.local/bin/ryuzi", // installsh → selfApplicable
     home: "/home/me",
     applyUpdate: async (info) => {
       applied = { tag: info.tag };
@@ -176,7 +179,7 @@ test("auto mode on a self-applicable install triggers applyUpdate, not a notice"
 test("auto mode on a non-self-applicable install still notifies (no apply)", async () => {
   let applied = false;
   const { um, emitted } = mgr({
-    execPath: "/opt/homebrew/bin/hr", // brew → notify-only
+    execPath: "/opt/homebrew/bin/ryuzi", // brew → notify-only
     applyUpdate: async () => {
       applied = true;
     },
@@ -189,7 +192,7 @@ test("auto mode on a non-self-applicable install still notifies (no apply)", asy
 test("notify mode never applies even on a self-applicable install", async () => {
   let applied = false;
   const { um, settings, emitted } = mgr({
-    execPath: "/home/me/.local/bin/hr",
+    execPath: "/home/me/.local/bin/ryuzi",
     home: "/home/me",
     applyUpdate: async () => {
       applied = true;
@@ -213,7 +216,7 @@ test("interrupted sessions are excluded from notice broadcast", async () => {
     cp: t.cp,
     settings,
     version: "0.2.0",
-    execPath: "/home/me/.local/bin/hr",
+    execPath: "/home/me/.local/bin/ryuzi",
     compiled: true,
     home: "/home/me",
     fetchImpl: fakeFetch("v0.3.0"),

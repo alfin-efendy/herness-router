@@ -6,7 +6,9 @@ import { helpText, version } from "../../src/cli/meta";
 
 test("help leads with OPTIONS and lists only doctor + run", () => {
   const h = helpText();
-  expect(h).toContain("Harness Router");
+  expect(h).toContain("ryuzi");
+  expect(h).toContain("  ryuzi                 open the dashboard (first run launches setup)");
+  expect(h).toContain("ryuzi run --dir <repo> --prompt <text> [--model x] [--effort y] [--mode m]");
   expect(h).toContain("OPTIONS");
   expect(h).toContain("doctor");
   expect(h).toContain("run");
@@ -20,8 +22,8 @@ test("version is a semver-ish string", () => {
 });
 
 test("brand metadata points to packaged logo assets", () => {
-  expect(brandGlyph).toBe("マ");
-  expect(brandName).toBe("Harness Router");
+  expect(brandGlyph).toBe("r");
+  expect(brandName).toBe("ryuzi");
   expect(Object.keys(brandAssets).sort()).toEqual([
     "faviconIco",
     "iconPng",
@@ -62,7 +64,7 @@ test("root readme uses explicit light and dark wordmark sources", () => {
   expect(readme).toContain('media="(prefers-color-scheme: dark)"');
   expect(readme).toContain("assets/brand/wordmark-dark.svg");
   expect(readme).toContain("assets/brand/wordmark-light.svg");
-  expect(readme).not.toContain("![Harness Router wordmark](assets/brand/wordmark.svg)");
+  expect(readme).not.toContain("![ryuzi wordmark](");
 });
 
 test("brand svg assets are light, dark, and adaptive safe", () => {
