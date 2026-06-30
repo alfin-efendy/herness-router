@@ -16,6 +16,8 @@ export { checkForUpdate } from "./update/check";
 export type { UpdateCheckResult } from "./update/check";
 export { detectInstallMethod } from "./update/install-method";
 export type { InstallMethod, InstallInfo } from "./update/install-method";
+export { assetName, assetUrl, checksumsUrl, sha256Hex, verifyChecksum, detectPlatform } from "./update/asset";
+export type { Platform } from "./update/asset";
 
 export type { Agent, AgentEvent, AgentRunInput } from "./agents/types";
 export type { ToolInfo, Runner } from "./agents/detect";
