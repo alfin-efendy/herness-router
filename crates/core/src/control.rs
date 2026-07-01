@@ -1,5 +1,5 @@
 use crate::approval::{ApprovalDecider, ApprovalHub, ApprovalServer};
-use crate::domain::{AgentEvent, CoreEvent, PermMode, Project, Session, SessionStatus};
+use crate::domain::{AgentEvent, CoreEvent, Message, NewMessage, PermMode, Project, Session, SessionStatus};
 use crate::paths::{new_id, now_ms, worktree_path_for};
 use crate::policy::resolve_tool_policy;
 use crate::runtime::{build_claude_args, parse_line, ApprovalWiring, ClaudeRunner, RunInput};
@@ -118,6 +118,8 @@ impl ControlPlane {
             session_pk: session_pk.clone(),
             project_id: project.project_id.clone(),
         });
+        self.persist_and_emit(&session_pk, "user", "text",
+            serde_json::json!({ "text": prompt })).await;
 
         let cancel = CancellationToken::new();
         self.running
@@ -157,6 +159,8 @@ impl ControlPlane {
         self.store
             .update_status(session_pk, SessionStatus::Running, None)
             .await?;
+        self.persist_and_emit(session_pk, "user", "text",
+            serde_json::json!({ "text": prompt })).await;
 
         let cancel = CancellationToken::new();
         self.running
@@ -286,6 +290,39 @@ impl ControlPlane {
         let _ = self.store.demote_if_running(session_pk, now_ms()).await;
     }
 
+    pub async fn list_messages(&self, session_pk: &str) -> anyhow::Result<Vec<Message>> {
+        self.store.list_messages(session_pk).await
+    }
+
+    /// Persist a transcript block, then broadcast it with its assigned seq.
+    /// On persist failure we log and skip the Message event (never fabricate a seq).
+    async fn persist_and_emit(
+        &self,
+        session_pk: &str,
+        role: &str,
+        block_type: &str,
+        payload: serde_json::Value,
+    ) {
+        let nm = NewMessage::block(session_pk, role, block_type, payload.clone());
+        match self.store.insert_message(nm).await {
+            Ok(seq) => {
+                let _ = self.events.send(CoreEvent::Message {
+                    session_pk: session_pk.to_string(),
+                    seq,
+                    role: role.to_string(),
+                    block_type: block_type.to_string(),
+                    payload,
+                    tool_call_id: None,
+                    status: None,
+                    tool_kind: None,
+                });
+            }
+            Err(e) => {
+                eprintln!("[ryuzi] failed to persist message for {session_pk}: {e}");
+            }
+        }
+    }
+
     async fn handle_agent_event(&self, session_pk: &str, ev: AgentEvent) {
         match ev {
             AgentEvent::Init { session_id } => {
@@ -295,16 +332,12 @@ impl ControlPlane {
                     .await;
             }
             AgentEvent::Status { text } => {
-                let _ = self.events.send(CoreEvent::Status {
-                    session_pk: session_pk.to_string(),
-                    text,
-                });
+                self.persist_and_emit(session_pk, "assistant", "status",
+                    serde_json::json!({ "summary": text })).await;
             }
             AgentEvent::Text { text } => {
-                let _ = self.events.send(CoreEvent::Text {
-                    session_pk: session_pk.to_string(),
-                    text,
-                });
+                self.persist_and_emit(session_pk, "assistant", "text",
+                    serde_json::json!({ "text": text })).await;
             }
             AgentEvent::Result { session_id } => {
                 if let Some(sid) = session_id {
@@ -315,10 +348,8 @@ impl ControlPlane {
                 });
             }
             AgentEvent::Error { message } => {
-                let _ = self.events.send(CoreEvent::Error {
-                    session_pk: session_pk.to_string(),
-                    message,
-                });
+                self.persist_and_emit(session_pk, "system", "error",
+                    serde_json::json!({ "message": message })).await;
             }
         }
     }
@@ -474,11 +505,15 @@ mod tests {
             .await
             .unwrap();
 
-        // Drain events until Result.
+        // Drain events until Result, collecting assistant text payloads.
         let mut texts = Vec::new();
         loop {
             match rx.recv().await.unwrap() {
-                CoreEvent::Text { text, .. } => texts.push(text),
+                CoreEvent::Message { role, block_type, payload, .. }
+                    if role == "assistant" && block_type == "text" =>
+                {
+                    texts.push(payload["text"].as_str().unwrap_or("").to_string());
+                }
                 CoreEvent::Result { .. } => break,
                 _ => {}
             }
@@ -489,5 +524,16 @@ mod tests {
         assert_eq!(stored.len(), 1);
         assert_eq!(stored[0].agent_session_id.as_deref(), Some("agent-1"));
         assert_eq!(session.status, crate::domain::SessionStatus::Running);
+
+        // History is durable: the user prompt + streamed assistant text are persisted in order.
+        let msgs = cp.list_messages(&session.session_pk).await.unwrap();
+        let kinds: Vec<(&str, &str)> =
+            msgs.iter().map(|m| (m.role.as_str(), m.block_type.as_str())).collect();
+        assert_eq!(kinds.first(), Some(&("user", "text")));
+        assert_eq!(msgs[0].payload["text"], "do it");
+        assert!(msgs.iter().any(|m| m.role == "assistant"
+            && m.block_type == "text" && m.payload["text"] == "working"));
+        // seq is monotonic and matches insertion order.
+        assert!(msgs.windows(2).all(|w| w[0].seq < w[1].seq));
     }
 }

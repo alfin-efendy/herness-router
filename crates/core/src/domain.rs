@@ -135,20 +135,22 @@ pub enum AgentEvent {
 }
 
 /// Public event broadcast to consumers (the Tauri layer re-emits these).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum CoreEvent {
     SessionCreated {
         session_pk: String,
         project_id: String,
     },
-    Status {
+    Message {
         session_pk: String,
-        text: String,
-    },
-    Text {
-        session_pk: String,
-        text: String,
+        seq: i64,
+        role: String,
+        block_type: String,
+        payload: serde_json::Value,
+        tool_call_id: Option<String>,
+        status: Option<String>,
+        tool_kind: Option<String>,
     },
     Result {
         session_pk: String,
