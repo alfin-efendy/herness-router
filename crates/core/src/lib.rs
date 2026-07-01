@@ -4,6 +4,7 @@ pub mod control;
 pub mod domain;
 pub mod gateway;
 pub mod harness;
+pub mod integration;
 pub mod paths;
 pub mod policy;
 pub mod registry;
@@ -19,5 +20,6 @@ pub use domain::{
 pub use connector::{Connector, ConnectorCtx, ConnectorFactory, ConnectorRegistry};
 pub use gateway::{Gateway, GatewayFactory, GatewayHub, GatewayRegistry};
 pub use harness::{Harness, HarnessFactory, HarnessRegistry, HarnessSession, SessionCtx};
+pub use integration::{Integration, Registries};
 pub use registry::Registry;
 pub use store::Store;
