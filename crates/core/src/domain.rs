@@ -82,6 +82,29 @@ pub struct Session {
     pub last_active: Option<i64>,
 }
 
+/// An MCP server the agent can use as tools (attached to an ACP session in Spec 3).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpServerSpec {
+    pub name: String,
+    pub transport: McpTransport,
+}
+
+/// How to reach an MCP server.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type")]
+pub enum McpTransport {
+    Stdio {
+        command: String,
+        args: Vec<String>,
+        env: Vec<(String, String)>,
+    },
+    Http {
+        url: String,
+        headers: Vec<(String, String)>,
+    },
+}
+
 /// A persisted transcript entry. Forward-compatible with ACP session/update blocks.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -197,6 +220,21 @@ mod tests {
             assert_eq!(SessionStatus::from_db(s.as_str()), s);
         }
         assert_eq!(SessionStatus::from_db("nonsense"), SessionStatus::Idle);
+    }
+
+    #[test]
+    fn mcp_server_spec_round_trips_through_json() {
+        let spec = McpServerSpec {
+            name: "notion".into(),
+            transport: McpTransport::Stdio {
+                command: "notion-mcp".into(),
+                args: vec!["--stdio".into()],
+                env: vec![("TOKEN".into(), "x".into())],
+            },
+        };
+        let j = serde_json::to_string(&spec).unwrap();
+        let back: McpServerSpec = serde_json::from_str(&j).unwrap();
+        assert_eq!(back, spec);
     }
 
     #[test]
