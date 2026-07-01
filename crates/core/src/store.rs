@@ -326,26 +326,24 @@ impl Store {
         tool_call_id: &str,
         status: Option<&str>,
         payload: &serde_json::Value,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<i64> {
         let session_pk = session_pk.to_string();
         let tool_call_id = tool_call_id.to_string();
         let status = status.map(|s| s.to_string());
         let payload = serde_json::to_string(payload)?;
         let conn = self.pool.get().await?;
-        conn.interact(move |c| {
-            let n = c.execute(
-                "UPDATE messages SET payload=?3, status=COALESCE(?4, status) \
-                 WHERE session_pk=?1 AND tool_call_id=?2",
-                params![session_pk, tool_call_id, payload, status],
-            )?;
-            if n == 0 {
-                return Err(rusqlite::Error::QueryReturnedNoRows);
-            }
-            Ok(())
-        })
-        .await
-        .map_err(|e| anyhow::anyhow!("db interact failed: {e}"))??;
-        Ok(())
+        let seq = conn
+            .interact(move |c| {
+                c.query_row(
+                    "UPDATE messages SET payload=?3, status=COALESCE(?4, status) \
+                     WHERE session_pk=?1 AND tool_call_id=?2 RETURNING seq",
+                    params![session_pk, tool_call_id, payload, status],
+                    |r| r.get::<_, i64>(0),
+                )
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("db interact failed: {e}"))??;
+        Ok(seq)
     }
 }
 
@@ -453,9 +451,10 @@ mod tests {
             tool_kind: Some("execute".into()),
         }).await.unwrap();
 
-        store.update_tool_call("s1", "tc-1", Some("completed"),
+        let updated_seq = store.update_tool_call("s1", "tc-1", Some("completed"),
             &serde_json::json!({"name": "Bash", "input": {"command": "ls"}, "output": "file.txt"}))
             .await.unwrap();
+        assert_eq!(updated_seq, 1, "update_tool_call must return the row's real seq");
 
         let rows = store.list_messages("s1").await.unwrap();
         assert_eq!(rows.len(), 1, "update must not insert a new row");

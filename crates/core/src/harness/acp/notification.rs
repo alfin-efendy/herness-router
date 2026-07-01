@@ -259,10 +259,10 @@ pub async fn handle(notification: SessionNotification, sink: &NotificationSink) 
                 .update_tool_call(&session_pk, &id, Some(status), &output_payload)
                 .await
             {
-                Ok(()) => {
+                Ok(seq) => {
                     let _ = sink.events.send(CoreEvent::Message {
                         session_pk: session_pk.clone(),
-                        seq: -1, // synthetic — the row already has a real seq
+                        seq,
                         role: "assistant".into(),
                         block_type: "tool_call".into(),
                         payload: output_payload,
