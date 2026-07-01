@@ -12,7 +12,7 @@ serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tokio-util = "0.7"
-specta = { version = "2.0.0-rc.22", features = ["derive"] }
+specta = { version = "2.0.0-rc.22", features = ["derive", "serde_json"] }
 rusqlite = { version = "0.31", features = ["bundled"] }
 deadpool-sqlite = { version = "0.8", features = ["rt_tokio_1"] }
 rusqlite_migration = "1.2"

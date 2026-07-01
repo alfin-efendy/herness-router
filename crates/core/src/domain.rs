@@ -82,6 +82,48 @@ pub struct Session {
     pub last_active: Option<i64>,
 }
 
+/// A persisted transcript entry. Forward-compatible with ACP session/update blocks.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct Message {
+    pub session_pk: String,
+    pub seq: i64,
+    pub role: String,       // user | assistant | system
+    pub block_type: String, // text | thought | tool_call | plan | status | error
+    pub payload: serde_json::Value,
+    pub tool_call_id: Option<String>,
+    pub status: Option<String>,
+    pub tool_kind: Option<String>,
+    pub created_at: i64,
+}
+
+/// Input to `Store::insert_message`; `seq` and `created_at` are assigned by the store.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NewMessage {
+    pub session_pk: String,
+    pub role: String,
+    pub block_type: String,
+    pub payload: serde_json::Value,
+    pub tool_call_id: Option<String>,
+    pub status: Option<String>,
+    pub tool_kind: Option<String>,
+}
+
+impl NewMessage {
+    /// Convenience for a simple text/status/error block.
+    pub fn block(session_pk: &str, role: &str, block_type: &str, payload: serde_json::Value) -> Self {
+        NewMessage {
+            session_pk: session_pk.to_string(),
+            role: role.to_string(),
+            block_type: block_type.to_string(),
+            payload,
+            tool_call_id: None,
+            status: None,
+            tool_kind: None,
+        }
+    }
+}
+
 /// Internal event emitted by the runtime parser.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AgentEvent {
