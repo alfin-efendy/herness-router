@@ -1,4 +1,5 @@
 pub mod approval;
+pub mod connector;
 pub mod control;
 pub mod domain;
 pub mod gateway;
@@ -15,6 +16,7 @@ pub use domain::{
     Actor, AgentEvent, ApprovalDecision, ApprovalRequest, CoreEvent, McpServerSpec, McpTransport,
     Message, PermMode, Project, Session, SessionStatus, Surface,
 };
+pub use connector::{Connector, ConnectorCtx, ConnectorFactory, ConnectorRegistry};
 pub use gateway::{Gateway, GatewayFactory, GatewayHub, GatewayRegistry};
 pub use harness::{Harness, HarnessFactory, HarnessRegistry, HarnessSession, SessionCtx};
 pub use registry::Registry;
