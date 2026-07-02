@@ -779,6 +779,32 @@ impl HarnessFactory for AcpHarnessFactory {
     }
 }
 
+/// The `claude-code` integration: plugs into the harness axis only, producing an
+/// [`AcpHarnessFactory`] over a host-injected [`AcpAdapterDescriptor`]. The
+/// descriptor's `command` is supplied by the host (Task 5 wires the bundled
+/// sidecar path; tests inject a stub descriptor).
+pub struct ClaudeCodeIntegration {
+    factory: Arc<AcpHarnessFactory>,
+}
+
+impl ClaudeCodeIntegration {
+    pub fn new(descriptor: AcpAdapterDescriptor) -> Self {
+        Self {
+            factory: Arc::new(AcpHarnessFactory::new(descriptor)),
+        }
+    }
+}
+
+impl crate::integration::Integration for ClaudeCodeIntegration {
+    fn id(&self) -> &str {
+        "claude-code"
+    }
+
+    fn harness(&self) -> Option<Arc<dyn HarnessFactory>> {
+        Some(self.factory.clone())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

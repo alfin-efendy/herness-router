@@ -186,16 +186,6 @@ impl NewMessage {
     }
 }
 
-/// Internal event emitted by the runtime parser.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AgentEvent {
-    Init { session_id: String },
-    Status { text: String },
-    Text { text: String },
-    Result { session_id: Option<String> },
-    Error { message: String },
-}
-
 /// Public event broadcast to consumers (the Tauri layer re-emits these).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]

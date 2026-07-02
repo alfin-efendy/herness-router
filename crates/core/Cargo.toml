@@ -22,7 +22,6 @@ rusqlite_migration = "1.2"
 git2 = "0.20"
 uuid = { version = "1", features = ["v4"] }
 dirs = "5"
-tiny_http = "0.12"
 anyhow = "1"
 async-trait = "0.1"
 tracing = "0.1"
