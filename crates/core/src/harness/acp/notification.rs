@@ -51,6 +51,9 @@ fn is_terminal(status: &ToolCallStatus) -> bool {
 /// Sink that stores incoming ACP notifications into the [`Store`] and emits
 /// the corresponding [`CoreEvent::Message`] on the broadcast channel.
 pub struct NotificationSink {
+    /// Ryuzi's own DB primary key for the session. All messages persisted by
+    /// this sink are keyed under this value, NOT the ACP-assigned session id.
+    pub session_pk: String,
     /// Persistent message store.
     pub store: Arc<Store>,
     /// Broadcast channel: new subscribers see future events only.
@@ -86,8 +89,13 @@ enum AcpUpdate {
 }
 
 /// Decode a [`SessionNotification`] into an [`AcpUpdate`] without any I/O.
-fn decode(notification: SessionNotification) -> AcpUpdate {
-    let session_pk = notification.session_id.0.to_string();
+///
+/// `session_pk` is ryuzi's own DB primary key; it must be provided by the
+/// caller (from `NotificationSink::session_pk`) rather than derived from
+/// `notification.session_id`, which is the ACP-assigned identifier and would
+/// cause the frontend's `list_messages(session_pk)` query to miss all rows.
+fn decode(notification: SessionNotification, session_pk: &str) -> AcpUpdate {
+    let session_pk = session_pk.to_owned();
 
     match notification.update {
         // --- Agent message text chunk ---
@@ -152,11 +160,12 @@ fn decode(notification: SessionNotification) -> AcpUpdate {
 /// Process one [`SessionNotification`], persisting to the store and emitting
 /// a [`CoreEvent::Message`] on success.
 ///
-/// - The `session_pk` key is derived from `notification.session_id`.
+/// - The `session_pk` key comes from `sink.session_pk` (ryuzi's DB primary
+///   key), NOT from `notification.session_id` (the ACP-assigned identifier).
 /// - Store errors are logged with [`tracing::warn!`] and swallowed; the
 ///   broadcast send failure (no subscribers) is also silently ignored.
 pub async fn handle(notification: SessionNotification, sink: &NotificationSink) {
-    match decode(notification) {
+    match decode(notification, &sink.session_pk) {
         AcpUpdate::AgentText { session_pk, text } => {
             let msg = NewMessage::block(
                 &session_pk,

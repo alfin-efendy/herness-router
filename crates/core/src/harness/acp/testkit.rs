@@ -273,9 +273,11 @@ pub struct LifecycleOutcome {
 /// Run the full lifecycle, collect notifications into a temp store, and
 /// return `(store, session_pk)` for test assertions.
 ///
-/// The `session_pk` is the ACP `session_id` UUID string assigned by the mock
-/// agent during `session/new`. Notifications arrive carrying that same UUID,
-/// so the returned store will have rows keyed by `session_pk`.
+/// The `session_pk` is a fixed ryuzi DB key ("test-session-pk") that is
+/// pre-supplied to the `NotificationSink`. Notifications from the ACP mock
+/// carry the ACP session id, but the sink ignores it and keys all rows under
+/// this fixed value — mirroring the production path where `start_session`
+/// supplies `ctx.session_pk`.
 pub async fn run_prompt_and_collect() -> (std::sync::Arc<crate::store::Store>, String) {
     use std::sync::Arc;
 
@@ -298,18 +300,15 @@ pub async fn run_prompt_and_collect() -> (std::sync::Arc<crate::store::Store>, S
     // 2. Broadcast channel (we don't subscribe — just need the sender).
     let (events_tx, _events_rx) = broadcast::channel::<CoreEvent>(64);
 
-    // 3. Shared sink (session_pk filled in below via Arc<Mutex<>>).
-    //    We derive session_pk from the notification's session_id in the
-    //    notification handler, so the sink itself doesn't need it.
+    // 3. Fixed ryuzi session_pk — all notification rows are keyed under this.
+    let session_pk = "test-session-pk".to_string();
+
+    // 4. Shared sink wired with the fixed session_pk.
     let sink: Arc<NotificationSink> = Arc::new(NotificationSink {
+        session_pk: session_pk.clone(),
         store: store.clone(),
         events: events_tx,
     });
-
-    // 4. Shared slot to capture the ACP session_id after session/new.
-    let session_pk_slot: Arc<tokio::sync::Mutex<String>> =
-        Arc::new(tokio::sync::Mutex::new(String::new()));
-    let session_pk_out = session_pk_slot.clone();
 
     let (transport, _join) = connect_mock(MockAgent::new());
 
@@ -345,7 +344,7 @@ pub async fn run_prompt_and_collect() -> (std::sync::Arc<crate::store::Store>, S
                     .block_task()
                     .await?;
 
-                // session/new — capture the ACP session_id as our session_pk
+                // session/new
                 let session_resp = crate::harness::acp::lifecycle::new_session(
                     &cx,
                     std::path::PathBuf::from("/tmp"),
@@ -353,8 +352,6 @@ pub async fn run_prompt_and_collect() -> (std::sync::Arc<crate::store::Store>, S
                 )
                 .await?;
                 let session_id = session_resp.session_id.clone();
-                let pk = session_id.0.to_string();
-                *session_pk_out.lock().await = pk.clone();
 
                 // set_mode
                 let available = session_resp
@@ -384,7 +381,6 @@ pub async fn run_prompt_and_collect() -> (std::sync::Arc<crate::store::Store>, S
     // Give the async notification handlers a chance to complete.
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    let session_pk = session_pk_slot.lock().await.clone();
     // Keep tmp alive until after we've read the store.
     drop(tmp);
     (store, session_pk)
@@ -496,12 +492,13 @@ pub async fn drive_load(resume_session_id: &str) -> (std::sync::Arc<crate::store
     let tmp = tempfile::NamedTempFile::new().unwrap();
     let store: Arc<Store> = Arc::new(Store::open(tmp.path()).await.unwrap());
     let (events_tx, _events_rx) = broadcast::channel::<CoreEvent>(64);
+    let session_pk = resume_session_id.to_string();
     let sink: Arc<NotificationSink> = Arc::new(NotificationSink {
+        session_pk: session_pk.clone(),
         store: store.clone(),
         events: events_tx,
     });
 
-    let session_pk = resume_session_id.to_string();
     let (transport, _join) = connect_mock(MockAgent::new());
 
     Client
@@ -596,8 +593,12 @@ pub async fn run_via_harness_trait(
         },
     );
 
+    // Use a stable ryuzi session_pk; messages will be keyed under this value
+    // (not under the ACP-assigned session id).
+    let session_pk = "harness-test-session-pk".to_string();
+
     let ctx = SessionCtx {
-        session_pk: "unused-in-3a".into(),
+        session_pk: session_pk.clone(),
         work_dir: std::path::PathBuf::from("/tmp"),
         perm_mode: PermMode::Default,
         model: None,
@@ -618,11 +619,6 @@ pub async fn run_via_harness_trait(
         .send_prompt(prompt.to_string())
         .await
         .expect("send_prompt failed");
-
-    // The agent session id is the ACP SessionId assigned during session/new.
-    let session_pk = session
-        .agent_session_id()
-        .expect("agent_session_id should be present after start_session");
 
     // Let the async notification handlers drain.
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;

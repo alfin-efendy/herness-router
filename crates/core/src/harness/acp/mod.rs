@@ -113,6 +113,10 @@ async fn run_client_loop(
     let sink_for_handler = sink.clone();
     let perm = (perm.hub, perm.events);
 
+    // Wrap ready_tx in an Option so it can be consumed in either the error
+    // path (where we forward the real cause) or the success path.
+    let mut ready_tx_opt: Option<oneshot::Sender<anyhow::Result<Ready>>> = Some(ready_tx);
+
     let result = Client
         .builder()
         .on_receive_notification(
@@ -173,8 +177,11 @@ async fn run_client_loop(
                 .block_task()
                 .await
                 .map_err(|err| {
-                    agent_client_protocol::Error::internal_error()
-                        .data(format!("ACP {} failed: {err}", AGENT_METHOD_NAMES.initialize))
+                    let msg = format!("ACP {} failed: {err}", AGENT_METHOD_NAMES.initialize);
+                    if let Some(tx) = ready_tx_opt.take() {
+                        let _ = tx.send(Err(anyhow::anyhow!("{msg}")));
+                    }
+                    agent_client_protocol::Error::internal_error().data(msg)
                 })?;
             let supports_load = init.agent_capabilities.load_session;
 
@@ -189,20 +196,29 @@ async fn run_client_loop(
                         work_dir.clone(),
                         vec![],
                     )
-                    .await?;
+                    .await
+                    .map_err(|err| {
+                        let msg = format!("ACP session/load failed: {err}");
+                        if let Some(tx) = ready_tx_opt.take() {
+                            let _ = tx.send(Err(anyhow::anyhow!("{msg}")));
+                        }
+                        err
+                    })?;
                     sid
                 } else {
                     // Agent can't resume; fall back to a fresh session.
-                    fresh_session(&cx, work_dir.clone(), perm_mode).await?
+                    fresh_session_propagating(&cx, work_dir.clone(), perm_mode, &mut ready_tx_opt).await?
                 }
             } else {
-                fresh_session(&cx, work_dir.clone(), perm_mode).await?
+                fresh_session_propagating(&cx, work_dir.clone(), perm_mode, &mut ready_tx_opt).await?
             };
 
             // Signal readiness back to start_session.
-            let _ = ready_tx.send(Ok(Ready {
-                session_id: session_id.clone(),
-            }));
+            if let Some(tx) = ready_tx_opt.take() {
+                let _ = tx.send(Ok(Ready {
+                    session_id: session_id.clone(),
+                }));
+            }
 
             // --- drain ClientRequests until the sender is dropped ----------
             while let Some(req) = rx.recv().await {
@@ -232,22 +248,30 @@ async fn run_client_loop(
         .await;
 
     if let Err(err) = result {
-        // On a handshake failure the driver returned early via `?`, so `ready_tx`
-        // was dropped un-sent — `start_session`'s `ready_rx.await` then resolves
-        // to a "loop ended before ready" error. We log the underlying cause here.
         tracing::warn!("ACP client loop exited: {err}");
     }
 }
 
-/// `session/new` + `set_mode` from the requested [`PermMode`]. Returns the new
-/// agent [`SessionId`].
-async fn fresh_session(
+/// `session/new` + `set_mode` with handshake-error propagation over `ready_tx`.
+///
+/// Like [`fresh_session`] but sends the error through `ready_tx_opt` before
+/// returning `Err` so `start_session` sees the real cause instead of a generic
+/// "loop ended before ready" message.
+async fn fresh_session_propagating(
     cx: &ConnectionTo<agent_client_protocol::Agent>,
     work_dir: std::path::PathBuf,
     perm_mode: crate::domain::PermMode,
+    ready_tx_opt: &mut Option<oneshot::Sender<anyhow::Result<Ready>>>,
 ) -> Result<SessionId, agent_client_protocol::Error> {
-    let session_resp =
-        crate::harness::acp::lifecycle::new_session(cx, work_dir, vec![]).await?;
+    let session_resp = crate::harness::acp::lifecycle::new_session(cx, work_dir, vec![])
+        .await
+        .map_err(|err| {
+            let msg = format!("ACP session/new failed: {err}");
+            if let Some(tx) = ready_tx_opt.take() {
+                let _ = tx.send(Err(anyhow::anyhow!("{msg}")));
+            }
+            err
+        })?;
     let session_id = session_resp.session_id.clone();
 
     let mode_id = crate::harness::acp::lifecycle::perm_mode_to_acp_mode(perm_mode);
@@ -377,6 +401,7 @@ impl AcpHarness {
 impl Harness for AcpHarness {
     async fn start_session(&self, ctx: SessionCtx) -> anyhow::Result<Box<dyn HarnessSession>> {
         let sink = Arc::new(NotificationSink {
+            session_pk: ctx.session_pk.clone(),
             store: ctx.store.clone(),
             events: ctx.events.clone(),
         });
@@ -408,6 +433,7 @@ impl Harness for AcpHarness {
 
         Ok(Box::new(AcpSession {
             tx: tokio::sync::Mutex::new(Some(tx)),
+            session_pk: ctx.session_pk.clone(),
             session_id: ready.session_id,
             store: ctx.store.clone(),
         }))
@@ -420,6 +446,8 @@ impl Harness for AcpHarness {
 pub struct AcpSession {
     /// `None` once the session has been ended (sender dropped → loop exits).
     tx: tokio::sync::Mutex<Option<mpsc::Sender<ClientRequest>>>,
+    /// Ryuzi's own DB primary key for this session (used for `insert_message`).
+    session_pk: String,
     session_id: SessionId,
     store: Arc<Store>,
 }
@@ -436,9 +464,10 @@ impl HarnessSession for AcpSession {
         };
 
         // Persist the user turn (Spec 1) before driving the prompt.
-        let session_pk = self.session_id.0.to_string();
+        // Use ryuzi's own session_pk (not the ACP session id) so the frontend
+        // can find the row via list_messages(session_pk).
         let user_msg = NewMessage::block(
-            &session_pk,
+            &self.session_pk,
             "user",
             "text",
             serde_json::json!({ "text": prompt }),
