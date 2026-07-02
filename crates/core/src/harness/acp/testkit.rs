@@ -1206,3 +1206,267 @@ pub async fn run_prompt_with_fs_calls() -> FsOutcome {
         _tmp_store: tmp_store,
     }
 }
+
+// ---------------------------------------------------------------------------
+// Spec 3B Task 2: terminal/* e2e test helpers
+// ---------------------------------------------------------------------------
+
+/// Result returned by [`run_prompt_with_terminal_calls`].
+pub struct TerminalOutcome {
+    /// The output captured from the terminal command.
+    pub output: String,
+    /// Exit code reported back by the client's terminal handler.
+    pub exit_code: Option<u32>,
+    /// `true` if the command ran inside the (temp) worktree — verified via the
+    /// `pwd` output containing the worktree path.
+    pub ran_in_worktree: bool,
+    /// Keep the temp store alive for the lifetime of this outcome.
+    #[allow(dead_code)]
+    _tmp_store: tempfile::NamedTempFile,
+}
+
+/// A mock agent that, during the `session/prompt` handler, sends:
+///   1. `terminal/create` (echo hello && pwd)
+///   2. `terminal/wait_for_exit`
+///   3. `terminal/output`
+///   4. `terminal/release`
+///
+/// Used to validate the client's sandboxed terminal handlers end-to-end.
+#[derive(Clone)]
+struct TerminalMockAgent {
+    /// Shared slot: after the prompt resolves, holds the terminal output.
+    output_slot: std::sync::Arc<tokio::sync::Mutex<String>>,
+    /// Shared slot: exit code.
+    exit_code_slot: std::sync::Arc<tokio::sync::Mutex<Option<u32>>>,
+}
+
+impl HandleDispatchFrom<Client> for TerminalMockAgent {
+    fn describe_chain(&self) -> impl std::fmt::Debug {
+        "ryuzi-terminal-mock-agent"
+    }
+
+    async fn handle_dispatch_from(
+        &mut self,
+        message: Dispatch,
+        cx: ConnectionTo<Client>,
+    ) -> Result<Handled<Dispatch>, agent_client_protocol::Error> {
+        let this = self.clone();
+        let base = MockAgent::new();
+        MatchDispatchFrom::new(message, &cx)
+            // initialize
+            .if_request(
+                |req: InitializeRequest, responder: Responder<InitializeResponse>| async move {
+                    responder.respond(base.initialize_response(&req))
+                },
+            )
+            .await
+            // session/new
+            .if_request(
+                |_req: NewSessionRequest, responder: Responder<NewSessionResponse>| async move {
+                    let session_id = uuid::Uuid::new_v4().to_string();
+                    responder.respond(MockAgent::new_session_response(session_id))
+                },
+            )
+            .await
+            // session/set_mode
+            .if_request(
+                |req: SetSessionModeRequest,
+                 responder: Responder<SetSessionModeResponse>| async move {
+                    let valid = ["default", "acceptEdits", "bypassPermissions"];
+                    if valid.contains(&req.mode_id.0.as_ref()) {
+                        responder.respond(SetSessionModeResponse::new())
+                    } else {
+                        responder.respond_with_error(
+                            agent_client_protocol::Error::invalid_params()
+                                .data(format!("unknown mode: {}", req.mode_id.0)),
+                        )
+                    }
+                },
+            )
+            .await
+            // session/prompt — runs a terminal command and records the output.
+            .if_request({
+                let cx_for_prompt = cx.clone();
+                move |req: PromptRequest, responder: Responder<PromptResponse>| {
+                    let cx = cx_for_prompt.clone();
+                    let output_slot = this.output_slot.clone();
+                    let exit_code_slot = this.exit_code_slot.clone();
+                    async move {
+                        let session_id = req.session_id.clone();
+
+                        let cx2 = cx.clone();
+                        cx.spawn(async move {
+                            use agent_client_protocol::schema::v1::{
+                                CreateTerminalRequest, ReleaseTerminalRequest,
+                                TerminalOutputRequest, WaitForTerminalExitRequest,
+                            };
+
+                            // 1. terminal/create — echo hello && pwd
+                            let create_resp = cx2
+                                .send_request(
+                                    CreateTerminalRequest::new(
+                                        session_id.clone(),
+                                        "echo hello && pwd",
+                                    )
+                                    .output_byte_limit(4096u64),
+                                )
+                                .block_task()
+                                .await;
+
+                            let terminal_id = match create_resp {
+                                Ok(r) => r.terminal_id,
+                                Err(e) => {
+                                    eprintln!("terminal/create failed: {e:?}");
+                                    return responder
+                                        .respond(PromptResponse::new(StopReason::EndTurn));
+                                }
+                            };
+
+                            // 2. terminal/wait_for_exit
+                            let _ = cx2
+                                .send_request(WaitForTerminalExitRequest::new(
+                                    session_id.clone(),
+                                    terminal_id.clone(),
+                                ))
+                                .block_task()
+                                .await;
+
+                            // 3. terminal/output
+                            let out_resp = cx2
+                                .send_request(TerminalOutputRequest::new(
+                                    session_id.clone(),
+                                    terminal_id.clone(),
+                                ))
+                                .block_task()
+                                .await;
+
+                            if let Ok(out) = out_resp {
+                                *output_slot.lock().await = out.output;
+                                *exit_code_slot.lock().await =
+                                    out.exit_status.and_then(|s| s.exit_code);
+                            }
+
+                            // 4. terminal/release
+                            let _ = cx2
+                                .send_request(ReleaseTerminalRequest::new(
+                                    session_id.clone(),
+                                    terminal_id,
+                                ))
+                                .block_task()
+                                .await;
+
+                            responder.respond(PromptResponse::new(StopReason::EndTurn))
+                        })?;
+
+                        Ok(())
+                    }
+                }
+            })
+            .await
+            .done()
+    }
+}
+
+/// Run the full lifecycle against the [`TerminalMockAgent`], which exercises
+/// the client's five `terminal/*` handlers end-to-end through `run_client_loop`.
+pub async fn run_prompt_with_terminal_calls() -> TerminalOutcome {
+    use std::sync::Arc;
+
+    use crate::approval::ApprovalHub;
+    use crate::domain::{CoreEvent, PermMode};
+    use crate::harness::acp::{AcpAdapterDescriptor, AcpHarness};
+    use crate::harness::{Harness, SessionCtx};
+    use crate::store::Store;
+
+    let tmp_store = tempfile::NamedTempFile::new().unwrap();
+    let store: Arc<Store> = Arc::new(Store::open(tmp_store.path()).await.unwrap());
+    let (events_tx, _events_rx) = tokio::sync::broadcast::channel::<CoreEvent>(64);
+
+    // Use a real temp dir as the session worktree.
+    let work_dir_tmp = tempfile::tempdir().unwrap();
+    let work_dir = work_dir_tmp.path().to_path_buf();
+    let work_dir_for_check = work_dir.canonicalize().unwrap();
+
+    let output_slot: Arc<tokio::sync::Mutex<String>> =
+        Arc::new(tokio::sync::Mutex::new(String::new()));
+    let exit_code_slot: Arc<tokio::sync::Mutex<Option<u32>>> =
+        Arc::new(tokio::sync::Mutex::new(None));
+
+    let agent = TerminalMockAgent {
+        output_slot: output_slot.clone(),
+        exit_code_slot: exit_code_slot.clone(),
+    };
+
+    let harness = AcpHarness::with_runner_factory(
+        AcpAdapterDescriptor::default(),
+        move |_descriptor: &AcpAdapterDescriptor| {
+            let agent = agent.clone();
+            Box::new(move |args: crate::harness::acp::ClientLoopArgs| {
+                let (client_read, server_write) = tokio::io::duplex(64 * 1024);
+                let (server_read, client_write) = tokio::io::duplex(64 * 1024);
+                use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
+
+                tokio::spawn(async move {
+                    let _ = SacpAgent
+                        .builder()
+                        .name("ryuzi-terminal-mock-agent")
+                        .with_handler(agent)
+                        .connect_to(agent_client_protocol::ByteStreams::new(
+                            server_write.compat_write(),
+                            server_read.compat(),
+                        ))
+                        .await;
+                });
+
+                let transport = agent_client_protocol::ByteStreams::new(
+                    client_write.compat_write(),
+                    client_read.compat(),
+                );
+
+                tokio::spawn(async move {
+                    crate::harness::acp::run_client_loop(transport, args).await;
+                });
+            }) as crate::harness::acp::ClientLoopRunner
+        },
+    );
+
+    let session_pk = "terminal-test-session-pk".to_string();
+    let ctx = SessionCtx {
+        session_pk: session_pk.clone(),
+        work_dir,
+        perm_mode: PermMode::Default,
+        model: None,
+        effort: None,
+        resume: None,
+        mcp_servers: vec![],
+        events: events_tx,
+        approvals: Arc::new(ApprovalHub::new()),
+        store: store.clone(),
+    };
+
+    let session = harness
+        .start_session(ctx)
+        .await
+        .expect("run_prompt_with_terminal_calls: start_session failed");
+
+    session
+        .send_prompt("run terminal".to_string())
+        .await
+        .expect("run_prompt_with_terminal_calls: send_prompt failed");
+
+    session.end().await.expect("end failed");
+
+    let output = output_slot.lock().await.clone();
+    let exit_code = *exit_code_slot.lock().await;
+    let worktree_str = work_dir_for_check.to_string_lossy().into_owned();
+    let ran_in_worktree = output.contains(&worktree_str);
+
+    drop(work_dir_tmp);
+
+    TerminalOutcome {
+        output,
+        exit_code,
+        ran_in_worktree,
+        _tmp_store: tmp_store,
+    }
+}

@@ -29,6 +29,7 @@ pub mod fs;
 pub mod lifecycle;
 pub mod notification;
 pub mod permission;
+pub mod terminal;
 pub mod transport;
 
 #[cfg(test)]
@@ -37,9 +38,12 @@ pub(crate) mod testkit;
 use std::sync::Arc;
 
 use agent_client_protocol::schema::v1::{
-    CancelNotification, ClientCapabilities, ContentBlock, FileSystemCapabilities,
-    InitializeRequest, InitializeResponse, ReadTextFileRequest,
-    SessionId, TextContent, WriteTextFileRequest,
+    CancelNotification, ClientCapabilities, ContentBlock, CreateTerminalRequest,
+    CreateTerminalResponse, FileSystemCapabilities, InitializeRequest, InitializeResponse,
+    KillTerminalRequest, KillTerminalResponse, ReadTextFileRequest, ReleaseTerminalRequest,
+    ReleaseTerminalResponse, SessionId, TerminalOutputRequest,
+    TerminalOutputResponse, TextContent, WaitForTerminalExitRequest, WaitForTerminalExitResponse,
+    WriteTextFileRequest,
 };
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::{Client, ConnectionTo};
@@ -115,9 +119,18 @@ async fn run_client_loop(
     let sink_for_handler = sink.clone();
     let sink_for_write = sink.clone();
     let perm = (perm.hub, perm.events);
-    // Clone work_dir for the fs handler closures (they must be 'static + Send).
+    // Clone work_dir for the fs/terminal handler closures (they must be 'static + Send).
     let work_dir_for_read = work_dir.clone();
     let work_dir_for_write = work_dir.clone();
+    let work_dir_for_terminal_create = work_dir.clone();
+
+    // One TerminalManager per session — shared across the five terminal handlers.
+    let term_mgr = std::sync::Arc::new(crate::harness::acp::terminal::TerminalManager::new());
+    let term_mgr_create = term_mgr.clone();
+    let term_mgr_output = term_mgr.clone();
+    let term_mgr_wait = term_mgr.clone();
+    let term_mgr_kill = term_mgr.clone();
+    let term_mgr_release = term_mgr.clone();
 
     // Wrap ready_tx in an Option so it can be consumed in either the error
     // path (where we forward the real cause) or the success path.
@@ -222,17 +235,142 @@ async fn run_client_loop(
             },
             agent_client_protocol::on_receive_request!(),
         )
+        // terminal/create — sandbox cwd to the session worktree, spawn the PTY.
+        .on_receive_request(
+            {
+                async move |request: CreateTerminalRequest, responder, _cx| {
+                    let sandboxed_cwd = crate::harness::acp::terminal::sandbox_cwd(
+                        &work_dir_for_terminal_create,
+                        request.cwd,
+                    );
+                    let sandboxed_cwd = match sandboxed_cwd {
+                        Ok(p) => p,
+                        Err(err) => {
+                            tracing::warn!("terminal/create sandbox failed: {err}");
+                            return responder.respond_with_error(
+                                agent_client_protocol::Error::internal_error()
+                                    .data(format!("terminal/create: {err}")),
+                            );
+                        }
+                    };
+                    let output_byte_limit = request.output_byte_limit.unwrap_or(1024 * 1024);
+                    match term_mgr_create.create(&request.command, sandboxed_cwd, output_byte_limit) {
+                        Ok(terminal_id) => {
+                            responder.respond(CreateTerminalResponse::new(terminal_id))
+                        }
+                        Err(err) => {
+                            tracing::warn!("terminal/create failed: {err}");
+                            responder.respond_with_error(
+                                agent_client_protocol::Error::internal_error()
+                                    .data(format!("terminal/create: {err}")),
+                            )
+                        }
+                    }
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        // terminal/output — return accumulated output and exit status.
+        .on_receive_request(
+            {
+                async move |request: TerminalOutputRequest, responder, _cx| {
+                    match term_mgr_output.output(&request.terminal_id) {
+                        Ok(out) => {
+                            let mut resp =
+                                TerminalOutputResponse::new(out.output, out.truncated);
+                            if let Some(status) = out.exit_status {
+                                resp = resp.exit_status(status);
+                            }
+                            responder.respond(resp)
+                        }
+                        Err(err) => {
+                            tracing::warn!("terminal/output failed: {err}");
+                            responder.respond_with_error(
+                                agent_client_protocol::Error::internal_error()
+                                    .data(format!("terminal/output: {err}")),
+                            )
+                        }
+                    }
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        // terminal/wait_for_exit — async wait until the process exits.
+        .on_receive_request(
+            {
+                async move |request: WaitForTerminalExitRequest, responder, _cx| {
+                    match term_mgr_wait.wait_for_exit(&request.terminal_id).await {
+                        Ok(()) => {
+                            // Return a WaitForTerminalExitResponse with the exit status.
+                            // We must fetch it from output() to get the code.
+                            let exit_status = term_mgr_wait
+                                .output(&request.terminal_id)
+                                .ok()
+                                .and_then(|o| o.exit_status)
+                                .unwrap_or_default();
+                            responder.respond(WaitForTerminalExitResponse::new(exit_status))
+                        }
+                        Err(err) => {
+                            tracing::warn!("terminal/wait_for_exit failed: {err}");
+                            responder.respond_with_error(
+                                agent_client_protocol::Error::internal_error()
+                                    .data(format!("terminal/wait_for_exit: {err}")),
+                            )
+                        }
+                    }
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        // terminal/kill — send SIGKILL to the child process.
+        .on_receive_request(
+            {
+                async move |request: KillTerminalRequest, responder, _cx| {
+                    match term_mgr_kill.kill(&request.terminal_id) {
+                        Ok(()) => responder.respond(KillTerminalResponse::new()),
+                        Err(err) => {
+                            tracing::warn!("terminal/kill failed: {err}");
+                            responder.respond_with_error(
+                                agent_client_protocol::Error::internal_error()
+                                    .data(format!("terminal/kill: {err}")),
+                            )
+                        }
+                    }
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        // terminal/release — free the terminal's resources.
+        .on_receive_request(
+            {
+                async move |request: ReleaseTerminalRequest, responder, _cx| {
+                    match term_mgr_release.release(&request.terminal_id) {
+                        Ok(()) => responder.respond(ReleaseTerminalResponse::new()),
+                        Err(err) => {
+                            tracing::warn!("terminal/release failed: {err}");
+                            responder.respond_with_error(
+                                agent_client_protocol::Error::internal_error()
+                                    .data(format!("terminal/release: {err}")),
+                            )
+                        }
+                    }
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
         .connect_with(transport, async move |cx: ConnectionTo<agent_client_protocol::Agent>| {
-            // --- handshake: initialize (advertising fs read+write) ---------
+            // --- handshake: initialize (advertising fs read+write + terminal) ---------
             let init: InitializeResponse = cx
                 .send_request(
                     InitializeRequest::new(ProtocolVersion::LATEST)
                         .client_capabilities(
-                            ClientCapabilities::new().fs(
-                                FileSystemCapabilities::new()
-                                    .read_text_file(true)
-                                    .write_text_file(true),
-                            ),
+                            ClientCapabilities::new()
+                                .fs(
+                                    FileSystemCapabilities::new()
+                                        .read_text_file(true)
+                                        .write_text_file(true),
+                                )
+                                .terminal(true),
                         ),
                 )
                 .block_task()
@@ -303,6 +441,9 @@ async fn run_client_loop(
                     }
                 }
             }
+
+            // Session is ending — release all terminal resources.
+            term_mgr.release_all();
 
             Ok::<(), agent_client_protocol::Error>(())
         })
@@ -669,6 +810,27 @@ mod tests {
                 .contains("wrote"),
             "status payload summary should mention 'wrote', got: {:?}",
             status_row.payload
+        );
+    }
+
+    #[tokio::test]
+    async fn agent_terminal_requests_run_sandboxed_in_worktree() {
+        let outcome = crate::harness::acp::testkit::run_prompt_with_terminal_calls().await;
+        assert!(
+            outcome.output.contains("hello"),
+            "expected 'hello' in terminal output, got: {:?}",
+            outcome.output
+        );
+        assert!(
+            outcome.ran_in_worktree,
+            "pwd output {:?} should contain the worktree path",
+            outcome.output
+        );
+        assert_eq!(
+            outcome.exit_code,
+            Some(0),
+            "expected exit code 0, got: {:?}",
+            outcome.exit_code
         );
     }
 }
