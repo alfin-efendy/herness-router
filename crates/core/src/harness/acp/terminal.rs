@@ -107,10 +107,16 @@ struct TerminalHandle {
     state: Arc<Mutex<TerminalState>>,
     /// Notified when the process exits (reader thread fires this).
     exit_notify: Arc<Notify>,
-    /// PTY master — kept alive so the slave side's fd stays open.
-    _master: Box<dyn portable_pty::MasterPty + Send>,
+    /// PTY master — kept alive so the slave side's fd stays open. `Option` so
+    /// `release`/`release_all` can drop (close) it to unblock the drain reader
+    /// before joining the drain thread.
+    master: Option<Box<dyn portable_pty::MasterPty + Send>>,
     /// Child process handle — used for `kill`.
     child: Arc<Mutex<Box<dyn portable_pty::Child + Send + Sync>>>,
+    /// Join handle for the background drain thread. `Option` so it can be taken
+    /// and `join()`ed on release. Detaching (dropping without joining) would
+    /// leak the thread past session end.
+    drain_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 // TerminalId wraps Arc<str> with no AsRef<str> impl; access the inner field.
@@ -187,14 +193,14 @@ impl TerminalManager {
             .master
             .try_clone_reader()
             .context("portable-pty: try_clone_reader failed")?;
-        {
+        let drain_thread = {
             let state_for_thread = state.clone();
             let notify_for_thread = exit_notify.clone();
             let child_for_thread = child.clone();
             std::thread::spawn(move || {
                 drain_pty(reader, state_for_thread, notify_for_thread, child_for_thread);
-            });
-        }
+            })
+        };
 
         let id = uuid::Uuid::new_v4().to_string();
         let terminal_id = TerminalId::new(id.clone());
@@ -202,8 +208,9 @@ impl TerminalManager {
         let handle = TerminalHandle {
             state,
             exit_notify,
-            _master: pair.master,
+            master: Some(pair.master),
             child,
+            drain_thread: Some(drain_thread),
         };
 
         self.terminals.lock().unwrap().insert(id, handle);
@@ -228,21 +235,35 @@ impl TerminalManager {
     }
 
     /// Wait (asynchronously) until the terminal process exits.
+    ///
+    /// Race-free against the drain thread's `notify_waiters()`: `tokio::Notify`
+    /// stores no permit, so `notify_waiters()` only wakes waiters already
+    /// registered. We therefore register (`enable()`) the `notified()` future
+    /// BEFORE re-checking `exited`; any `notify_waiters()` firing after that
+    /// recheck is guaranteed to be observed. The loop guards against spurious /
+    /// unrelated wakeups by re-checking the flag each iteration.
     pub async fn wait_for_exit(&self, id: &TerminalId) -> anyhow::Result<()> {
-        // Grab the notify handle without holding the Mutex across await.
-        let notify = {
+        // Clone the shared state + notify without holding the manager lock
+        // across the await.
+        let (state, notify) = {
             let terminals = self.terminals.lock().unwrap();
             let handle = terminals
                 .get(terminal_key(id))
                 .ok_or_else(|| anyhow::anyhow!("terminal not found: {}", terminal_key(id)))?;
-            // Already done?
-            if handle.state.lock().unwrap().exited {
+            (handle.state.clone(), handle.exit_notify.clone())
+        };
+        loop {
+            // Create + register the waiter BEFORE checking the flag so a
+            // notify_waiters() that fires after the check cannot be missed.
+            let notified = notify.notified();
+            tokio::pin!(notified);
+            notified.as_mut().enable(); // registers this waiter now
+            if state.lock().unwrap().exited {
                 return Ok(());
             }
-            handle.exit_notify.clone()
-        };
-        notify.notified().await;
-        Ok(())
+            notified.await; // any notify_waiters() after enable() is observed
+            // Loop re-checks `exited` to guard against spurious wakeups.
+        }
     }
 
     /// Kill the terminal's child process (SIGKILL). The terminal id remains
@@ -262,17 +283,47 @@ impl TerminalManager {
     }
 
     /// Release the terminal, freeing all associated resources.
+    ///
+    /// Ordering matters (see [`shutdown_handle`]): kill the child, close the
+    /// PTY master (so the reader gets EOF/EIO), then join the drain thread.
     pub fn release(&self, id: &TerminalId) -> anyhow::Result<()> {
+        // Remove the handle under the manager lock, then shut it down WITHOUT
+        // holding the lock (joining the thread could otherwise block others).
         let removed = self.terminals.lock().unwrap().remove(terminal_key(id));
-        if removed.is_none() {
-            anyhow::bail!("terminal not found: {}", terminal_key(id));
+        match removed {
+            Some(handle) => {
+                shutdown_handle(handle);
+                Ok(())
+            }
+            None => anyhow::bail!("terminal not found: {}", terminal_key(id)),
         }
-        Ok(())
     }
 
     /// Release all terminals (called at session end / cancel).
     pub fn release_all(&self) {
-        self.terminals.lock().unwrap().clear();
+        // Drain the map under the lock, then shut each handle down outside it.
+        let handles: Vec<TerminalHandle> = {
+            let mut terminals = self.terminals.lock().unwrap();
+            terminals.drain().map(|(_, handle)| handle).collect()
+        };
+        for handle in handles {
+            shutdown_handle(handle);
+        }
+    }
+}
+
+/// Tear down one terminal handle: kill the child (best-effort, so a still-running
+/// process is never orphaned), close the PTY master so the drain reader observes
+/// EOF/EIO, then join the drain thread. This ordering avoids a join-hang: the
+/// drain thread only exits once the child is dead AND the master is closed.
+fn shutdown_handle(mut handle: TerminalHandle) {
+    // (a) Kill the child (best-effort; it may have already exited).
+    let _ = handle.child.lock().unwrap().kill();
+    // (b) Close the PTY master so the reader gets EOF/EIO and drain_pty returns.
+    drop(handle.master.take());
+    // (c) Join the drain thread; after kill+master-close it returns promptly.
+    if let Some(join) = handle.drain_thread.take() {
+        let _ = join.join();
     }
 }
 
@@ -398,6 +449,49 @@ mod tests {
             out.output,
             real_str
         );
+        mgr.release(&id).unwrap();
+    }
+
+    #[tokio::test]
+    async fn kill_makes_wait_for_exit_return_promptly() {
+        // A long-running command; without kill it would run for 30s. kill(id)
+        // must terminate it so the drain thread reaches EOF, sets `exited`, and
+        // fires notify_waiters() — exercising the race-free wait path.
+        let root = tempfile::tempdir().unwrap();
+        let mgr = TerminalManager::new();
+        let id = mgr
+            .create("sleep 30", root.path().to_path_buf(), 1024)
+            .unwrap();
+        mgr.kill(&id).unwrap();
+        // Should resolve well within a few seconds; bound it so a regression
+        // (lost wakeup / join-hang) surfaces as a failure instead of a hang.
+        tokio::time::timeout(std::time::Duration::from_secs(10), mgr.wait_for_exit(&id))
+            .await
+            .expect("wait_for_exit hung after kill")
+            .expect("wait_for_exit returned an error");
+        mgr.release(&id).unwrap();
+    }
+
+    #[tokio::test]
+    async fn wait_for_exit_returns_for_already_exited_terminal() {
+        // Run a command that finishes immediately, wait once so `exited` is set,
+        // then call wait_for_exit AGAIN — it must take the enable-recheck fast
+        // path and return without blocking.
+        let root = tempfile::tempdir().unwrap();
+        let mgr = TerminalManager::new();
+        let id = mgr
+            .create("true", root.path().to_path_buf(), 1024)
+            .unwrap();
+        // First wait: let the process finish and `exited` become true.
+        tokio::time::timeout(std::time::Duration::from_secs(10), mgr.wait_for_exit(&id))
+            .await
+            .expect("initial wait_for_exit hung")
+            .unwrap();
+        // Second wait on an already-exited terminal must return promptly.
+        tokio::time::timeout(std::time::Duration::from_secs(5), mgr.wait_for_exit(&id))
+            .await
+            .expect("wait_for_exit on already-exited terminal hung")
+            .expect("wait_for_exit returned an error");
         mgr.release(&id).unwrap();
     }
 

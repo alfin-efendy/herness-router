@@ -246,7 +246,7 @@ async fn run_client_loop(
                     let sandboxed_cwd = match sandboxed_cwd {
                         Ok(p) => p,
                         Err(err) => {
-                            tracing::warn!("terminal/create sandbox failed: {err}");
+                            tracing::error!("terminal/create sandbox failed: {err}");
                             return responder.respond_with_error(
                                 agent_client_protocol::Error::internal_error()
                                     .data(format!("terminal/create: {err}")),
