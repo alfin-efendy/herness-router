@@ -24,7 +24,8 @@
  * When --target is omitted the host target is used (most common for local dev).
  *
  * PREREQUISITES (handled here):
- *   1. bun install (runs automatically to ensure the package is present)
+ *   1. The adapter is installed into an ISOLATED build dir (not the workspace)
+ *      so the workspace bun.lock is never mutated (CI --frozen-lockfile stays valid).
  *   2. bun build --compile ... (produces the binary)
  *   3. Rename with target-triple suffix so Tauri finds it.
  *
@@ -34,7 +35,7 @@
  */
 
 import { execSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,10 +50,19 @@ const __dirname = dirname(__filename);
 const cockpitDir = resolve(__dirname, "..");
 const tauriDir = join(cockpitDir, "src-tauri");
 const binariesDir = join(tauriDir, "binaries");
-const packageJsonPath = join(cockpitDir, "package.json");
+
+/**
+ * Isolated build dir — lives INSIDE src-tauri/ but OUTSIDE the workspace package
+ * graph (no parent package.json refers to it).  This ensures `bun add` here does
+ * NOT touch the workspace root bun.lock, keeping `bun install --frozen-lockfile`
+ * valid in CI.  The directory is gitignored (see src-tauri/.gitignore).
+ */
+const sidecarBuildDir = join(tauriDir, ".sidecar-build");
 
 /** The npm package that provides the adapter. Pin the version here. */
-const ACP_PACKAGE = "@agentclientprotocol/claude-agent-acp@0.1.0";
+const ACP_PACKAGE = "@agentclientprotocol/claude-agent-acp";
+const ACP_VERSION = "0.1.0";
+const ACP_PACKAGE_VERSIONED = `${ACP_PACKAGE}@${ACP_VERSION}`;
 
 /** Binary name without target-triple suffix (must match tauri.conf.json externalBin entry). */
 const BIN_NAME = "claude-agent-acp";
@@ -121,23 +131,47 @@ function resolveTargetTriple(bunTarget?: string): string {
   return result.stdout.trim();
 }
 
+/**
+ * Ensure the isolated build dir exists with its own package.json and lockfile,
+ * then install the adapter package there.  The workspace bun.lock is NOT touched.
+ */
+function ensureIsolatedInstall(): void {
+  mkdirSync(sidecarBuildDir, { recursive: true });
+
+  // Write a minimal package.json if one doesn't exist (or is stale).
+  const isolatedPkgPath = join(sidecarBuildDir, "package.json");
+  const isolatedPkg = {
+    name: "ryuzi-acp-sidecar-build",
+    version: "0.0.0",
+    private: true,
+    dependencies: {
+      [ACP_PACKAGE]: ACP_VERSION,
+    },
+  };
+  writeFileSync(isolatedPkgPath, JSON.stringify(isolatedPkg, null, 2) + "\n");
+
+  // Install into the isolated dir.  bun install here creates/updates
+  // sidecarBuildDir/bun.lock and sidecarBuildDir/node_modules, leaving the
+  // workspace root bun.lock completely untouched.
+  run(`bun install`, { cwd: sidecarBuildDir });
+}
+
 /** Resolve the main entry-point of the installed ACP package. */
 function resolveAcpEntryPoint(): string {
-  const pkgName = ACP_PACKAGE.replace(/@[^@/]+$/, ""); // strip @version
-  // Installed under node_modules; resolve via require.resolve-like lookup.
-  const nodeModules = join(cockpitDir, "node_modules", pkgName);
+  const nodeModules = join(sidecarBuildDir, "node_modules", ACP_PACKAGE);
   if (!existsSync(nodeModules)) {
     throw new Error(
-      `Package ${pkgName} not found at ${nodeModules}. ` +
-        `Run: bun add ${ACP_PACKAGE} --cwd apps/cockpit`
+      `Package ${ACP_PACKAGE} not found at ${nodeModules}. ` +
+        `Run: bun install --cwd ${sidecarBuildDir}`
     );
   }
 
-  // Try package.json bin field first, then main/exports.
+  // Read package.json synchronously — Bun.file().toString() returns
+  // "[object Blob]" (a Blob, not its contents), so we use readFileSync.
   let pkg: Record<string, unknown>;
   try {
     pkg = JSON.parse(
-      Bun.file(join(nodeModules, "package.json")).toString()
+      readFileSync(join(nodeModules, "package.json"), "utf8")
     ) as Record<string, unknown>;
   } catch {
     pkg = {};
@@ -169,18 +203,19 @@ const targetIdx = args.indexOf("--target");
 const bunTarget = targetIdx >= 0 ? args[targetIdx + 1] : undefined;
 
 console.log("=== build-acp-sidecar ===");
-console.log(`Package : ${ACP_PACKAGE}`);
-console.log(`Cockpit : ${cockpitDir}`);
-console.log(`Binaries: ${binariesDir}`);
+console.log(`Package       : ${ACP_PACKAGE_VERSIONED}`);
+console.log(`Cockpit       : ${cockpitDir}`);
+console.log(`Isolated build: ${sidecarBuildDir}`);
+console.log(`Binaries      : ${binariesDir}`);
 
 // 1. Ensure binaries/ exists
 mkdirSync(binariesDir, { recursive: true });
 
-// 2. Install the package (idempotent — bun skips if already present and lockfile matches)
-console.log("\n--- Step 1: install package ---");
-run(`bun add ${ACP_PACKAGE}`, { cwd: cockpitDir });
+// 2. Install the package into the isolated build dir (does NOT touch workspace bun.lock)
+console.log("\n--- Step 1: isolated install ---");
+ensureIsolatedInstall();
 
-// 3. Resolve entry-point
+// 3. Resolve entry-point from isolated node_modules
 console.log("\n--- Step 2: resolve entry-point ---");
 const entryPoint = resolveAcpEntryPoint();
 console.log(`Entry: ${entryPoint}`);

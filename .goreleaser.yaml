@@ -15,8 +15,11 @@ project_name: ryuzi
 before:
   hooks:
     # Build the claude-agent-acp sidecar for the host target.
-    # Required before any tauri build step; safe to run even when only building
-    # the CLI (the binaries/ directory is ignored by goreleaser builds).
+    # NOTE: this hook is only needed for local Tauri desktop builds (tauri dev /
+    # tauri build).  Pure CLI-only goreleaser runs (no Tauri step) still execute
+    # this hook but it is harmless — the binaries/ dir is not consumed by
+    # goreleaser builds.  The Cockpit CI build (cockpit-desktop.yml) runs this
+    # script directly on the matching runner before tauri-action.
     - bun run apps/cockpit/scripts/build-acp-sidecar.ts
 
 builds:
