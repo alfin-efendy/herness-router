@@ -3,8 +3,14 @@ import { useStore } from "./store";
 
 function reset() {
   useStore.setState({
-    projects: [], sessions: [], transcripts: {}, pendingApprovals: [],
-    focusedSessionPk: null, selectedProjectId: null, lastSeq: {}, loaded: {},
+    projects: [],
+    sessions: [],
+    transcripts: {},
+    pendingApprovals: [],
+    focusedSessionPk: null,
+    selectedProjectId: null,
+    lastSeq: {},
+    loaded: {},
   });
 }
 
@@ -20,15 +26,51 @@ test("message events project to lines by role/blockType and dedupe by seq", () =
   reset();
   const s = useStore.getState();
   s.applyCoreEvent({ kind: "sessionCreated", session_pk: "s1", project_id: "p1" });
-  s.applyCoreEvent({ kind: "message", session_pk: "s1", seq: 1, role: "user", block_type: "text",
-    payload: { text: "hi" }, tool_call_id: null, status: null, tool_kind: null });
-  s.applyCoreEvent({ kind: "message", session_pk: "s1", seq: 2, role: "assistant", block_type: "status",
-    payload: { summary: "Bash: ls" }, tool_call_id: null, status: null, tool_kind: null });
-  s.applyCoreEvent({ kind: "message", session_pk: "s1", seq: 3, role: "assistant", block_type: "text",
-    payload: { text: "hello" }, tool_call_id: null, status: null, tool_kind: null });
+  s.applyCoreEvent({
+    kind: "message",
+    session_pk: "s1",
+    seq: 1,
+    role: "user",
+    block_type: "text",
+    payload: { text: "hi" },
+    tool_call_id: null,
+    status: null,
+    tool_kind: null,
+  });
+  s.applyCoreEvent({
+    kind: "message",
+    session_pk: "s1",
+    seq: 2,
+    role: "assistant",
+    block_type: "status",
+    payload: { summary: "Bash: ls" },
+    tool_call_id: null,
+    status: null,
+    tool_kind: null,
+  });
+  s.applyCoreEvent({
+    kind: "message",
+    session_pk: "s1",
+    seq: 3,
+    role: "assistant",
+    block_type: "text",
+    payload: { text: "hello" },
+    tool_call_id: null,
+    status: null,
+    tool_kind: null,
+  });
   // A duplicate/stale seq is ignored.
-  s.applyCoreEvent({ kind: "message", session_pk: "s1", seq: 2, role: "assistant", block_type: "status",
-    payload: { summary: "dup" }, tool_call_id: null, status: null, tool_kind: null });
+  s.applyCoreEvent({
+    kind: "message",
+    session_pk: "s1",
+    seq: 2,
+    role: "assistant",
+    block_type: "status",
+    payload: { summary: "dup" },
+    tool_call_id: null,
+    status: null,
+    tool_kind: null,
+  });
 
   const lines = useStore.getState().transcripts.s1;
   expect(lines.map((l) => l.kind)).toEqual(["user", "status", "text"]);
@@ -38,10 +80,28 @@ test("message events project to lines by role/blockType and dedupe by seq", () =
 test("hydrateTranscript replaces the transcript from persisted messages and sets lastSeq", async () => {
   reset();
   const rows = [
-    { sessionPk: "s1", seq: 1, role: "user", blockType: "text", payload: { text: "hi" },
-      toolCallId: null, status: null, toolKind: null, createdAt: 1 },
-    { sessionPk: "s1", seq: 2, role: "assistant", blockType: "text", payload: { text: "yo" },
-      toolCallId: null, status: null, toolKind: null, createdAt: 2 },
+    {
+      sessionPk: "s1",
+      seq: 1,
+      role: "user",
+      blockType: "text",
+      payload: { text: "hi" },
+      toolCallId: null,
+      status: null,
+      toolKind: null,
+      createdAt: 1,
+    },
+    {
+      sessionPk: "s1",
+      seq: 2,
+      role: "assistant",
+      blockType: "text",
+      payload: { text: "yo" },
+      toolCallId: null,
+      status: null,
+      toolKind: null,
+      createdAt: 2,
+    },
   ];
   await useStore.getState().hydrateTranscript("s1", async () => rows);
   const st = useStore.getState();
@@ -50,10 +110,28 @@ test("hydrateTranscript replaces the transcript from persisted messages and sets
   expect(st.loaded.s1).toBe(true);
 
   // A live event with seq <= lastSeq is ignored; a newer one appends.
-  st.applyCoreEvent({ kind: "message", session_pk: "s1", seq: 2, role: "assistant", block_type: "text",
-    payload: { text: "again" }, tool_call_id: null, status: null, tool_kind: null });
-  st.applyCoreEvent({ kind: "message", session_pk: "s1", seq: 3, role: "assistant", block_type: "text",
-    payload: { text: "next" }, tool_call_id: null, status: null, tool_kind: null });
+  st.applyCoreEvent({
+    kind: "message",
+    session_pk: "s1",
+    seq: 2,
+    role: "assistant",
+    block_type: "text",
+    payload: { text: "again" },
+    tool_call_id: null,
+    status: null,
+    tool_kind: null,
+  });
+  st.applyCoreEvent({
+    kind: "message",
+    session_pk: "s1",
+    seq: 3,
+    role: "assistant",
+    block_type: "text",
+    payload: { text: "next" },
+    tool_call_id: null,
+    status: null,
+    tool_kind: null,
+  });
   expect(useStore.getState().transcripts.s1.map((l) => l.text)).toEqual(["hi", "yo", "next"]);
 });
 

@@ -61,7 +61,7 @@ const sidecarBuildDir = join(tauriDir, ".sidecar-build");
 
 /** The npm package that provides the adapter. Pin the version here. */
 const ACP_PACKAGE = "@agentclientprotocol/claude-agent-acp";
-const ACP_VERSION = "0.1.0";
+const ACP_VERSION = "0.55.0";
 const ACP_PACKAGE_VERSIONED = `${ACP_PACKAGE}@${ACP_VERSION}`;
 
 /** Binary name without target-triple suffix (must match tauri.conf.json externalBin entry). */
@@ -96,9 +96,7 @@ function resolveTargetTriple(bunTarget?: string): string {
     };
     const triple = map[bunTarget];
     if (!triple) {
-      throw new Error(
-        `Unknown Bun target '${bunTarget}'. Supported: ${Object.keys(map).join(", ")}`
-      );
+      throw new Error(`Unknown Bun target '${bunTarget}'. Supported: ${Object.keys(map).join(", ")}`);
     }
     return triple;
   }
@@ -109,12 +107,7 @@ function resolveTargetTriple(bunTarget?: string): string {
   });
   if (result.status !== 0) {
     // Fallback: derive from process.arch/platform
-    const arch =
-      process.arch === "arm64"
-        ? "aarch64"
-        : process.arch === "x64"
-          ? "x86_64"
-          : process.arch;
+    const arch = process.arch === "arm64" ? "aarch64" : process.arch === "x64" ? "x86_64" : process.arch;
     const os =
       process.platform === "linux"
         ? "unknown-linux-gnu"
@@ -123,9 +116,7 @@ function resolveTargetTriple(bunTarget?: string): string {
           : process.platform === "win32"
             ? "pc-windows-msvc"
             : process.platform;
-    console.warn(
-      `[warn] rustc not found; inferring target triple as ${arch}-${os}`
-    );
+    console.warn(`[warn] rustc not found; inferring target triple as ${arch}-${os}`);
     return `${arch}-${os}`;
   }
   return result.stdout.trim();
@@ -160,37 +151,29 @@ function ensureIsolatedInstall(): void {
 function resolveAcpEntryPoint(): string {
   const nodeModules = join(sidecarBuildDir, "node_modules", ACP_PACKAGE);
   if (!existsSync(nodeModules)) {
-    throw new Error(
-      `Package ${ACP_PACKAGE} not found at ${nodeModules}. ` +
-        `Run: bun install --cwd ${sidecarBuildDir}`
-    );
+    throw new Error(`Package ${ACP_PACKAGE} not found at ${nodeModules}. ` + `Run: bun install --cwd ${sidecarBuildDir}`);
   }
 
   // Read package.json synchronously — Bun.file().toString() returns
   // "[object Blob]" (a Blob, not its contents), so we use readFileSync.
   let pkg: Record<string, unknown>;
   try {
-    pkg = JSON.parse(
-      readFileSync(join(nodeModules, "package.json"), "utf8")
-    ) as Record<string, unknown>;
+    pkg = JSON.parse(readFileSync(join(nodeModules, "package.json"), "utf8")) as Record<string, unknown>;
   } catch {
     pkg = {};
   }
 
   // bin field: { "claude-agent-acp": "./dist/index.js" } or string
-  const bin = pkg["bin"];
+  const bin = pkg.bin;
   if (typeof bin === "string") return resolve(nodeModules, bin);
   if (typeof bin === "object" && bin !== null) {
     const binObj = bin as Record<string, string>;
-    const entry =
-      binObj["claude-agent-acp"] ??
-      binObj[BIN_NAME] ??
-      Object.values(binObj)[0];
+    const entry = binObj["claude-agent-acp"] ?? binObj[BIN_NAME] ?? Object.values(binObj)[0];
     if (entry) return resolve(nodeModules, entry);
   }
 
   // Fallback to main
-  const main = (pkg["main"] as string | undefined) ?? "index.js";
+  const main = (pkg.main as string | undefined) ?? "index.js";
   return resolve(nodeModules, main);
 }
 
@@ -231,12 +214,7 @@ console.log(`Target triple : ${targetTriple}`);
 console.log(`Output (final): ${finalBin}`);
 
 // Build flags
-const buildFlags = [
-  "build",
-  "--compile",
-  "--minify",
-  `--outfile=${tmpBin}`,
-];
+const buildFlags = ["build", "--compile", "--minify", `--outfile=${tmpBin}`];
 if (bunTarget) buildFlags.push(`--target=${bunTarget}`);
 buildFlags.push(entryPoint);
 
@@ -248,6 +226,4 @@ if (existsSync(finalBin)) rmSync(finalBin);
 renameSync(tmpBin, finalBin);
 
 console.log(`\n=== Done: ${finalBin} ===`);
-console.log(
-  "Next: bun run --cwd apps/cockpit tauri build  (or tauri dev for smoke test)"
-);
+console.log("Next: bun run --cwd apps/cockpit tauri build  (or tauri dev for smoke test)");

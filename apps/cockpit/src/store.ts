@@ -37,8 +37,7 @@ function append(map: Record<string, Line[]>, pk: string, line: Line): Record<str
 function messageToLine(role: string, blockType: string, payload: unknown): Line {
   const p = (payload ?? {}) as Record<string, unknown>;
   if (role === "user") return { kind: "user", text: String(p.text ?? "") };
-  if (blockType === "status" || blockType === "tool_call")
-    return { kind: "status", text: String(p.summary ?? p.name ?? "") };
+  if (blockType === "status" || blockType === "tool_call") return { kind: "status", text: String(p.summary ?? p.name ?? "") };
   if (blockType === "error") return { kind: "error", text: String(p.message ?? "") };
   return { kind: "text", text: String(p.text ?? "") };
 }
