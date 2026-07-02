@@ -25,6 +25,7 @@
 //! plain tokio task over an injected duplex transport. This split is the
 //! [`ClientLoopRunner`] seam.
 
+pub mod fs;
 pub mod lifecycle;
 pub mod notification;
 pub mod permission;
@@ -36,8 +37,9 @@ pub(crate) mod testkit;
 use std::sync::Arc;
 
 use agent_client_protocol::schema::v1::{
-    CancelNotification, ClientCapabilities, ContentBlock, InitializeRequest, InitializeResponse,
-    SessionId, TextContent,
+    CancelNotification, ClientCapabilities, ContentBlock, FileSystemCapabilities,
+    InitializeRequest, InitializeResponse, ReadTextFileRequest, ReadTextFileResponse,
+    SessionId, TextContent, WriteTextFileRequest,
 };
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::{Client, ConnectionTo};
@@ -112,6 +114,9 @@ async fn run_client_loop(
 
     let sink_for_handler = sink.clone();
     let perm = (perm.hub, perm.events);
+    // Clone work_dir for the fs handler closures (they must be 'static + Send).
+    let work_dir_for_read = work_dir.clone();
+    let work_dir_for_write = work_dir.clone();
 
     // Wrap ready_tx in an Option so it can be consumed in either the error
     // path (where we forward the real cause) or the success path.
@@ -167,12 +172,57 @@ async fn run_client_loop(
             },
             agent_client_protocol::on_receive_request!(),
         )
+        // fs/read_text_file — sandboxed to the session worktree.
+        .on_receive_request(
+            {
+                async move |request: ReadTextFileRequest, responder, _cx| {
+                    let result =
+                        crate::harness::acp::fs::read_text_file(&work_dir_for_read, request);
+                    match result {
+                        Ok(response) => responder.respond(response),
+                        Err(err) => {
+                            tracing::warn!("fs/read_text_file failed: {err}");
+                            responder.respond(ReadTextFileResponse::new(
+                                format!("error: {err}"),
+                            ))
+                        }
+                    }
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        // fs/write_text_file — sandboxed to the session worktree.
+        .on_receive_request(
+            {
+                async move |request: WriteTextFileRequest, responder, _cx| {
+                    let result =
+                        crate::harness::acp::fs::write_text_file(&work_dir_for_write, request);
+                    match result {
+                        Ok(response) => responder.respond(response),
+                        Err(err) => {
+                            tracing::warn!("fs/write_text_file failed: {err}");
+                            responder.respond_with_error(
+                                agent_client_protocol::Error::internal_error()
+                                    .data(format!("fs/write_text_file: {err}")),
+                            )
+                        }
+                    }
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
         .connect_with(transport, async move |cx: ConnectionTo<agent_client_protocol::Agent>| {
-            // --- handshake: initialize -------------------------------------
+            // --- handshake: initialize (advertising fs read+write) ---------
             let init: InitializeResponse = cx
                 .send_request(
                     InitializeRequest::new(ProtocolVersion::LATEST)
-                        .client_capabilities(ClientCapabilities::new()),
+                        .client_capabilities(
+                            ClientCapabilities::new().fs(
+                                FileSystemCapabilities::new()
+                                    .read_text_file(true)
+                                    .write_text_file(true),
+                            ),
+                        ),
                 )
                 .block_task()
                 .await
@@ -571,6 +621,19 @@ mod tests {
     async fn factory_creates_a_harness() {
         let factory = AcpHarnessFactory::new(AcpAdapterDescriptor::default());
         let _harness = factory.create().unwrap();
+    }
+
+    #[tokio::test]
+    async fn agent_fs_requests_hit_the_sandboxed_worktree() {
+        let outcome = crate::harness::acp::testkit::run_prompt_with_fs_calls().await;
+        assert_eq!(
+            outcome.read_back, "hello from agent",
+            "read-back content should match what the agent wrote"
+        );
+        assert!(
+            outcome.wrote_inside_worktree,
+            "file should exist inside the worktree after write"
+        );
     }
 }
 

@@ -954,3 +954,247 @@ pub async fn run_prompt_with_permission(
     let allowed = *allowed_slot.lock().await;
     (hub, PermissionResult { allowed })
 }
+
+// ---------------------------------------------------------------------------
+// Spec 3B Task 1: fs/read_text_file + fs/write_text_file e2e test helpers
+// ---------------------------------------------------------------------------
+
+/// Result returned by [`run_prompt_with_fs_calls`].
+pub struct FsOutcome {
+    /// The content that the mock agent received from the client's
+    /// `fs/read_text_file` response (read back from the sandboxed worktree).
+    pub read_back: String,
+    /// `true` when the file written by `fs/write_text_file` actually exists
+    /// inside the (temp) worktree.
+    pub wrote_inside_worktree: bool,
+}
+
+/// A mock agent that, during the `session/prompt` handler, sends a
+/// `fs/write_text_file` request followed by a `fs/read_text_file` request
+/// to the client. Used to validate the client's sandboxed fs handlers
+/// end-to-end through the `run_client_loop` builder.
+#[derive(Clone)]
+struct FsMockAgent {
+    /// Shared slot: after the prompt resolves, holds the read-back content.
+    read_result: std::sync::Arc<tokio::sync::Mutex<String>>,
+    /// The relative file name to write and read (relative to the worktree).
+    file_name: String,
+}
+
+impl HandleDispatchFrom<Client> for FsMockAgent {
+    fn describe_chain(&self) -> impl std::fmt::Debug {
+        "ryuzi-fs-mock-agent"
+    }
+
+    async fn handle_dispatch_from(
+        &mut self,
+        message: Dispatch,
+        cx: ConnectionTo<Client>,
+    ) -> Result<Handled<Dispatch>, agent_client_protocol::Error> {
+        let this = self.clone();
+        let base = MockAgent::new();
+        MatchDispatchFrom::new(message, &cx)
+            // initialize
+            .if_request(
+                |req: InitializeRequest, responder: Responder<InitializeResponse>| async move {
+                    responder.respond(base.initialize_response(&req))
+                },
+            )
+            .await
+            // session/new
+            .if_request(
+                |_req: NewSessionRequest, responder: Responder<NewSessionResponse>| async move {
+                    let session_id = uuid::Uuid::new_v4().to_string();
+                    responder.respond(MockAgent::new_session_response(session_id))
+                },
+            )
+            .await
+            // session/set_mode
+            .if_request(
+                |req: SetSessionModeRequest,
+                 responder: Responder<SetSessionModeResponse>| async move {
+                    let valid = ["default", "acceptEdits", "bypassPermissions"];
+                    if valid.contains(&req.mode_id.0.as_ref()) {
+                        responder.respond(SetSessionModeResponse::new())
+                    } else {
+                        responder.respond_with_error(
+                            agent_client_protocol::Error::invalid_params()
+                                .data(format!("unknown mode: {}", req.mode_id.0)),
+                        )
+                    }
+                },
+            )
+            .await
+            // session/prompt — write a file then read it back via the client's
+            // fs handlers (sandboxed to the client's worktree).
+            .if_request({
+                let cx_for_prompt = cx.clone();
+                move |req: PromptRequest, responder: Responder<PromptResponse>| {
+                    let cx = cx_for_prompt.clone();
+                    let read_result = this.read_result.clone();
+                    let file_name = this.file_name.clone();
+                    async move {
+                        let session_id = req.session_id.clone();
+
+                        // Use cx.spawn to avoid blocking the ACP event loop.
+                        let cx2 = cx.clone();
+                        cx.spawn(async move {
+                            use agent_client_protocol::schema::v1::{
+                                ReadTextFileRequest, WriteTextFileRequest,
+                            };
+                            // 1. Ask the client to write a file into its worktree.
+                            //    The path is relative — the client's sandbox will
+                            //    join it onto work_dir. We send an absolute-looking
+                            //    path here; in practice the agent sends the path
+                            //    it wants the client to use. For the test, use a
+                            //    relative path as a PathBuf (agent sends the path).
+                            let write_req = WriteTextFileRequest::new(
+                                session_id.clone(),
+                                // The protocol says "absolute path" but the client's
+                                // sandbox resolves relative paths too. We send the
+                                // relative name and the sandbox joins it onto work_dir.
+                                std::path::PathBuf::from(&file_name),
+                                "hello from agent",
+                            );
+                            let _ = cx2
+                                .send_request(write_req)
+                                .block_task()
+                                .await;
+
+                            // 2. Ask the client to read it back.
+                            let read_req = ReadTextFileRequest::new(
+                                session_id.clone(),
+                                std::path::PathBuf::from(&file_name),
+                            );
+                            let read_resp = cx2
+                                .send_request(read_req)
+                                .block_task()
+                                .await;
+
+                            // Store whatever the client returned.
+                            if let Ok(resp) = read_resp {
+                                *read_result.lock().await = resp.content;
+                            }
+
+                            responder.respond(PromptResponse::new(StopReason::EndTurn))
+                        })?;
+
+                        Ok(())
+                    }
+                }
+            })
+            .await
+            // Let response dispatches fall through to their oneshot awaiters.
+            .done()
+    }
+}
+
+/// Run the full lifecycle against the [`FsMockAgent`], which exercises the
+/// client's `fs/write_text_file` + `fs/read_text_file` handlers.
+///
+/// The test uses a real temporary directory as the session worktree so that
+/// the sandbox check and the actual I/O can be verified.
+pub async fn run_prompt_with_fs_calls() -> FsOutcome {
+    use std::sync::Arc;
+
+    use crate::approval::ApprovalHub;
+    use crate::domain::{CoreEvent, PermMode};
+    use crate::harness::acp::{AcpAdapterDescriptor, AcpHarness};
+    use crate::harness::{Harness, SessionCtx};
+    use crate::store::Store;
+
+    let tmp_store = tempfile::NamedTempFile::new().unwrap();
+    let store: Arc<Store> = Arc::new(Store::open(tmp_store.path()).await.unwrap());
+    let (events_tx, _events_rx) = tokio::sync::broadcast::channel::<CoreEvent>(64);
+
+    // A real temporary directory acts as the session worktree.
+    let work_dir_tmp = tempfile::tempdir().unwrap();
+    let work_dir = work_dir_tmp.path().to_path_buf();
+
+    let file_name = "agent_test_file.txt".to_string();
+    let expected_file = work_dir.join(&file_name);
+
+    let read_result: Arc<tokio::sync::Mutex<String>> =
+        Arc::new(tokio::sync::Mutex::new(String::new()));
+    let read_result_for_agent = read_result.clone();
+
+    let fs_agent = FsMockAgent {
+        read_result: read_result_for_agent,
+        file_name: file_name.clone(),
+    };
+
+    // Build a runner factory that drives the client loop over the FsMockAgent.
+    let harness = AcpHarness::with_runner_factory(
+        AcpAdapterDescriptor::default(),
+        move |_descriptor: &AcpAdapterDescriptor| {
+            let agent = fs_agent.clone();
+            Box::new(move |args: crate::harness::acp::ClientLoopArgs| {
+                let (client_read, server_write) = tokio::io::duplex(64 * 1024);
+                let (server_read, client_write) = tokio::io::duplex(64 * 1024);
+                use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
+
+                tokio::spawn(async move {
+                    let _ = SacpAgent
+                        .builder()
+                        .name("ryuzi-fs-mock-agent")
+                        .with_handler(agent)
+                        .connect_to(agent_client_protocol::ByteStreams::new(
+                            server_write.compat_write(),
+                            server_read.compat(),
+                        ))
+                        .await;
+                });
+
+                let transport = agent_client_protocol::ByteStreams::new(
+                    client_write.compat_write(),
+                    client_read.compat(),
+                );
+
+                tokio::spawn(async move {
+                    crate::harness::acp::run_client_loop(transport, args).await;
+                });
+            }) as crate::harness::acp::ClientLoopRunner
+        },
+    );
+
+    let session_pk = "fs-test-session-pk".to_string();
+    let ctx = SessionCtx {
+        session_pk: session_pk.clone(),
+        work_dir,
+        perm_mode: PermMode::Default,
+        model: None,
+        effort: None,
+        resume: None,
+        mcp_servers: vec![],
+        events: events_tx,
+        approvals: Arc::new(ApprovalHub::new()),
+        store: store.clone(),
+    };
+
+    let session = harness
+        .start_session(ctx)
+        .await
+        .expect("run_prompt_with_fs_calls: start_session failed");
+
+    session
+        .send_prompt("write and read".to_string())
+        .await
+        .expect("run_prompt_with_fs_calls: send_prompt failed");
+
+    // Give async handlers a moment to complete.
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    session.end().await.expect("end failed");
+
+    let read_back = read_result.lock().await.clone();
+    let wrote_inside_worktree = expected_file.exists();
+
+    // Keep temp resources alive until assertions are done.
+    drop(tmp_store);
+    drop(work_dir_tmp);
+
+    FsOutcome {
+        read_back,
+        wrote_inside_worktree,
+    }
+}
