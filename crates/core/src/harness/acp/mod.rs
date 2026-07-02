@@ -7,6 +7,7 @@
 
 pub mod lifecycle;
 pub mod notification;
+pub mod permission;
 pub mod transport;
 
 #[cfg(test)]

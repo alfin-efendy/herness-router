@@ -26,7 +26,16 @@ use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::{Client, ConnectionTo};
 use agent_client_protocol_schema::v1::AGENT_METHOD_NAMES;
 
+use crate::domain::CoreEvent;
+
 use super::{AcpAdapterDescriptor, Caps};
+
+/// Bundle of shared state threaded into the ACP client for Task 4's real
+/// permission handler. Defined here so callers can name the type concisely.
+pub struct PermissionContext {
+    pub hub: Arc<crate::approval::ApprovalHub>,
+    pub events: tokio::sync::broadcast::Sender<CoreEvent>,
+}
 
 /// Spawn an ACP adapter sidecar per its [`AcpAdapterDescriptor`], with stdio
 /// piped and `kill_on_drop` set. Defined for the production path; unused by the
@@ -85,14 +94,18 @@ fn extract_caps(response: &InitializeResponse) -> Caps {
 /// [`crate::harness::acp::notification::handle`] for persistence + fan-out.
 /// Pass `None` to keep the stub behaviour (Task 1/2 tests).
 ///
-/// The two `on_receive_*` handlers are minimal stubs in Task 1 (they exist so
-/// the builder is shaped correctly); the real notification and permission
-/// handlers land in Tasks 3-4. They are written as inline closures so the
-/// responder/notification types are inferred by the marker macros.
+/// If `perm` is `Some`, incoming `RequestPermissionRequest`s are routed
+/// through the [`crate::approval::ApprovalHub`] (Task 4). The hub resolves
+/// the binary allow/deny and `map_response` converts it to the correct
+/// answer-by-kind `RequestPermissionResponse`. Pass `None` to keep the
+/// stub behaviour that responds with `Cancelled` (Task 1–3 tests).
 pub async fn connect_and_initialize(
     transport: impl agent_client_protocol::ConnectTo<Client> + 'static,
     sink: Option<Arc<crate::harness::acp::notification::NotificationSink>>,
+    perm: Option<PermissionContext>,
 ) -> Result<Caps, agent_client_protocol::Error> {
+    let perm = perm.map(|p| (p.hub, p.events));
+
     Client
         .builder()
         .on_receive_notification(
@@ -107,12 +120,41 @@ pub async fn connect_and_initialize(
             agent_client_protocol::on_receive_notification!(),
         )
         .on_receive_request(
-            async move |_request: RequestPermissionRequest, responder, _connection_cx| {
-                // Task 1 has no approval hub; decline permission requests until
-                // the real handler lands in Task 4.
-                responder.respond(RequestPermissionResponse::new(
-                    RequestPermissionOutcome::Cancelled,
-                ))
+            async move |request: RequestPermissionRequest, responder, _cx| {
+                let Some((ref hub, ref events)) = perm else {
+                    // Task 1–3 stub: no hub wired, decline all permission requests.
+                    return responder.respond(RequestPermissionResponse::new(
+                        RequestPermissionOutcome::Cancelled,
+                    ));
+                };
+
+                let request_id = request.tool_call.tool_call_id.0.to_string();
+                let session_pk = request.session_id.0.to_string();
+                let tool = request
+                    .tool_call
+                    .fields
+                    .title
+                    .clone()
+                    .unwrap_or_else(|| "unknown".to_string());
+                let summary = tool.clone();
+
+                let _ = events.send(CoreEvent::ApprovalRequested {
+                    session_pk,
+                    request_id: request_id.clone(),
+                    tool,
+                    summary,
+                });
+
+                let rx = hub.register(request_id.clone());
+                let got_allow = rx.await.unwrap_or(false);
+                let decision = if got_allow {
+                    crate::domain::ApprovalDecision::AllowOnce
+                } else {
+                    crate::domain::ApprovalDecision::RejectOnce
+                };
+                let response =
+                    crate::harness::acp::permission::map_response(&request, decision);
+                responder.respond(response)
             },
             agent_client_protocol::on_receive_request!(),
         )
@@ -141,8 +183,19 @@ mod tests {
         let (transport, _join) = crate::harness::acp::testkit::connect_mock(
             crate::harness::acp::testkit::MockAgent::new(),
         );
-        let caps = super::connect_and_initialize(transport, None).await.unwrap();
+        let caps = super::connect_and_initialize(transport, None, None)
+            .await
+            .unwrap();
         assert!(caps.supports_load, "mock advertises loadSession=true");
         assert!(caps.supports_close, "mock advertises a close capability");
+    }
+
+    #[tokio::test]
+    async fn permission_request_is_answered_from_the_hub() {
+        let (_hub, got) = crate::harness::acp::testkit::run_prompt_with_permission(
+            crate::domain::ApprovalDecision::AllowOnce,
+        )
+        .await;
+        assert!(got.allowed, "agent received an allow selection");
     }
 }

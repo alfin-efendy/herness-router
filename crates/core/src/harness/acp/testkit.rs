@@ -14,11 +14,12 @@
 
 use agent_client_protocol::schema::v1::{
     AgentCapabilities, ContentBlock, ContentChunk, Implementation, InitializeRequest,
-    InitializeResponse, McpCapabilities, NewSessionRequest, NewSessionResponse, PromptRequest,
-    PromptResponse, SessionCapabilities, SessionCloseCapabilities, SessionId, SessionMode,
-    SessionModeState, SessionNotification, SessionUpdate, SetSessionModeRequest,
-    SetSessionModeResponse, StopReason, TextContent, ToolCall, ToolCallStatus, ToolCallUpdate,
-    ToolCallUpdateFields,
+    InitializeResponse, McpCapabilities, NewSessionRequest, NewSessionResponse, PermissionOption,
+    PermissionOptionKind, PromptRequest, PromptResponse, RequestPermissionOutcome,
+    RequestPermissionRequest, RequestPermissionResponse, SessionCapabilities,
+    SessionCloseCapabilities, SessionId, SessionMode, SessionModeState, SessionNotification,
+    SessionUpdate, SetSessionModeRequest, SetSessionModeResponse, StopReason, TextContent,
+    ToolCall, ToolCallStatus, ToolCallUpdate, ToolCallUpdateFields,
 };
 use agent_client_protocol::util::MatchDispatchFrom;
 use agent_client_protocol::{
@@ -440,4 +441,331 @@ pub async fn drive_lifecycle(
             },
         )
         .await
+}
+
+// ---------------------------------------------------------------------------
+// Task 4: permission-request test helpers
+// ---------------------------------------------------------------------------
+
+/// The option_id strings used in [`perm_request_with_kinds`].
+pub const PERM_ALLOW_ONCE_ID: &str = "allow_once";
+pub const PERM_REJECT_ONCE_ID: &str = "reject_once";
+
+/// Build a [`RequestPermissionRequest`] offering `AllowOnce` + `RejectOnce`
+/// options, for use in unit tests of [`crate::harness::acp::permission`].
+pub fn perm_request_with_kinds() -> RequestPermissionRequest {
+    let session_id = SessionId::from("test-session-0");
+    let tool_call = ToolCallUpdate::new(
+        "tc-perm-1",
+        ToolCallUpdateFields::new().title("Bash".to_string()),
+    );
+    let options = vec![
+        PermissionOption::new(PERM_ALLOW_ONCE_ID, "Allow once", PermissionOptionKind::AllowOnce),
+        PermissionOption::new(PERM_REJECT_ONCE_ID, "Reject once", PermissionOptionKind::RejectOnce),
+    ];
+    RequestPermissionRequest::new(session_id, tool_call, options)
+}
+
+/// Returns `true` if `resp` is a `Selected` outcome with the allow-once option id.
+pub fn is_selected_allow_once(resp: &RequestPermissionResponse) -> bool {
+    match &resp.outcome {
+        RequestPermissionOutcome::Selected(s) => s.option_id.0.as_ref() == PERM_ALLOW_ONCE_ID,
+        _ => false,
+    }
+}
+
+/// Returns `true` if `resp` is a `Cancelled` outcome.
+pub fn is_cancelled(resp: &RequestPermissionResponse) -> bool {
+    matches!(resp.outcome, RequestPermissionOutcome::Cancelled)
+}
+
+/// Outcome returned by [`run_prompt_with_permission`].
+pub struct PermissionResult {
+    /// `true` when the mock agent received an `allow_once` selection back from the
+    /// client (i.e., the client routed the decision through the hub and produced
+    /// the correct answer-by-kind response).
+    pub allowed: bool,
+}
+
+/// A variant of [`MockAgent`] that sends a `request_permission` during the
+/// prompt handler and records whether the client replied with an allow selection.
+#[derive(Clone)]
+struct PermMockAgent {
+    /// Shared slot: after the prompt resolves, `true` means the client selected
+    /// an allow-once option.
+    allowed_slot: std::sync::Arc<tokio::sync::Mutex<bool>>,
+}
+
+impl HandleDispatchFrom<Client> for PermMockAgent {
+    fn describe_chain(&self) -> impl std::fmt::Debug {
+        "ryuzi-perm-mock-agent"
+    }
+
+    async fn handle_dispatch_from(
+        &mut self,
+        message: Dispatch,
+        cx: ConnectionTo<Client>,
+    ) -> Result<Handled<Dispatch>, agent_client_protocol::Error> {
+        let this = self.clone();
+        let base = MockAgent::new();
+        MatchDispatchFrom::new(message, &cx)
+            // initialize
+            .if_request(
+                |req: InitializeRequest, responder: Responder<InitializeResponse>| async move {
+                    responder.respond(base.initialize_response(&req))
+                },
+            )
+            .await
+            // session/new
+            .if_request(
+                |_req: NewSessionRequest, responder: Responder<NewSessionResponse>| async move {
+                    let session_id = uuid::Uuid::new_v4().to_string();
+                    responder.respond(MockAgent::new_session_response(session_id))
+                },
+            )
+            .await
+            // session/set_mode
+            .if_request(
+                |req: SetSessionModeRequest,
+                 responder: Responder<SetSessionModeResponse>| async move {
+                    let valid = ["default", "acceptEdits", "bypassPermissions"];
+                    if valid.contains(&req.mode_id.0.as_ref()) {
+                        responder.respond(SetSessionModeResponse::new())
+                    } else {
+                        responder.respond_with_error(
+                            agent_client_protocol::Error::invalid_params()
+                                .data(format!("unknown mode: {}", req.mode_id.0)),
+                        )
+                    }
+                },
+            )
+            .await
+            // session/prompt — spawn a task that sends request_permission then
+            // responds to the prompt. We must NOT use block_task() directly in the
+            // handler (it would deadlock the event loop); use cx.spawn() instead.
+            .if_request({
+                let cx_for_prompt = cx.clone();
+                move |req: PromptRequest, responder: Responder<PromptResponse>| {
+                    let cx = cx_for_prompt.clone();
+                    let allowed_slot = this.allowed_slot.clone();
+                    async move {
+                        let session_id = req.session_id.clone();
+
+                        // Build a permission request with AllowOnce + RejectOnce options.
+                        let tool_call = ToolCallUpdate::new(
+                            "tc-perm-1",
+                            ToolCallUpdateFields::new().title("Bash".to_string()),
+                        );
+                        let options = vec![
+                            PermissionOption::new(
+                                PERM_ALLOW_ONCE_ID,
+                                "Allow once",
+                                PermissionOptionKind::AllowOnce,
+                            ),
+                            PermissionOption::new(
+                                PERM_REJECT_ONCE_ID,
+                                "Reject once",
+                                PermissionOptionKind::RejectOnce,
+                            ),
+                        ];
+                        let perm_req =
+                            RequestPermissionRequest::new(session_id.clone(), tool_call, options);
+
+                        // Use cx.spawn so block_task() doesn't deadlock the
+                        // ACP event loop. The spawned task sends the permission
+                        // request, records the outcome, and responds to the prompt.
+                        let cx2 = cx.clone();
+                        cx.spawn(async move {
+                            let perm_resp: RequestPermissionResponse = cx2
+                                .send_request(perm_req)
+                                .block_task()
+                                .await
+                                .unwrap_or_else(|_| {
+                                    RequestPermissionResponse::new(
+                                        RequestPermissionOutcome::Cancelled,
+                                    )
+                                });
+
+                            // Record whether the client selected allow_once.
+                            let allowed = matches!(
+                                &perm_resp.outcome,
+                                RequestPermissionOutcome::Selected(s)
+                                    if s.option_id.0.as_ref() == PERM_ALLOW_ONCE_ID
+                            );
+                            *allowed_slot.lock().await = allowed;
+
+                            responder.respond(PromptResponse::new(StopReason::EndTurn))
+                        })?;
+
+                        // The spawned task will call responder.respond; return Ok here.
+                        Ok(())
+                    }
+                }
+            })
+            .await
+            // Responses (e.g. the session/request_permission reply that arrives
+            // while the spawned task is awaiting block_task()) MUST be returned
+            // as Handled::No so the dispatch loop's fallback routes them to the
+            // correct oneshot awaiter.  Using `.done()` instead of `.otherwise`
+            // achieves this: unhandled requests still get method_not_found from
+            // the fallback in incoming_actor; unhandled responses get forwarded
+            // to their oneshot via the ResponseRouter fallback.
+            .done()
+    }
+}
+
+/// Run the full lifecycle against the permission mock agent, resolve the approval
+/// hub with `decision`, and return `(hub, PermissionResult)`.
+///
+/// The `decision` is applied as a binary bool to the hub:
+/// `AllowOnce | AllowAlways` → `true` (allow), everything else → `false` (deny).
+pub async fn run_prompt_with_permission(
+    decision: crate::domain::ApprovalDecision,
+) -> (std::sync::Arc<crate::approval::ApprovalHub>, PermissionResult) {
+    use std::sync::Arc;
+
+    use agent_client_protocol::schema::ProtocolVersion;
+    use agent_client_protocol::schema::v1::{
+        ClientCapabilities, InitializeRequest, InitializeResponse,
+    };
+    use agent_client_protocol::Client;
+
+    use crate::approval::ApprovalHub;
+    use crate::domain::CoreEvent;
+
+    let hub: Arc<ApprovalHub> = Arc::new(ApprovalHub::new());
+    let (events_tx, _rx) = tokio::sync::broadcast::channel::<CoreEvent>(64);
+    let allowed_slot: Arc<tokio::sync::Mutex<bool>> =
+        Arc::new(tokio::sync::Mutex::new(false));
+
+    let perm_agent = PermMockAgent {
+        allowed_slot: allowed_slot.clone(),
+    };
+
+    // Shared state for the client side
+    let hub_for_client = hub.clone();
+    let events_for_client = events_tx.clone();
+
+    let (client_read, server_write) = tokio::io::duplex(64 * 1024);
+    let (server_read, client_write) = tokio::io::duplex(64 * 1024);
+    use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
+
+    let _server_join = tokio::spawn(async move {
+        // Ignore the error: transport-closed errors are expected when the
+        // client drops its end after the test completes.
+        let _ = SacpAgent
+            .builder()
+            .name("ryuzi-perm-mock-agent")
+            .with_handler(perm_agent)
+            .connect_to(agent_client_protocol::ByteStreams::new(
+                server_write.compat_write(),
+                server_read.compat(),
+            ))
+            .await;
+    });
+
+    let transport = agent_client_protocol::ByteStreams::new(
+        client_write.compat_write(),
+        client_read.compat(),
+    );
+
+    // The binary allow/deny value derived from the decision.
+    let allow = matches!(
+        decision,
+        crate::domain::ApprovalDecision::AllowOnce | crate::domain::ApprovalDecision::AllowAlways
+    );
+
+    Client
+        .builder()
+        .on_receive_notification(
+            async move |_notification: SessionNotification, _cx| Ok(()),
+            agent_client_protocol::on_receive_notification!(),
+        )
+        .on_receive_request(
+            {
+                let hub = hub_for_client.clone();
+                let events = events_for_client.clone();
+                async move |request: RequestPermissionRequest, responder, _cx| {
+                    let request_id = request.tool_call.tool_call_id.0.to_string();
+                    let session_pk = request.session_id.0.to_string();
+                    let tool = request
+                        .tool_call
+                        .fields
+                        .title
+                        .clone()
+                        .unwrap_or_else(|| "unknown".to_string());
+                    let summary = tool.clone();
+
+                    let _ = events.send(CoreEvent::ApprovalRequested {
+                        session_pk,
+                        request_id: request_id.clone(),
+                        tool,
+                        summary,
+                    });
+
+                    // Register with the hub, then resolve immediately (binary 3A
+                    // path: hub is already wired before the request arrives).
+                    let rx = hub.register(request_id.clone());
+                    hub.resolve(&request_id, allow);
+
+                    let got_allow = rx.await.unwrap_or(false);
+                    let decision = if got_allow {
+                        crate::domain::ApprovalDecision::AllowOnce
+                    } else {
+                        crate::domain::ApprovalDecision::RejectOnce
+                    };
+                    let response = crate::harness::acp::permission::map_response(&request, decision);
+                    responder.respond(response)
+                }
+            },
+            agent_client_protocol::on_receive_request!(),
+        )
+        .connect_with(
+            transport,
+            async move |cx: agent_client_protocol::ConnectionTo<agent_client_protocol::Agent>| {
+                // initialize
+                let _init: InitializeResponse = cx
+                    .send_request(
+                        InitializeRequest::new(ProtocolVersion::LATEST)
+                            .client_capabilities(ClientCapabilities::new()),
+                    )
+                    .block_task()
+                    .await?;
+
+                // session/new
+                let session_resp = crate::harness::acp::lifecycle::new_session(
+                    &cx,
+                    std::path::PathBuf::from("/tmp"),
+                    vec![],
+                )
+                .await?;
+                let session_id = session_resp.session_id.clone();
+
+                // set_mode
+                let available = session_resp
+                    .modes
+                    .as_ref()
+                    .map(|m| m.available_modes.as_slice())
+                    .unwrap_or(&[]);
+                crate::harness::acp::lifecycle::set_mode(
+                    &cx,
+                    session_id.clone(),
+                    "default",
+                    available,
+                )
+                .await?;
+
+                // prompt — the perm mock will send a request_permission before EndTurn
+                let content = vec![ContentBlock::Text(TextContent::new("hi"))];
+                let (_stop, _usage) =
+                    crate::harness::acp::lifecycle::prompt(&cx, session_id, content).await?;
+
+                Ok(())
+            },
+        )
+        .await
+        .expect("run_prompt_with_permission: ACP lifecycle failed");
+
+    let allowed = *allowed_slot.lock().await;
+    (hub, PermissionResult { allowed })
 }
