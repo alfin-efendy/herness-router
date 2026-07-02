@@ -50,6 +50,14 @@ fn migrations() -> Migrations<'static> {
             CREATE UNIQUE INDEX idx_messages_tool_call \
                 ON messages(session_pk, tool_call_id) WHERE tool_call_id IS NOT NULL;",
         ),
+        M::up(
+            "CREATE TABLE tool_policies (\
+                project_id TEXT NOT NULL,\
+                tool TEXT NOT NULL,\
+                decision TEXT NOT NULL,\
+                PRIMARY KEY (project_id, tool)\
+            );",
+        ),
     ])
 }
 
@@ -320,6 +328,55 @@ impl Store {
         Ok(rows)
     }
 
+    /// Return the persisted decision for `(project_id, tool)`, or `None` if no
+    /// policy has been set.
+    pub async fn get_tool_policy(
+        &self,
+        project_id: &str,
+        tool: &str,
+    ) -> anyhow::Result<Option<String>> {
+        let project_id = project_id.to_string();
+        let tool = tool.to_string();
+        let conn = self.pool.get().await?;
+        let result = conn
+            .interact(move |c| {
+                c.query_row(
+                    "SELECT decision FROM tool_policies WHERE project_id=?1 AND tool=?2",
+                    params![project_id, tool],
+                    |r| r.get::<_, String>(0),
+                )
+                .optional()
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("db interact failed: {e}"))??;
+        Ok(result)
+    }
+
+    /// Upsert a tool policy: set `decision` for `(project_id, tool)`.
+    /// On conflict (same project+tool already has a policy), update the decision.
+    pub async fn set_tool_policy(
+        &self,
+        project_id: &str,
+        tool: &str,
+        decision: &str,
+    ) -> anyhow::Result<()> {
+        let project_id = project_id.to_string();
+        let tool = tool.to_string();
+        let decision = decision.to_string();
+        let conn = self.pool.get().await?;
+        conn.interact(move |c| {
+            c.execute(
+                "INSERT INTO tool_policies(project_id, tool, decision) \
+                 VALUES (?1, ?2, ?3) \
+                 ON CONFLICT(project_id, tool) DO UPDATE SET decision=excluded.decision",
+                params![project_id, tool, decision],
+            )
+        })
+        .await
+        .map_err(|e| anyhow::anyhow!("db interact failed: {e}"))??;
+        Ok(())
+    }
+
     pub async fn update_tool_call(
         &self,
         session_pk: &str,
@@ -470,6 +527,28 @@ mod tests {
             .update_tool_call("s1", "missing-tc", Some("completed"), &serde_json::json!({}))
             .await;
         assert!(res.is_err(), "updating a nonexistent tool_call_id must error");
+    }
+
+    #[tokio::test]
+    async fn tool_policy_is_per_project_and_upserts() {
+        let tmp = tempfile::NamedTempFile::new().unwrap();
+        let store = Store::open(tmp.path()).await.unwrap();
+        // initially no policy
+        assert!(store.get_tool_policy("p1", "Bash").await.unwrap().is_none());
+        // set a policy
+        store.set_tool_policy("p1", "Bash", "allowAlways").await.unwrap();
+        assert_eq!(
+            store.get_tool_policy("p1", "Bash").await.unwrap().as_deref(),
+            Some("allowAlways")
+        );
+        // different project is independent
+        assert!(store.get_tool_policy("p2", "Bash").await.unwrap().is_none());
+        // upsert (update) the existing policy
+        store.set_tool_policy("p1", "Bash", "rejectAlways").await.unwrap();
+        assert_eq!(
+            store.get_tool_policy("p1", "Bash").await.unwrap().as_deref(),
+            Some("rejectAlways")
+        );
     }
 
     #[tokio::test]

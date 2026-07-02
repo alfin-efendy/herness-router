@@ -7,6 +7,7 @@ pub enum PermMode {
     Default,
     AcceptEdits,
     BypassPermissions,
+    Plan,
 }
 
 impl PermMode {
@@ -15,12 +16,14 @@ impl PermMode {
             PermMode::Default => "default",
             PermMode::AcceptEdits => "acceptEdits",
             PermMode::BypassPermissions => "bypassPermissions",
+            PermMode::Plan => "plan",
         }
     }
     pub fn from_db(s: &str) -> PermMode {
         match s {
             "acceptEdits" => PermMode::AcceptEdits,
             "bypassPermissions" => PermMode::BypassPermissions,
+            "plan" => PermMode::Plan,
             _ => PermMode::Default,
         }
     }
@@ -239,6 +242,7 @@ mod tests {
             PermMode::Default,
             PermMode::AcceptEdits,
             PermMode::BypassPermissions,
+            PermMode::Plan,
         ] {
             assert_eq!(PermMode::from_db(m.as_str()), m);
         }

@@ -118,7 +118,7 @@ async fn run_client_loop(
 
     let sink_for_handler = sink.clone();
     let sink_for_write = sink.clone();
-    let perm = (perm.hub, perm.events);
+    let perm = (perm.hub, perm.events, perm.project_id, perm.perm_mode, perm.store);
     // Clone work_dir for the fs/terminal handler closures (they must be 'static + Send).
     let work_dir_for_read = work_dir.clone();
     let work_dir_for_write = work_dir.clone();
@@ -151,7 +151,7 @@ async fn run_client_loop(
         )
         .on_receive_request(
             {
-                let (hub, events) = perm;
+                let (hub, events, project_id, perm_mode_for_perm, store_for_perm) = perm;
                 async move |request: agent_client_protocol::schema::v1::RequestPermissionRequest,
                             responder,
                             _cx| {
@@ -164,6 +164,27 @@ async fn run_client_loop(
                         .clone()
                         .unwrap_or_else(|| "unknown".to_string());
                     let summary = tool.clone();
+
+                    // Consult the per-project tool policy before prompting.
+                    let project_policy = store_for_perm
+                        .get_tool_policy(&project_id, &tool)
+                        .await
+                        .unwrap_or(None);
+                    let outcome = crate::policy::decide_tool_permission(
+                        perm_mode_for_perm,
+                        project_policy.as_deref(),
+                        &tool,
+                    );
+
+                    if outcome == crate::policy::PolicyOutcome::AutoAllow {
+                        // Policy says auto-allow: respond immediately without
+                        // prompting the user through the hub.
+                        let response = crate::harness::acp::permission::map_response(
+                            &request,
+                            crate::domain::ApprovalDecision::AllowOnce,
+                        );
+                        return responder.respond(response);
+                    }
 
                     let _ = events.send(CoreEvent::ApprovalRequested {
                         session_pk,
@@ -607,9 +628,25 @@ impl Harness for AcpHarness {
             store: ctx.store.clone(),
             events: ctx.events.clone(),
         });
+
+        // Resolve the project_id for per-project policy lookups. If the session
+        // is not found (e.g. in tests that don't pre-seed the store), fall back
+        // to an empty string — the lookup will simply return None.
+        let project_id = ctx
+            .store
+            .get_session(&ctx.session_pk)
+            .await
+            .ok()
+            .flatten()
+            .map(|s| s.project_id)
+            .unwrap_or_default();
+
         let perm = PermissionContext {
             hub: ctx.approvals.clone(),
             events: ctx.events.clone(),
+            project_id,
+            perm_mode: ctx.perm_mode,
+            store: ctx.store.clone(),
         };
 
         let (tx, rx) = mpsc::channel::<ClientRequest>(32);
@@ -810,6 +847,25 @@ mod tests {
                 .contains("wrote"),
             "status payload summary should mention 'wrote', got: {:?}",
             status_row.payload
+        );
+    }
+
+    #[tokio::test]
+    async fn allow_always_policy_auto_allows_without_hub_registration() {
+        // Pre-set an allowAlways policy for "Bash" on project "p-perm-bridge".
+        // The PermMockAgent sends a request_permission for tool "Bash" during prompt.
+        // The bridge should auto-allow it without touching the hub, so the test
+        // completes without needing a hub.resolve() call.
+        let outcome = crate::harness::acp::testkit::run_perm_mock_via_harness(
+            "p-perm-bridge",
+            Some(("Bash", "allowAlways")),
+        )
+        .await;
+
+        assert!(outcome.allowed, "mock agent should have received an allow selection");
+        assert!(
+            outcome.hub_was_never_registered,
+            "hub should NOT have been registered when policy is allowAlways"
         );
     }
 

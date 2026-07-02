@@ -13,7 +13,7 @@
 
 use std::sync::Arc;
 
-use crate::domain::CoreEvent;
+use crate::domain::{CoreEvent, PermMode};
 
 use super::AcpAdapterDescriptor;
 
@@ -22,6 +22,12 @@ use super::AcpAdapterDescriptor;
 pub struct PermissionContext {
     pub hub: Arc<crate::approval::ApprovalHub>,
     pub events: tokio::sync::broadcast::Sender<CoreEvent>,
+    /// The ryuzi project id for this session (used to look up per-project policies).
+    pub project_id: String,
+    /// The effective permission mode for this session.
+    pub perm_mode: PermMode,
+    /// Store handle for per-project tool policy lookups.
+    pub store: Arc<crate::store::Store>,
 }
 
 /// Spawn an ACP adapter sidecar per its [`AcpAdapterDescriptor`], with stdio

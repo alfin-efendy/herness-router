@@ -30,6 +30,13 @@ impl ApprovalHub {
             false
         }
     }
+
+    /// Returns `true` if the hub currently has any unresolved registrations.
+    /// Useful in tests to assert that the bridge never registered a request
+    /// (i.e. auto-allow short-circuited before the hub).
+    pub fn has_pending(&self) -> bool {
+        !self.pending.lock().unwrap().is_empty()
+    }
 }
 
 impl Default for ApprovalHub {

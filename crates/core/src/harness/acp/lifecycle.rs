@@ -26,13 +26,12 @@ use agent_client_protocol_schema::v1::{McpServer, Usage, AGENT_METHOD_NAMES};
 use crate::domain::PermMode;
 
 /// Map a ryuzi [`PermMode`] to the ACP wire mode-id string the agent expects.
-///
-/// `Plan` is intentionally omitted: `PermMode::Plan` does not exist yet in 3A.
 pub fn perm_mode_to_acp_mode(mode: PermMode) -> &'static str {
     match mode {
         PermMode::Default => "default",
         PermMode::AcceptEdits => "acceptEdits",
         PermMode::BypassPermissions => "bypassPermissions",
+        PermMode::Plan => "plan",
     }
 }
 

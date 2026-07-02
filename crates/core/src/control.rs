@@ -294,6 +294,25 @@ impl ControlPlane {
         self.store.list_messages(session_pk).await
     }
 
+    /// Retrieve the persisted tool policy for `(project_id, tool)`, if any.
+    pub async fn get_tool_policy(
+        &self,
+        project_id: &str,
+        tool: &str,
+    ) -> anyhow::Result<Option<String>> {
+        self.store.get_tool_policy(project_id, tool).await
+    }
+
+    /// Persist (or update) a tool policy for `(project_id, tool)`.
+    pub async fn set_tool_policy(
+        &self,
+        project_id: &str,
+        tool: &str,
+        decision: &str,
+    ) -> anyhow::Result<()> {
+        self.store.set_tool_policy(project_id, tool, decision).await
+    }
+
     /// Persist a transcript block, then broadcast it with its assigned seq.
     /// On persist failure we log and skip the Message event (never fabricate a seq).
     async fn persist_and_emit(
